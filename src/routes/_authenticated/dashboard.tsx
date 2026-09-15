@@ -57,13 +57,13 @@ function Dashboard() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label={mode === "demo" ? "Demo balance" : "Real balance"}
-          value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "—"}
+          value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "Unavailable"}
           hint={mode === "demo" ? "Simulated funds" : "Verification required"}
           tone="positive"
         />
         <StatCard
           label="Net P/L"
-          value={(netPnl >= 0 ? "+" : "−") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
+          value={(netPnl >= 0 ? "+" : "minus ") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
           hint="Across settled trades"
           tone={netPnl < 0 ? "negative" : "positive"}
         />
