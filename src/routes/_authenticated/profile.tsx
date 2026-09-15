@@ -16,12 +16,12 @@ import { useAccountMode } from "@/components/account-mode";
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "Profile — CryptoMagg" },
+      { title: "Profile | CryptoMagg" },
       {
         name: "description",
         content: "Manage your CryptoMagg display name and reset your demo trading balance.",
       },
-      { property: "og:title", content: "Profile — CryptoMagg" },
+      { property: "og:title", content: "Profile | CryptoMagg" },
       { property: "og:description", content: "Manage your demo trading account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -75,11 +75,11 @@ function ProfilePage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
           label={mode === "demo" ? "Demo balance" : "Real balance"}
-          value={data?.profile ? (mode === "demo" ? "$" + formatMoney(Number(data.profile.demo_balance)) : formatMoney(Number(data.profile.live_balance)) + " USDT") : "—"}
+          value={data?.profile ? (mode === "demo" ? "$" + formatMoney(Number(data.profile.demo_balance)) : formatMoney(Number(data.profile.live_balance)) + " USDT") : "Unavailable"}
           tone="positive"
         />
-        <StatCard label="Settled trades" value={stats ? String(stats.totalTrades) : "—"} />
-        <StatCard label="Win rate" value={stats ? stats.winRate + "%" : "—"} />
+        <StatCard label="Settled trades" value={stats ? String(stats.totalTrades) : "Unavailable"} />
+        <StatCard label="Win rate" value={stats ? stats.winRate + "%" : "Unavailable"} />
       </div>
 
       <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4">

@@ -19,13 +19,13 @@ import { getUsdKesRate } from "@/lib/market.functions";
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
     meta: [
-      { title: "Wallet — CryptoMagg" },
+      { title: "Wallet | CryptoMagg" },
       {
         name: "description",
         content:
           "Simulated deposits and withdrawals for your CryptoMagg demo balance. No real money moves.",
       },
-      { property: "og:title", content: "Wallet — CryptoMagg" },
+      { property: "og:title", content: "Wallet | CryptoMagg" },
       { property: "og:description", content: "Simulated deposits and withdrawals only." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -241,7 +241,7 @@ function WalletPage() {
               <Label>Method</Label>
               <div className="grid grid-cols-2 gap-2">
                 {DEPOSIT_METHODS.map((m) => (
-                  <button
+                  <Button
                     key={m.id}
                     type="button"
                     onClick={() => setMethod(m.id)}
@@ -253,7 +253,7 @@ function WalletPage() {
                     )}
                   >
                     {m.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -264,7 +264,7 @@ function WalletPage() {
                 id="destination"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                placeholder="Any text — this is a simulation"
+                placeholder="Any text. This is a simulation"
               />
             </div>
 

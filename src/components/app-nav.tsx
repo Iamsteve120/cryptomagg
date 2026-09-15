@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, Zap } from "lucide-react";
+import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, CandlestickChart } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/assets";
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/markets", label: "Markets", icon: LineChart },
-  { to: "/trade", label: "Trade", icon: Zap },
+  { to: "/trade", label: "Trade", icon: CandlestickChart },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/history", label: "History", icon: History },
   { to: "/profile", label: "Profile", icon: User },
@@ -53,7 +53,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
           <div className="hidden rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right sm:block">
             <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? "Demo USD" : "Real USDT"}</p>
             <p className="num text-sm font-semibold text-primary">
-              {balance === null ? "—" : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
+              {balance === null ? "Unavailable" : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">

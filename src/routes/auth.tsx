@@ -12,13 +12,13 @@ import { DemoBanner } from "@/components/demo-banner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — CryptoMagg Trading Simulator" },
+      { title: "Sign in | CryptoMagg Trading Simulator" },
       {
         name: "description",
         content:
           "Create a free CryptoMagg demo account to practise crypto trading with simulated funds.",
       },
-      { property: "og:title", content: "Sign in — CryptoMagg Trading Simulator" },
+      { property: "og:title", content: "Sign in | CryptoMagg Trading Simulator" },
       {
         property: "og:description",
         content: "Create a free CryptoMagg demo account and practise with simulated funds.",
@@ -77,7 +77,7 @@ function AuthPage() {
     });
     if (result.error) {
       setBusy(false);
-      toast.error("Google sign-in didn't work. Please try again.");
+      toast.error("Google sign in did not work. Please try again.");
       return;
     }
     if (result.redirected) return;

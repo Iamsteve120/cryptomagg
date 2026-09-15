@@ -15,6 +15,13 @@
       "when": 1789512739832,
       "tag": "0001_add_live_usdt_account_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789515615215,
+      "tag": "0002_add_trade_balance_audit",
+      "breakpoints": true
     }
   ]
 }

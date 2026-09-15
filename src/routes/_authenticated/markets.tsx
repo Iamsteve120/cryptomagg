@@ -1,18 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { StockCard } from "@/components/ui/stock-card";
+import { CryptoCard } from "@/components/ui/asset-card";
 import { useMarkets } from "@/hooks/use-trading";
 
 export const Route = createFileRoute("/_authenticated/markets")({
   head: () => ({
     meta: [
-      { title: "Markets — CryptoMagg" },
+      { title: "Markets | CryptoMagg" },
       {
         name: "description",
         content: "Live crypto prices, 24h moves and payout rates for CryptoMagg simulated trades.",
       },
-      { property: "og:title", content: "Markets — CryptoMagg" },
+      { property: "og:title", content: "Markets | CryptoMagg" },
       { property: "og:description", content: "Live crypto prices and simulated payout rates." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -48,7 +48,7 @@ function Markets() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {quotes.map((q) => (
-          <StockCard key={q.symbol} ticker={q.symbol} name={q.name} price={q.price} change={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onBuy={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
+          <CryptoCard key={q.symbol} ticker={q.symbol} name={q.name} currentPrice={q.price} percentageChange={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onTrade={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
         ))}
       </div>
     </div>

@@ -18,7 +18,7 @@ export function DemoFooter() {
       <div className="mx-auto max-w-7xl px-4 py-8 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <BrandLogo size="sm" withWordmark={false} />
-          <p className="font-semibold text-foreground">CryptoMagg · cryptomagg.site</p>
+          <p className="font-semibold text-foreground">CryptoMagg | cryptomagg.site</p>
         </div>
         <p className="mt-3 max-w-2xl leading-relaxed">
           CryptoMagg demo mode is a trading simulator. No real money is involved in Demo mode.

@@ -9,13 +9,13 @@ import { useMarkets } from "@/hooks/use-trading";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CryptoMagg — Practise Crypto Trading With Simulated Funds" },
+      { title: "CryptoMagg | Practise Crypto Trading" },
       {
         name: "description",
         content:
           "CryptoMagg is a crypto trading simulator with live market prices, simulated deposits and up/down trades. No real money is involved.",
       },
-      { property: "og:title", content: "CryptoMagg — Crypto Trading Simulator" },
+      { property: "og:title", content: "CryptoMagg | Crypto Trading Simulator" },
       {
         property: "og:description",
         content:
@@ -54,8 +54,7 @@ function Landing() {
             <Activity className="size-3.5" /> Live prices · simulated money
           </span>
           <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-[1.05] sm:text-6xl">
-            Trade crypto like the pros —{" "}
-            <span className="text-primary">without risking a cent.</span>
+            Learn the market. <span className="text-primary">Build your trading discipline.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             CryptoMagg mirrors real market movement from a live price feed, then lets you practise
