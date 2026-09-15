@@ -61,7 +61,7 @@ export function StatCard({
   tone?: "default" | "positive" | "negative";
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(

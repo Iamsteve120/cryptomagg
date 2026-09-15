@@ -13,6 +13,7 @@ import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
+import { useAccountMode } from "@/components/account-mode";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 
@@ -28,6 +29,8 @@ export const Route = createFileRoute("/_authenticated/trade")({
       },
       { property: "og:title", content: "Trade — CryptoMagg" },
       { property: "og:description", content: "Simulated up/down trading on live crypto prices." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TradePage,
@@ -47,6 +50,7 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 }
 
 function TradePage() {
+  const { mode } = useAccountMode();
   const { symbol: initialSymbol } = Route.useSearch();
   const queryClient = useQueryClient();
   const { data: markets } = useMarkets();
@@ -60,17 +64,21 @@ function TradePage() {
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((q) => q.symbol === symbol);
   const asset = ASSETS.find((a) => a.symbol === symbol);
-  const balance = account?.profile ? Number(account.profile.demo_balance) : 0;
+  const balance = account?.profile
+    ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance)
+    : 0;
   const stakeValue = Number(stake) || 0;
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
-  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
+  const openTrades = (account?.trades ?? []).filter(
+    (trade) => trade.status === "open" && trade.account_mode === mode,
+  );
 
   const mutation = useMutation({
     mutationFn: (direction: "up" | "down") =>
-      submit({ data: { symbol, direction, stake: stakeValue, durationSeconds: duration } }),
+      submit({ data: { accountMode: mode, symbol, direction, stake: stakeValue, durationSeconds: duration } }),
     onSuccess: (res) => {
       toast.success(
-        `Simulated ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
+        `Demo ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
       );
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -82,8 +90,9 @@ function TradePage() {
       <div>
         <h1 className="text-2xl font-semibold">Trade</h1>
         <p className="text-sm text-muted-foreground">
-          Predict the direction. Trades settle automatically against the live price at expiry — all
-          simulated.
+          {mode === "demo"
+            ? "Predict the direction. Demo trades settle automatically against the live price."
+            : "Real trading is locked until account and payment verification is complete."}
         </p>
       </div>
 
@@ -175,9 +184,10 @@ function TradePage() {
             <Label>Asset</Label>
             <div className="grid grid-cols-3 gap-2">
               {ASSETS.map((a) => (
-                <button
+                <Button
                   key={a.symbol}
                   type="button"
+                  variant="outline"
                   onClick={() => setSymbol(a.symbol)}
                   className={cn(
                     "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
@@ -187,7 +197,7 @@ function TradePage() {
                   )}
                 >
                   {a.symbol}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -196,9 +206,10 @@ function TradePage() {
             <Label>Expiry</Label>
             <div className="grid grid-cols-4 gap-2">
               {DURATIONS.map((d) => (
-                <button
+                <Button
                   key={d.seconds}
                   type="button"
+                  variant="outline"
                   onClick={() => setDuration(d.seconds)}
                   className={cn(
                     "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
@@ -208,20 +219,20 @@ function TradePage() {
                   )}
                 >
                   {d.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="stake">Stake (demo USD)</Label>
+            <Label htmlFor="stake">Stake ({mode === "demo" ? "demo USD" : "USDT"})</Label>
             <Input
               id="stake"
               inputMode="decimal"
               value={stake}
               onChange={(e) => setStake(e.target.value)}
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[25, 50, 100, 250].map((v) => (
                 <Button
                   key={v}
@@ -230,7 +241,7 @@ function TradePage() {
                   variant="secondary"
                   onClick={() => setStake(String(v))}
                 >
-                  ${v}
+                  {mode === "demo" ? "$" : ""}{v}
                 </Button>
               ))}
             </div>
@@ -243,22 +254,22 @@ function TradePage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Profit if correct</dt>
-              <dd className="num font-semibold text-primary">+${formatMoney(payout)}</dd>
+               <dd className="num font-semibold text-primary">+{formatMoney(payout)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Loss if wrong</dt>
-              <dd className="num font-semibold text-destructive">-${formatMoney(stakeValue)}</dd>
+               <dd className="num font-semibold text-destructive">−{formatMoney(stakeValue)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Available</dt>
-              <dd className="num font-semibold">${formatMoney(balance)}</dd>
+               <dd className="num font-semibold">{formatMoney(balance)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
           </dl>
 
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-12 text-base"
-              disabled={mutation.isPending || stakeValue <= 0}
+              disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance}
               onClick={() => mutation.mutate("up")}
             >
               <ArrowUpRight className="size-5" /> Up
@@ -266,7 +277,7 @@ function TradePage() {
             <Button
               variant="destructive"
               className="h-12 text-base"
-              disabled={mutation.isPending || stakeValue <= 0}
+              disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance}
               onClick={() => mutation.mutate("down")}
             >
               <ArrowDownRight className="size-5" /> Down
@@ -274,7 +285,9 @@ function TradePage() {
           </div>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Simulated trade — no real money is placed.
+            {mode === "demo"
+              ? "Demo trade. No real money is placed."
+              : "Real trading will unlock only after a regulated provider is connected."}
           </p>
         </div>
       </div>

@@ -21,6 +21,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          live_balance: number
           updated_at: string
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          live_balance?: number
           updated_at?: string
         }
         Update: {
@@ -37,12 +39,14 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          live_balance?: number
           updated_at?: string
         }
         Relationships: []
       }
       trades: {
         Row: {
+          account_mode: string
           asset_name: string
           created_at: string
           direction: string
@@ -60,6 +64,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_mode?: string
           asset_name: string
           created_at?: string
           direction: string
@@ -77,6 +82,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_mode?: string
           asset_name?: string
           created_at?: string
           direction?: string
@@ -97,6 +103,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_mode: string
           amount: number
           asset: string
           created_at: string
@@ -108,6 +115,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_mode?: string
           amount: number
           asset?: string
           created_at?: string
@@ -119,6 +127,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_mode?: string
           amount?: number
           asset?: string
           created_at?: string

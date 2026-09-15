@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ChangeBadge, PriceText, Sparkline, StatCard } from "@/components/market-widgets";
+import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
+import { StockCard } from "@/components/ui/stock-card";
+import { useAccountMode } from "@/components/account-mode";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -14,18 +16,26 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       },
       { property: "og:title", content: "Dashboard — CryptoMagg" },
       { property: "og:description", content: "Track your simulated trading performance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
 });
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const { mode } = useAccountMode();
   const { data: account } = useAccount();
   const { data: markets } = useMarkets();
   const quotes = markets?.quotes ?? [];
   const profile = account?.profile;
-  const stats = account?.stats;
-  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
+  const accountTrades = (account?.trades ?? []).filter((trade) => trade.account_mode === mode);
+  const openTrades = accountTrades.filter((trade) => trade.status === "open");
+  const settledTrades = accountTrades.filter((trade) => trade.status !== "open");
+  const wonTrades = settledTrades.filter((trade) => trade.status === "won");
+  const netPnl = settledTrades.reduce((sum, trade) => sum + Number(trade.pnl), 0);
+  const winRate = settledTrades.length > 0 ? Math.round((wonTrades.length / settledTrades.length) * 100) : 0;
   const movers = [...quotes].sort((a, b) => b.change24h - a.change24h).slice(0, 4);
 
   return (
@@ -36,7 +46,7 @@ function Dashboard() {
             Welcome back{profile?.full_name ? ", " + profile.full_name.split(" ")[0] : ""}
           </h1>
           <p className="text-sm text-muted-foreground">
-            All balances and trades below are simulated.
+            {mode === "demo" ? "Practice with simulated funds." : "Real account balances are held in USDT."}
           </p>
         </div>
         <Button asChild>
@@ -46,21 +56,21 @@ function Dashboard() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Demo balance"
-          value={profile ? "$" + formatMoney(Number(profile.demo_balance)) : "—"}
-          hint="Simulated funds"
+          label={mode === "demo" ? "Demo balance" : "Real balance"}
+          value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "—"}
+          hint={mode === "demo" ? "Simulated funds" : "Verification required"}
           tone="positive"
         />
         <StatCard
           label="Net P/L"
-          value={stats ? (stats.netPnl >= 0 ? "+" : "-") + "$" + formatMoney(Math.abs(stats.netPnl)) : "—"}
+          value={(netPnl >= 0 ? "+" : "−") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
           hint="Across settled trades"
-          tone={stats && stats.netPnl < 0 ? "negative" : "positive"}
+          tone={netPnl < 0 ? "negative" : "positive"}
         />
-        <StatCard label="Win rate" value={stats ? stats.winRate + "%" : "—"} hint="Settled trades" />
+        <StatCard label="Win rate" value={winRate + "%"} hint="Settled trades" />
         <StatCard
           label="Open positions"
-          value={stats ? String(stats.openTrades) : "—"}
+          value={String(openTrades.length)}
           hint="Settling automatically"
         />
       </div>
@@ -70,7 +80,9 @@ function Dashboard() {
           <h2 className="text-lg font-semibold">Open positions</h2>
           {openTrades.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No open positions. Head to Trade to open a simulated up/down position.
+              {mode === "demo"
+                ? "No open positions. Head to Trade to open a demo position."
+                : "Real trading remains locked until verification is complete."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
@@ -96,20 +108,11 @@ function Dashboard() {
 
         <div className="rounded-xl border border-border/70 bg-card p-4">
           <h2 className="text-lg font-semibold">Top movers</h2>
-          <ul className="mt-4 space-y-3">
-            {movers.map((q) => (
-              <li key={q.symbol} className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">{q.symbol}</p>
-                  <PriceText value={q.price} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkline points={q.sparkline} up={q.change24h >= 0} />
-                  <ChangeBadge value={q.change24h} />
-                </div>
-              </li>
+          <div className="mt-4 space-y-3">
+            {movers.slice(0, 2).map((q) => (
+              <StockCard key={q.symbol} ticker={q.symbol} name={q.name} price={q.price} change={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onBuy={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
             ))}
-          </ul>
+          </div>
           <Button asChild variant="outline" className="mt-4 w-full">
             <Link to="/markets">View all markets</Link>
           </Button>

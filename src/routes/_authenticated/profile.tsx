@@ -11,6 +11,7 @@ import { useAccount } from "@/hooks/use-trading";
 import { resetDemoAccount, updateDisplayName } from "@/lib/trading.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/assets";
+import { useAccountMode } from "@/components/account-mode";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -22,12 +23,15 @@ export const Route = createFileRoute("/_authenticated/profile")({
       },
       { property: "og:title", content: "Profile — CryptoMagg" },
       { property: "og:description", content: "Manage your demo trading account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProfilePage,
 });
 
 function ProfilePage() {
+  const { mode } = useAccountMode();
   const { data } = useAccount();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -64,14 +68,14 @@ function ProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold">Profile</h1>
         <p className="text-sm text-muted-foreground">
-          Your account holds simulated funds only.
+          {mode === "demo" ? "Manage your practice account." : "Your Real account is awaiting verification."}
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
-          label="Demo balance"
-          value={data?.profile ? "$" + formatMoney(Number(data.profile.demo_balance)) : "—"}
+          label={mode === "demo" ? "Demo balance" : "Real balance"}
+          value={data?.profile ? (mode === "demo" ? "$" + formatMoney(Number(data.profile.demo_balance)) : formatMoney(Number(data.profile.live_balance)) + " USDT") : "—"}
           tone="positive"
         />
         <StatCard label="Settled trades" value={stats ? String(stats.totalTrades) : "—"} />
