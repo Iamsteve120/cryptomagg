@@ -46,11 +46,11 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden rounded-md border border-border bg-secondary/40 p-1 sm:flex" aria-label="Account type">
+          <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="Account type">
             <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
             <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Real</Button>
           </div>
-          <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right">
+          <div className="hidden rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right sm:block">
             <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? "Demo USD" : "Real USDT"}</p>
             <p className="num text-sm font-semibold text-primary">
               {balance === null ? "—" : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
