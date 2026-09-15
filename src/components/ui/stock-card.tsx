@@ -6,7 +6,8 @@ import { Sparkline } from "@/components/market-widgets";
 import { formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 
-export interface StockCardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface StockCardProps {
+  className?: string;
   ticker: string;
   name: string;
   price: number;
@@ -17,7 +18,7 @@ export interface StockCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const StockCard = React.forwardRef<HTMLDivElement, StockCardProps>(
-  ({ className, ticker, name, price, change, points, payoutRate, onBuy, ...props }, ref) => {
+  ({ className, ticker, name, price, change, points, payoutRate, onBuy }, ref) => {
     const reduceMotion = useReducedMotion();
     const isPositive = change >= 0;
 
@@ -32,7 +33,6 @@ const StockCard = React.forwardRef<HTMLDivElement, StockCardProps>(
           "grid min-h-32 grid-cols-[1fr_auto] gap-4 rounded-lg border border-border bg-card p-4 shadow-sm",
           className,
         )}
-        {...props}
       >
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-primary/10 font-display text-sm font-bold text-primary">

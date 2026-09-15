@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ChangeBadge, PriceText, Sparkline } from "@/components/market-widgets";
+import { StockCard } from "@/components/ui/stock-card";
 import { useMarkets } from "@/hooks/use-trading";
-import { formatMoney } from "@/lib/assets";
 
 export const Route = createFileRoute("/_authenticated/markets")({
   head: () => ({
@@ -22,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/markets")({
 });
 
 function Markets() {
+  const navigate = useNavigate();
   const { data, isFetching } = useMarkets();
   const [query, setQuery] = useState("");
   const quotes = (data?.quotes ?? []).filter((q) =>
@@ -45,56 +45,10 @@ function Markets() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border/70 bg-card">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3">Asset</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">24h</th>
-              <th className="px-4 py-3">24h high / low</th>
-              <th className="px-4 py-3">Volume</th>
-              <th className="px-4 py-3">Trend</th>
-              <th className="px-4 py-3 text-right">Payout</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {quotes.map((q) => (
-              <tr key={q.symbol} className="border-t border-border/60">
-                <td className="px-4 py-3">
-                  <p className="font-semibold">{q.symbol}</p>
-                  <p className="text-xs text-muted-foreground">{q.name}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <PriceText value={q.price} />
-                </td>
-                <td className="px-4 py-3">
-                  <ChangeBadge value={q.change24h} />
-                </td>
-                <td className="num px-4 py-3 text-xs text-muted-foreground">
-                  ${formatMoney(q.high24h)} / ${formatMoney(q.low24h)}
-                </td>
-                <td className="num px-4 py-3 text-xs text-muted-foreground">
-                  ${formatMoney(q.volume24h / 1_000_000, 1)}M
-                </td>
-                <td className="px-4 py-3">
-                  <Sparkline points={q.sparkline} up={q.change24h >= 0} />
-                </td>
-                <td className="num px-4 py-3 text-right font-semibold text-primary">
-                  {q.payoutRate}%
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/trade" search={{ symbol: q.symbol }}>
-                      Trade
-                    </Link>
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {quotes.map((q) => (
+          <StockCard key={q.symbol} ticker={q.symbol} name={q.name} price={q.price} change={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onBuy={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
+        ))}
       </div>
     </div>
   );

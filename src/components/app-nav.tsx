@@ -2,6 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, Menu, Zap } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
+import { useAccountMode } from "@/components/account-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
@@ -16,9 +17,11 @@ const links = [
   { to: "/profile", label: "Profile", icon: User },
 ] as const;
 
-export function AppNav({ balance }: { balance: number | null }) {
+export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | null; liveBalance: number | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { mode, setMode } = useAccountMode();
+  const balance = mode === "demo" ? demoBalance : liveBalance;
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -46,10 +49,14 @@ export function AppNav({ balance }: { balance: number | null }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-right">
-            <p className="text-[10px] uppercase tracking-wider text-primary/80">Demo balance</p>
+          <div className="hidden rounded-md border border-border bg-secondary/40 p-1 sm:flex" aria-label="Account type">
+            <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
+            <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Live</Button>
+          </div>
+          <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right">
+            <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? "Demo USD" : "Live USDT"}</p>
             <p className="num text-sm font-semibold text-primary">
-              {balance === null ? "—" : "$" + formatMoney(balance)}
+              {balance === null ? "—" : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
@@ -73,6 +80,10 @@ export function AppNav({ balance }: { balance: number | null }) {
           open ? "grid" : "hidden",
         )}
       >
+        <div className="col-span-3 mb-1 grid grid-cols-2 gap-1 rounded-md border border-border bg-secondary/40 p-1 sm:hidden">
+          <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
+          <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Live</Button>
+        </div>
         {links.map((l) => (
           <Link
             key={l.to}
