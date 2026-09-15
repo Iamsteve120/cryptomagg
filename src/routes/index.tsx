@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, ShieldCheck, Activity, Wallet } from "lucide-react";
+import { ShieldCheck, Activity, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand-logo";
 import { DemoBanner, DemoFooter } from "@/components/demo-banner";
 import { ChangeBadge, PriceText, Sparkline } from "@/components/market-widgets";
 import { useMarkets } from "@/hooks/use-trading";
@@ -34,12 +35,7 @@ function Landing() {
       <DemoBanner />
 
       <header className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-        <span className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Zap className="size-4" />
-          </span>
-          CryptoMagg
-        </span>
+        <BrandLogo size="md" />
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost">
             <Link to="/auth">Sign in</Link>

@@ -1,6 +1,7 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, Menu, Zap } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
@@ -27,11 +28,8 @@ export function AppNav({ balance }: { balance: number | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
-        <Link to="/dashboard" className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Zap className="size-4" />
-          </span>
-          CryptoMagg
+        <Link to="/dashboard" className="flex items-center">
+          <BrandLogo size="sm" className="shrink-0" />
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex">
