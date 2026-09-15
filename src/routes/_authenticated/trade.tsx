@@ -1,0 +1,304 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { toast } from "sonner";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChangeBadge, PriceText, Sparkline } from "@/components/market-widgets";
+import { useAccount, useMarkets } from "@/hooks/use-trading";
+import { placeTrade } from "@/lib/trading.functions";
+import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
+import { cn } from "@/lib/utils";
+
+const searchSchema = z.object({ symbol: z.string().optional() });
+
+export const Route = createFileRoute("/_authenticated/trade")({
+  validateSearch: (search) => searchSchema.parse(search),
+  head: () => ({
+    meta: [
+      { title: "Trade — CryptoMagg" },
+      {
+        name: "description",
+        content:
+          "Open simulated up/down crypto trades on live prices with fixed payout rates on CryptoMagg.",
+      },
+      { property: "og:title", content: "Trade — CryptoMagg" },
+      { property: "og:description", content: "Simulated up/down trading on live crypto prices." },
+    ],
+  }),
+  component: TradePage,
+});
+
+function Countdown({ expiresAt }: { expiresAt: string }) {
+  const [left, setLeft] = useState(() =>
+    Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000)),
+  );
+  useEffect(() => {
+    const id = setInterval(() => {
+      setLeft(Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  return <span className="num">{left > 0 ? left + "s" : "settling…"}</span>;
+}
+
+function TradePage() {
+  const { symbol: initialSymbol } = Route.useSearch();
+  const queryClient = useQueryClient();
+  const { data: markets } = useMarkets();
+  const { data: account } = useAccount();
+  const submit = useServerFn(placeTrade);
+
+  const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
+  const [duration, setDuration] = useState(60);
+  const [stake, setStake] = useState("50");
+
+  const quotes = markets?.quotes ?? [];
+  const quote = quotes.find((q) => q.symbol === symbol);
+  const asset = ASSETS.find((a) => a.symbol === symbol);
+  const balance = account?.profile ? Number(account.profile.demo_balance) : 0;
+  const stakeValue = Number(stake) || 0;
+  const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
+  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
+
+  const mutation = useMutation({
+    mutationFn: (direction: "up" | "down") =>
+      submit({ data: { symbol, direction, stake: stakeValue, durationSeconds: duration } }),
+    onSuccess: (res) => {
+      toast.success(
+        `Simulated ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not open the trade."),
+  });
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-semibold">Trade</h1>
+        <p className="text-sm text-muted-foreground">
+          Predict the direction. Trades settle automatically against the live price at expiry — all
+          simulated.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-3">
+          <div className="rounded-xl border border-border/70 bg-card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-xl font-semibold">
+                  {quote?.symbol ?? symbol} / USD
+                </p>
+                <p className="text-xs text-muted-foreground">{quote?.name ?? asset?.name}</p>
+              </div>
+              <div className="text-right">
+                {quote ? <PriceText value={quote.price} /> : <span className="num">—</span>}
+                <div className="mt-1">{quote ? <ChangeBadge value={quote.change24h} /> : null}</div>
+              </div>
+            </div>
+            <div className="mt-4 h-40 w-full">
+              {quote && quote.sparkline.length > 1 ? (
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-40 w-full">
+                  {(() => {
+                    const pts = quote.sparkline;
+                    const min = Math.min(...pts);
+                    const max = Math.max(...pts);
+                    const span = max - min || 1;
+                    const d = pts
+                      .map((p, i) => {
+                        const x = (i / (pts.length - 1)) * 100;
+                        const y = 38 - ((p - min) / span) * 34;
+                        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+                      })
+                      .join(" ");
+                    return (
+                      <>
+                        <path
+                          d={`${d} L100,40 L0,40 Z`}
+                          className={quote.change24h >= 0 ? "fill-primary/15" : "fill-destructive/15"}
+                        />
+                        <path
+                          d={d}
+                          fill="none"
+                          strokeWidth="2"
+                          vectorEffect="non-scaling-stroke"
+                          className={quote.change24h >= 0 ? "stroke-primary" : "stroke-destructive"}
+                        />
+                      </>
+                    );
+                  })()}
+                </svg>
+              ) : (
+                <div className="h-40 w-full animate-pulse rounded-lg bg-muted/50" />
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/70 bg-card p-4">
+            <h2 className="text-lg font-semibold">Open positions</h2>
+            {openTrades.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Nothing open right now.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-border/60">
+                {openTrades.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                    <div>
+                      <p className="font-semibold">
+                        {t.symbol}{" "}
+                        <span
+                          className={t.direction === "up" ? "text-primary" : "text-destructive"}
+                        >
+                          {t.direction === "up" ? "▲ Up" : "▼ Down"}
+                        </span>
+                      </p>
+                      <p className="num text-xs text-muted-foreground">
+                        Entry ${formatPrice(Number(t.entry_price))} · stake $
+                        {formatMoney(Number(t.stake))}
+                      </p>
+                    </div>
+                    <Countdown expiresAt={t.expires_at} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4 lg:col-span-2">
+          <div className="space-y-2">
+            <Label>Asset</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {ASSETS.map((a) => (
+                <button
+                  key={a.symbol}
+                  type="button"
+                  onClick={() => setSymbol(a.symbol)}
+                  className={cn(
+                    "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
+                    symbol === a.symbol
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border/70 text-muted-foreground hover:bg-accent/60",
+                  )}
+                >
+                  {a.symbol}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Expiry</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d.seconds}
+                  type="button"
+                  onClick={() => setDuration(d.seconds)}
+                  className={cn(
+                    "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
+                    duration === d.seconds
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border/70 text-muted-foreground hover:bg-accent/60",
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="stake">Stake (demo USD)</Label>
+            <Input
+              id="stake"
+              inputMode="decimal"
+              value={stake}
+              onChange={(e) => setStake(e.target.value)}
+            />
+            <div className="flex gap-2">
+              {[25, 50, 100, 250].map((v) => (
+                <Button
+                  key={v}
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setStake(String(v))}
+                >
+                  ${v}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <dl className="space-y-1.5 rounded-lg bg-secondary/50 p-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Payout rate</dt>
+              <dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Profit if correct</dt>
+              <dd className="num font-semibold text-primary">+${formatMoney(payout)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Loss if wrong</dt>
+              <dd className="num font-semibold text-destructive">-${formatMoney(stakeValue)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Available</dt>
+              <dd className="num font-semibold">${formatMoney(balance)}</dd>
+            </div>
+          </dl>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="h-12 text-base"
+              disabled={mutation.isPending || stakeValue <= 0}
+              onClick={() => mutation.mutate("up")}
+            >
+              <ArrowUpRight className="size-5" /> Up
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-12 text-base"
+              disabled={mutation.isPending || stakeValue <= 0}
+              onClick={() => mutation.mutate("down")}
+            >
+              <ArrowDownRight className="size-5" /> Down
+            </Button>
+          </div>
+
+          <p className="text-center text-[11px] text-muted-foreground">
+            Simulated trade — no real money is placed.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <h2 className="text-lg font-semibold">Watchlist</h2>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {quotes.map((q) => (
+            <li
+              key={q.symbol}
+              className="flex items-center justify-between gap-2 rounded-lg border border-border/60 p-3"
+            >
+              <div>
+                <p className="text-sm font-semibold">{q.symbol}</p>
+                <PriceText value={q.price} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkline points={q.sparkline} up={q.change24h >= 0} />
+                <ChangeBadge value={q.change24h} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
