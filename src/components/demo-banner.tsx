@@ -1,4 +1,5 @@
 import { TriangleAlert } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function DemoBanner() {
   return (
