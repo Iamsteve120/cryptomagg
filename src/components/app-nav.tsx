@@ -65,7 +65,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="hidden"
             aria-label="Menu"
             onClick={() => setOpen((v) => !v)}
           >
@@ -76,21 +76,17 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
 
       <nav
         className={cn(
-          "grid grid-cols-3 gap-1 border-t border-border/70 px-3 py-2 lg:hidden",
+          "fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden",
           open ? "grid" : "hidden",
         )}
       >
-        <div className="col-span-3 mb-1 grid grid-cols-2 gap-1 rounded-md border border-border bg-secondary/40 p-1 sm:hidden">
-          <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
-          <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Real</Button>
-        </div>
         {links.map((l) => (
           <Link
             key={l.to}
             to={l.to}
             onClick={() => setOpen(false)}
             activeProps={{ className: "bg-accent text-accent-foreground" }}
-            className="flex flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground"
+            className="flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted-foreground"
           >
             <l.icon className="size-4" />
             {l.label}
