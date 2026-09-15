@@ -48,51 +48,16 @@ async function settleDueTrades(userId: string) {
 
   const { fetchMarketQuotes } = await import("./market.server");
   const quotes = await fetchMarketQuotes();
-  let credit = 0;
-
   for (const trade of open) {
     const quote = quotes.find((q) => q.symbol === trade.symbol);
     const exit = quote ? quote.price : Number(trade.entry_price);
     const entry = Number(trade.entry_price);
-    const stake = Number(trade.stake);
-    let status: "won" | "lost" | "tie" = "tie";
-    let pnl = 0;
-
-    if (exit === entry) {
-      status = "tie";
-      pnl = 0;
-      credit += stake;
-    } else {
-      const wentUp = exit > entry;
-      const won = trade.direction === "up" ? wentUp : !wentUp;
-      status = won ? "won" : "lost";
-      pnl = won ? (stake * Number(trade.payout_rate)) / 100 : -stake;
-      if (won) credit += stake + pnl;
-    }
-
-    await db
-      .from("trades")
-      .update({
-        status,
-        pnl,
-        exit_price: exit,
-        settled_at: new Date().toISOString(),
-      })
-      .eq("id", trade.id)
-      .eq("status", "open");
-  }
-
-  if (credit > 0) {
-    const { data: profile } = await db
-      .from("profiles")
-      .select("demo_balance")
-      .eq("id", userId)
-      .single();
-    const next = Number(profile?.demo_balance ?? 0) + credit;
-    await db
-      .from("profiles")
-      .update({ demo_balance: next, updated_at: new Date().toISOString() })
-      .eq("id", userId);
+    const { error } = await db.rpc("settle_demo_trade", {
+      p_user_id: userId,
+      p_trade_id: trade.id,
+      p_exit_price: exit,
+    });
+    if (error) console.error("Trade settlement failed", trade.id, error.message);
   }
 }
 
@@ -195,6 +160,7 @@ const tradeSchema = z.object({
   direction: z.enum(["up", "down"]),
   stake: z.number().positive().max(1_000_000),
   durationSeconds: z.number().int(),
+  source: z.enum(["manual", "assist", "auto"]).default("manual"),
 });
 
 export const placeTrade = createServerFn({ method: "POST" })
@@ -215,9 +181,7 @@ export const placeTrade = createServerFn({ method: "POST" })
     const stake = Math.round(data.stake * 100) / 100;
     if (stake < 1) throw new Error("Minimum stake is 1.00 demo USD.");
 
-    const profile = await ensureProfile(context.userId, null);
-    const balance = Number(profile.demo_balance);
-    if (stake > balance) throw new Error("Not enough demo balance.");
+    await ensureProfile(context.userId, null);
 
     const { priceForSymbol } = await import("./market.server");
     const entry = await priceForSymbol(asset.symbol);
@@ -225,30 +189,22 @@ export const placeTrade = createServerFn({ method: "POST" })
     const db = await admin();
     const expiresAt = new Date(Date.now() + data.durationSeconds * 1000).toISOString();
 
-    const { data: trade, error } = await db
-      .from("trades")
-      .insert({
-        user_id: context.userId,
-        symbol: asset.symbol,
-        asset_name: asset.name,
-        direction: data.direction,
-        stake,
-        payout_rate: asset.payoutRate,
-        duration_seconds: data.durationSeconds,
-        entry_price: entry,
-        expires_at: expiresAt,
-        account_mode: "demo",
-      })
-      .select("*")
-      .single();
-    if (error) throw new Error("Could not open the simulated trade.");
+    const { data: rows, error } = await db.rpc("reserve_demo_trade", {
+      p_user_id: context.userId,
+      p_symbol: asset.symbol,
+      p_asset_name: asset.name,
+      p_direction: data.direction,
+      p_stake: stake,
+      p_payout_rate: asset.payoutRate,
+      p_duration_seconds: data.durationSeconds,
+      p_entry_price: entry,
+      p_expires_at: expiresAt,
+      p_trade_source: data.source,
+    });
+    const trade = rows?.[0];
+    if (error || !trade) throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
 
-    await db
-      .from("profiles")
-      .update({ demo_balance: balance - stake, updated_at: new Date().toISOString() })
-      .eq("id", context.userId);
-
-    return { trade, balance: balance - stake };
+    return { trade, balance: Number(trade.balance_after_open) };
   });
 
 export const resetDemoAccount = createServerFn({ method: "POST" })

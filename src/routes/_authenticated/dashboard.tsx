@@ -3,18 +3,18 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
-import { StockCard } from "@/components/ui/stock-card";
+import { CryptoCard } from "@/components/ui/asset-card";
 import { useAccountMode } from "@/components/account-mode";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — CryptoMagg" },
+      { title: "Dashboard | CryptoMagg" },
       {
         name: "description",
         content: "Your CryptoMagg demo balance, open positions and simulated performance.",
       },
-      { property: "og:title", content: "Dashboard — CryptoMagg" },
+      { property: "og:title", content: "Dashboard | CryptoMagg" },
       { property: "og:description", content: "Track your simulated trading performance." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -110,7 +110,7 @@ function Dashboard() {
           <h2 className="text-lg font-semibold">Top movers</h2>
           <div className="mt-4 space-y-3">
             {movers.slice(0, 2).map((q) => (
-              <StockCard key={q.symbol} ticker={q.symbol} name={q.name} price={q.price} change={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onBuy={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
+              <CryptoCard key={q.symbol} ticker={q.symbol} name={q.name} currentPrice={q.price} percentageChange={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onTrade={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
             ))}
           </div>
           <Button asChild variant="outline" className="mt-4 w-full">
