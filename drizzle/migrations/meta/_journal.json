@@ -8,6 +8,13 @@
       "when": 1789508674033,
       "tag": "0000_cryptomagg_demo_trading_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789512739832,
+      "tag": "0001_add_live_usdt_account_mode",
+      "breakpoints": true
     }
   ]
 }
