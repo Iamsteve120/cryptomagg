@@ -27,7 +27,7 @@ const StockCard = React.forwardRef<HTMLDivElement, StockCardProps>(
         ref={ref}
         initial={reduceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={reduceMotion ? undefined : { y: -2 }}
+        whileHover={reduceMotion ? {} : { y: -2 }}
         transition={{ duration: 0.2 }}
         className={cn(
           "grid min-h-32 grid-cols-[1fr_auto] gap-4 rounded-lg border border-border bg-card p-4 shadow-sm",

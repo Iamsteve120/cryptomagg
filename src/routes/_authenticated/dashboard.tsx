@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ChangeBadge, PriceText, Sparkline, StatCard } from "@/components/market-widgets";
+import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
+import { StockCard } from "@/components/ui/stock-card";
+import { useAccountMode } from "@/components/account-mode";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -20,12 +23,14 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const { mode } = useAccountMode();
   const { data: account } = useAccount();
   const { data: markets } = useMarkets();
   const quotes = markets?.quotes ?? [];
   const profile = account?.profile;
   const stats = account?.stats;
-  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
+  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open" && t.account_mode === mode);
   const movers = [...quotes].sort((a, b) => b.change24h - a.change24h).slice(0, 4);
 
   return (
@@ -36,7 +41,7 @@ function Dashboard() {
             Welcome back{profile?.full_name ? ", " + profile.full_name.split(" ")[0] : ""}
           </h1>
           <p className="text-sm text-muted-foreground">
-            All balances and trades below are simulated.
+            {mode === "demo" ? "Practice with simulated funds." : "Live account balances are held in USDT."}
           </p>
         </div>
         <Button asChild>
@@ -46,9 +51,9 @@ function Dashboard() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Demo balance"
-          value={profile ? "$" + formatMoney(Number(profile.demo_balance)) : "—"}
-          hint="Simulated funds"
+          label={mode === "demo" ? "Demo balance" : "Live balance"}
+          value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "—"}
+          hint={mode === "demo" ? "Simulated funds" : "Verification required"}
           tone="positive"
         />
         <StatCard
@@ -96,20 +101,11 @@ function Dashboard() {
 
         <div className="rounded-xl border border-border/70 bg-card p-4">
           <h2 className="text-lg font-semibold">Top movers</h2>
-          <ul className="mt-4 space-y-3">
-            {movers.map((q) => (
-              <li key={q.symbol} className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">{q.symbol}</p>
-                  <PriceText value={q.price} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkline points={q.sparkline} up={q.change24h >= 0} />
-                  <ChangeBadge value={q.change24h} />
-                </div>
-              </li>
+          <div className="mt-4 space-y-3">
+            {movers.slice(0, 2).map((q) => (
+              <StockCard key={q.symbol} ticker={q.symbol} name={q.name} price={q.price} change={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onBuy={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
             ))}
-          </ul>
+          </div>
           <Button asChild variant="outline" className="mt-4 w-full">
             <Link to="/markets">View all markets</Link>
           </Button>

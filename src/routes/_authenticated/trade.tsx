@@ -13,6 +13,7 @@ import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
+import { useAccountMode } from "@/components/account-mode";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 
@@ -47,6 +48,7 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 }
 
 function TradePage() {
+  const { mode } = useAccountMode();
   const { symbol: initialSymbol } = Route.useSearch();
   const queryClient = useQueryClient();
   const { data: markets } = useMarkets();
@@ -60,14 +62,16 @@ function TradePage() {
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((q) => q.symbol === symbol);
   const asset = ASSETS.find((a) => a.symbol === symbol);
-  const balance = account?.profile ? Number(account.profile.demo_balance) : 0;
+  const balance = account?.profile
+    ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance)
+    : 0;
   const stakeValue = Number(stake) || 0;
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
 
   const mutation = useMutation({
     mutationFn: (direction: "up" | "down") =>
-      submit({ data: { symbol, direction, stake: stakeValue, durationSeconds: duration } }),
+      submit({ data: { accountMode: mode, symbol, direction, stake: stakeValue, durationSeconds: duration } }),
     onSuccess: (res) => {
       toast.success(
         `Simulated ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
@@ -82,8 +86,9 @@ function TradePage() {
       <div>
         <h1 className="text-2xl font-semibold">Trade</h1>
         <p className="text-sm text-muted-foreground">
-          Predict the direction. Trades settle automatically against the live price at expiry — all
-          simulated.
+          {mode === "demo"
+            ? "Predict the direction. Demo trades settle automatically against the live price."
+            : "Live trading is locked until account and payment verification is complete."}
         </p>
       </div>
 
@@ -214,7 +219,7 @@ function TradePage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="stake">Stake (demo USD)</Label>
+            <Label htmlFor="stake">Stake ({mode === "demo" ? "demo USD" : "USDT"})</Label>
             <Input
               id="stake"
               inputMode="decimal"
@@ -258,7 +263,7 @@ function TradePage() {
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-12 text-base"
-              disabled={mutation.isPending || stakeValue <= 0}
+              disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance}
               onClick={() => mutation.mutate("up")}
             >
               <ArrowUpRight className="size-5" /> Up
@@ -266,7 +271,7 @@ function TradePage() {
             <Button
               variant="destructive"
               className="h-12 text-base"
-              disabled={mutation.isPending || stakeValue <= 0}
+              disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance}
               onClick={() => mutation.mutate("down")}
             >
               <ArrowDownRight className="size-5" /> Down
@@ -274,7 +279,9 @@ function TradePage() {
           </div>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Simulated trade — no real money is placed.
+            {mode === "demo"
+              ? "Demo trade. No real money is placed."
+              : "Live trading will unlock only after a regulated provider is connected."}
           </p>
         </div>
       </div>

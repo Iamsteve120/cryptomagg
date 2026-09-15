@@ -138,6 +138,7 @@ export const getAccount = createServerFn({ method: "GET" })
 
 const fundsSchema = z.object({
   kind: z.enum(["deposit", "withdrawal"]),
+  accountMode: z.enum(["demo", "live"]).default("demo"),
   method: z.string().min(1).max(40),
   amount: z.number().positive().max(1_000_000),
   destination: z.string().max(120).optional(),
@@ -148,6 +149,9 @@ export const moveFunds = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => fundsSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "funds");
+    if (data.accountMode === "live") {
+      throw new Error("Live deposits and withdrawals are unavailable until payment verification is complete.");
+    }
     const method = DEPOSIT_METHODS.find((m) => m.id === data.method);
     if (!method) throw new Error("Unsupported method.");
 
@@ -171,6 +175,7 @@ export const moveFunds = createServerFn({ method: "POST" })
       asset: method.asset,
       amount,
       status: "completed",
+      account_mode: "demo",
       destination: data.destination ?? null,
     });
     if (txError) throw new Error("Could not record the simulated transaction.");
@@ -184,6 +189,7 @@ export const moveFunds = createServerFn({ method: "POST" })
   });
 
 const tradeSchema = z.object({
+  accountMode: z.enum(["demo", "live"]).default("demo"),
   symbol: z.string().min(2).max(10),
   direction: z.enum(["up", "down"]),
   stake: z.number().positive().max(1_000_000),
@@ -195,6 +201,9 @@ export const placeTrade = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => tradeSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "trade");
+    if (data.accountMode === "live") {
+      throw new Error("Live trading is unavailable until account verification is complete.");
+    }
 
     const asset = ASSETS.find((a) => a.symbol === data.symbol);
     if (!asset) throw new Error("Unsupported asset.");
@@ -227,6 +236,7 @@ export const placeTrade = createServerFn({ method: "POST" })
         duration_seconds: data.durationSeconds,
         entry_price: entry,
         expires_at: expiresAt,
+        account_mode: "demo",
       })
       .select("*")
       .single();
