@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Bot, CircleUserRound, ScanLine } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CircleUserRound, Repeat2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetIcon } from "@/components/ui/asset-icon";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/history")({
 });
 
 function when(value: string) {
-  return new Date(value).toLocaleString("en GB", { day: "2 digit", month: "short", hour: "2 digit", minute: "2 digit" });
+  return new Date(value).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function money(value: number | null, mode: string) {
@@ -33,7 +33,7 @@ function money(value: number | null, mode: string) {
 
 function sourceLabel(source: string) {
   if (source === "assist") return { label: "Assisted", icon: ScanLine };
-  if (source === "auto") return { label: "Automatic", icon: Bot };
+  if (source === "auto") return { label: "Automatic", icon: Repeat2 };
   return { label: "Manual", icon: CircleUserRound };
 }
 
@@ -78,7 +78,7 @@ function HistoryPage() {
           })}</div>}
         </TabsContent>
         <TabsContent value="wallet">
-          <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full min-w-[600px] text-sm"><thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Account</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Method</th><th className="px-4 py-3 text-right">Amount</th></tr></thead><tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No wallet activity matches this account filter.</td></tr> : transactions.map((transaction) => <tr key={transaction.id} className="border-t border-border/60"><td className="num px-4 py-3 text-xs text-muted-foreground">{when(transaction.created_at)}</td><td className="px-4 py-3">{transaction.account_mode === "demo" ? "Demo" : "Real"}</td><td className="px-4 py-3 capitalize">{transaction.kind}</td><td className="px-4 py-3 text-muted-foreground">{transaction.method}</td><td className={cn("num px-4 py-3 text-right font-semibold", transaction.kind === "deposit" ? "text-primary" : "text-destructive")}>{transaction.kind === "deposit" ? "+" : ""}{transaction.kind === "withdrawal" ? "−" : ""}{formatMoney(Number(transaction.amount))} {transaction.account_mode === "demo" ? "USD" : "USDT"}</td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full min-w-[600px] text-sm"><thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Account</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Method</th><th className="px-4 py-3 text-right">Amount</th></tr></thead><tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No wallet activity matches this account filter.</td></tr> : transactions.map((transaction) => <tr key={transaction.id} className="border-t border-border/60"><td className="num px-4 py-3 text-xs text-muted-foreground">{when(transaction.created_at)}</td><td className="px-4 py-3">{transaction.account_mode === "demo" ? "Demo" : "Real"}</td><td className="px-4 py-3 capitalize">{transaction.kind}</td><td className="px-4 py-3 text-muted-foreground">{transaction.method}</td><td className={cn("num px-4 py-3 text-right font-semibold", transaction.kind === "deposit" ? "text-primary" : "text-destructive")}>{transaction.kind === "deposit" ? "+" : transaction.kind === "withdrawal" ? "minus " : ""}{formatMoney(Number(transaction.amount))} {transaction.account_mode === "demo" ? "USD" : "USDT"}</td></tr>)}</tbody></table></div>
         </TabsContent>
       </Tabs>
     </div>
