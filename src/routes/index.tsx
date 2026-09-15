@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, ShieldCheck, Activity, Wallet } from "lucide-react";
+import { ShieldCheck, Activity, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand-logo";
 import { DemoBanner, DemoFooter } from "@/components/demo-banner";
 import { ChangeBadge, PriceText, Sparkline } from "@/components/market-widgets";
 import { useMarkets } from "@/hooks/use-trading";
