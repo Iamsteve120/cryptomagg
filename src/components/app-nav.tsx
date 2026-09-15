@@ -1,12 +1,10 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, Menu, Zap } from "lucide-react";
+import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, Zap } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
-import { cn } from "@/lib/utils";
 
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,7 +17,6 @@ const links = [
 
 export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | null; liveBalance: number | null }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const { mode, setMode } = useAccountMode();
   const balance = mode === "demo" ? demoBalance : liveBalance;
 
@@ -62,29 +59,14 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
             <LogOut className="size-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden"
-            aria-label="Menu"
-            onClick={() => setOpen((v) => !v)}
-          >
-            <Menu className="size-4" />
-          </Button>
         </div>
       </div>
 
-      <nav
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden",
-          open ? "grid" : "hidden",
-        )}
-      >
+      <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden">
         {links.map((l) => (
           <Link
             key={l.to}
             to={l.to}
-            onClick={() => setOpen(false)}
             activeProps={{ className: "bg-accent text-accent-foreground" }}
             className="flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted-foreground"
           >
