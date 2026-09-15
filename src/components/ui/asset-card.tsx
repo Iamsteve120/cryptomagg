@@ -35,7 +35,7 @@ export function CryptoCard({
     <motion.article
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={reduceMotion ? undefined : { y: -2 }}
+      whileHover={reduceMotion ? {} : { y: -2 }}
       transition={{ duration: 0.18 }}
       className={cn("overflow-hidden rounded-lg border border-border bg-card shadow-sm", className)}
     >

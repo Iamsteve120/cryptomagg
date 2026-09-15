@@ -1,4 +1,3 @@
-import type { ComponentType, SVGProps } from "react";
 import {
   SiBinance,
   SiBitcoin,
@@ -13,7 +12,7 @@ import {
 import { CircleDollarSign, Mountain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+const icons: Record<string, typeof SiBitcoin> = {
   BTC: SiBitcoin,
   ETH: SiEthereum,
   SOL: SiSolana,
