@@ -241,7 +241,7 @@ function WalletPage() {
               <Label>Method</Label>
               <div className="grid grid-cols-2 gap-2">
                 {DEPOSIT_METHODS.map((m) => (
-                  <button
+                  <Button
                     key={m.id}
                     type="button"
                     onClick={() => setMethod(m.id)}
@@ -253,7 +253,7 @@ function WalletPage() {
                     )}
                   >
                     {m.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
