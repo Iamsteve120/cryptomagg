@@ -1,20 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { ArrowDownRight, ArrowUpRight, Bot, CircleUserRound, ScanLine } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { useAccount } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
-import { useAccountMode } from "@/components/account-mode";
+import { useAccountMode, type AccountMode } from "@/components/account-mode";
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({
     meta: [
-      { title: "History — CryptoMagg" },
-      {
-        name: "description",
-        content: "Full record of your simulated CryptoMagg trades, deposits and withdrawals.",
-      },
-      { property: "og:title", content: "History — CryptoMagg" },
-      { property: "og:description", content: "Your simulated trade and wallet history." },
+      { title: "History | CryptoMagg" },
+      { name: "description", content: "Review every CryptoMagg trade and its exact account balance effect." },
+      { property: "og:title", content: "History | CryptoMagg" },
+      { property: "og:description", content: "Your complete trade and wallet record." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -23,137 +24,61 @@ export const Route = createFileRoute("/_authenticated/history")({
 });
 
 function when(value: string) {
-  return new Date(value).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(value).toLocaleString("en GB", { day: "2 digit", month: "short", hour: "2 digit", minute: "2 digit" });
+}
+
+function money(value: number | null, mode: string) {
+  return value === null ? "Unavailable" : `${formatMoney(Number(value))} ${mode === "demo" ? "USD" : "USDT"}`;
+}
+
+function sourceLabel(source: string) {
+  if (source === "assist") return { label: "Assisted", icon: ScanLine };
+  if (source === "auto") return { label: "Automatic", icon: Bot };
+  return { label: "Manual", icon: CircleUserRound };
 }
 
 function HistoryPage() {
   const { mode } = useAccountMode();
   const { data } = useAccount();
-  const trades = (data?.trades ?? []).filter((trade) => trade.account_mode === mode);
-  const transactions = (data?.transactions ?? []).filter((transaction) => transaction.account_mode === mode);
+  const [filter, setFilter] = useState<"all" | AccountMode>(mode);
+  const trades = (data?.trades ?? []).filter((trade) => filter === "all" || trade.account_mode === filter);
+  const transactions = (data?.transactions ?? []).filter((transaction) => filter === "all" || transaction.account_mode === filter);
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">History</h1>
-        <p className="text-sm text-muted-foreground">
-          {mode === "demo" ? "Your demo account activity." : "Your verified Live account activity."}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h1 className="text-2xl font-semibold">History</h1><p className="text-sm text-muted-foreground">Every account movement in one auditable record.</p></div>
+        <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="History account filter">
+          {(["all", "demo", "live"] as const).map((value) => <Button key={value} size="sm" variant={filter === value ? "secondary" : "ghost"} onClick={() => setFilter(value)}>{value === "all" ? "All" : value === "demo" ? "Demo" : "Real"}</Button>)}
+        </div>
       </div>
 
       <Tabs defaultValue="trades">
-        <TabsList>
-          <TabsTrigger value="trades">Trades</TabsTrigger>
-          <TabsTrigger value="wallet">Wallet</TabsTrigger>
-        </TabsList>
-
+        <TabsList><TabsTrigger value="trades">Trades</TabsTrigger><TabsTrigger value="wallet">Wallet</TabsTrigger></TabsList>
         <TabsContent value="trades">
-          <div className="overflow-x-auto rounded-xl border border-border/70 bg-card">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Opened</th>
-                  <th className="px-4 py-3">Asset</th>
-                  <th className="px-4 py-3">Direction</th>
-                  <th className="px-4 py-3">Stake</th>
-                  <th className="px-4 py-3">Entry / Exit</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">P/L</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trades.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      No trades yet.
-                    </td>
-                  </tr>
-                ) : (
-                  trades.map((t) => (
-                    <tr key={t.id} className="border-t border-border/60">
-                      <td className="num px-4 py-3 text-xs text-muted-foreground">
-                        {when(t.created_at)}
-                      </td>
-                      <td className="px-4 py-3 font-semibold">{t.symbol}</td>
-                      <td
-                        className={cn(
-                          "px-4 py-3 font-medium",
-                          t.direction === "up" ? "text-primary" : "text-destructive",
-                        )}
-                      >
-                        {t.direction === "up" ? "▲ Up" : "▼ Down"}
-                      </td>
-                      <td className="num px-4 py-3">${formatMoney(Number(t.stake))}</td>
-                      <td className="num px-4 py-3 text-xs text-muted-foreground">
-                        ${formatPrice(Number(t.entry_price))} →{" "}
-                        {t.exit_price ? "$" + formatPrice(Number(t.exit_price)) : "—"}
-                      </td>
-                      <td className="px-4 py-3 capitalize">{t.status}</td>
-                      <td
-                        className={cn(
-                          "num px-4 py-3 text-right font-semibold",
-                          Number(t.pnl) > 0 && "text-primary",
-                          Number(t.pnl) < 0 && "text-destructive",
-                        )}
-                      >
-                        {Number(t.pnl) > 0 ? "+" : Number(t.pnl) < 0 ? "-" : ""}$
-                        {formatMoney(Math.abs(Number(t.pnl)))}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          {trades.length === 0 ? <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">No trades match this account filter.</div> : <div className="grid gap-3">{trades.map((trade) => {
+            const source = sourceLabel(trade.trade_source);
+            const SourceIcon = source.icon;
+            const resultingBalance = trade.balance_after_settlement ?? trade.balance_after_open;
+            return <article key={trade.id} className="rounded-lg border border-border bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-full border border-border bg-secondary"><AssetIcon symbol={trade.symbol} /></div><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? <ArrowUpRight className="inline size-4" /> : <ArrowDownRight className="inline size-4" />} {trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-xs text-muted-foreground">{when(trade.created_at)}</p></div></div>
+                <div className="flex items-center gap-2"><span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium">{trade.account_mode === "demo" ? "Demo" : "Real"}</span><span className={cn("rounded-md px-2 py-1 text-xs font-semibold capitalize", trade.status === "won" ? "bg-primary/15 text-primary" : trade.status === "lost" ? "bg-destructive/15 text-destructive" : "bg-secondary text-muted-foreground")}>{trade.status}</span></div>
+              </div>
+              <div className="mt-4 grid gap-3 border-y border-border py-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
+                <div><p className="text-xs text-muted-foreground">Source</p><p className="mt-1 flex items-center gap-1.5 font-medium"><SourceIcon className="size-4" />{source.label}</p></div>
+                <div><p className="text-xs text-muted-foreground">Opening balance</p><p className="num mt-1 font-medium">{money(trade.balance_before, trade.account_mode)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Stake</p><p className="num mt-1 font-medium">{money(Number(trade.stake), trade.account_mode)}</p></div>
+                <div><p className="text-xs text-muted-foreground">After opening</p><p className="num mt-1 font-medium">{money(trade.balance_after_open, trade.account_mode)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Result</p><p className={cn("num mt-1 font-semibold", Number(trade.pnl) > 0 ? "text-primary" : Number(trade.pnl) < 0 ? "text-destructive" : "text-muted-foreground")}>{Number(trade.pnl) > 0 ? "+" : ""}{formatMoney(Number(trade.pnl))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
+                <div><p className="text-xs text-muted-foreground">Resulting balance</p><p className="num mt-1 font-semibold text-primary">{money(resultingBalance, trade.account_mode)}</p></div>
+              </div>
+              <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} · {trade.duration_seconds}s</p>
+            </article>;
+          })}</div>}
         </TabsContent>
-
         <TabsContent value="wallet">
-          <div className="overflow-x-auto rounded-xl border border-border/70 bg-card">
-            <table className="w-full min-w-[600px] text-sm">
-              <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Method</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      No deposits or withdrawals yet.
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((tx) => (
-                    <tr key={tx.id} className="border-t border-border/60">
-                      <td className="num px-4 py-3 text-xs text-muted-foreground">
-                        {when(tx.created_at)}
-                      </td>
-                      <td className="px-4 py-3 capitalize">{tx.kind}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{tx.method}</td>
-                      <td className="px-4 py-3 capitalize">{tx.status}</td>
-                      <td
-                        className={cn(
-                          "num px-4 py-3 text-right font-semibold",
-                          tx.kind === "deposit" ? "text-primary" : "text-destructive",
-                        )}
-                      >
-                        {tx.kind === "deposit" ? "+" : "-"}${formatMoney(Number(tx.amount))}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full min-w-[600px] text-sm"><thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Account</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Method</th><th className="px-4 py-3 text-right">Amount</th></tr></thead><tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No wallet activity matches this account filter.</td></tr> : transactions.map((transaction) => <tr key={transaction.id} className="border-t border-border/60"><td className="num px-4 py-3 text-xs text-muted-foreground">{when(transaction.created_at)}</td><td className="px-4 py-3">{transaction.account_mode === "demo" ? "Demo" : "Real"}</td><td className="px-4 py-3 capitalize">{transaction.kind}</td><td className="px-4 py-3 text-muted-foreground">{transaction.method}</td><td className={cn("num px-4 py-3 text-right font-semibold", transaction.kind === "deposit" ? "text-primary" : "text-destructive")}>{transaction.kind === "deposit" ? "+" : ""}{transaction.kind === "withdrawal" ? "−" : ""}{formatMoney(Number(transaction.amount))} {transaction.account_mode === "demo" ? "USD" : "USDT"}</td></tr>)}</tbody></table></div>
         </TabsContent>
       </Tabs>
     </div>
