@@ -67,14 +67,16 @@ function TradePage() {
     : 0;
   const stakeValue = Number(stake) || 0;
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
-  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open");
+  const openTrades = (account?.trades ?? []).filter(
+    (trade) => trade.status === "open" && trade.account_mode === mode,
+  );
 
   const mutation = useMutation({
     mutationFn: (direction: "up" | "down") =>
       submit({ data: { accountMode: mode, symbol, direction, stake: stakeValue, durationSeconds: duration } }),
     onSuccess: (res) => {
       toast.success(
-        `Simulated ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
+        `Demo ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`,
       );
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -226,7 +228,7 @@ function TradePage() {
               value={stake}
               onChange={(e) => setStake(e.target.value)}
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[25, 50, 100, 250].map((v) => (
                 <Button
                   key={v}
@@ -235,7 +237,7 @@ function TradePage() {
                   variant="secondary"
                   onClick={() => setStake(String(v))}
                 >
-                  ${v}
+                  {mode === "demo" ? "$" : ""}{v}
                 </Button>
               ))}
             </div>
@@ -248,15 +250,15 @@ function TradePage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Profit if correct</dt>
-              <dd className="num font-semibold text-primary">+${formatMoney(payout)}</dd>
+               <dd className="num font-semibold text-primary">+{formatMoney(payout)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Loss if wrong</dt>
-              <dd className="num font-semibold text-destructive">-${formatMoney(stakeValue)}</dd>
+               <dd className="num font-semibold text-destructive">−{formatMoney(stakeValue)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Available</dt>
-              <dd className="num font-semibold">${formatMoney(balance)}</dd>
+               <dd className="num font-semibold">{formatMoney(balance)} {mode === "demo" ? "USD" : "USDT"}</dd>
             </div>
           </dl>
 

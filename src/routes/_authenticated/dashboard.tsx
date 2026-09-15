@@ -28,8 +28,12 @@ function Dashboard() {
   const { data: markets } = useMarkets();
   const quotes = markets?.quotes ?? [];
   const profile = account?.profile;
-  const stats = account?.stats;
-  const openTrades = (account?.trades ?? []).filter((t) => t.status === "open" && t.account_mode === mode);
+  const accountTrades = (account?.trades ?? []).filter((trade) => trade.account_mode === mode);
+  const openTrades = accountTrades.filter((trade) => trade.status === "open");
+  const settledTrades = accountTrades.filter((trade) => trade.status !== "open");
+  const wonTrades = settledTrades.filter((trade) => trade.status === "won");
+  const netPnl = settledTrades.reduce((sum, trade) => sum + Number(trade.pnl), 0);
+  const winRate = settledTrades.length > 0 ? Math.round((wonTrades.length / settledTrades.length) * 100) : 0;
   const movers = [...quotes].sort((a, b) => b.change24h - a.change24h).slice(0, 4);
 
   return (
@@ -57,14 +61,14 @@ function Dashboard() {
         />
         <StatCard
           label="Net P/L"
-          value={stats ? (stats.netPnl >= 0 ? "+" : "-") + "$" + formatMoney(Math.abs(stats.netPnl)) : "—"}
+          value={(netPnl >= 0 ? "+" : "−") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
           hint="Across settled trades"
-          tone={stats && stats.netPnl < 0 ? "negative" : "positive"}
+          tone={netPnl < 0 ? "negative" : "positive"}
         />
-        <StatCard label="Win rate" value={stats ? stats.winRate + "%" : "—"} hint="Settled trades" />
+        <StatCard label="Win rate" value={winRate + "%"} hint="Settled trades" />
         <StatCard
           label="Open positions"
-          value={stats ? String(stats.openTrades) : "—"}
+          value={String(openTrades.length)}
           hint="Settling automatically"
         />
       </div>
@@ -74,7 +78,9 @@ function Dashboard() {
           <h2 className="text-lg font-semibold">Open positions</h2>
           {openTrades.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No open positions. Head to Trade to open a simulated up/down position.
+              {mode === "demo"
+                ? "No open positions. Head to Trade to open a demo position."
+                : "Live trading remains locked until verification is complete."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
