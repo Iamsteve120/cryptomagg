@@ -70,7 +70,7 @@ function HistoryPage() {
                 <div><p className="text-xs text-muted-foreground">Opening balance</p><p className="num mt-1 font-medium">{money(trade.balance_before, trade.account_mode)}</p></div>
                 <div><p className="text-xs text-muted-foreground">Stake</p><p className="num mt-1 font-medium">{money(Number(trade.stake), trade.account_mode)}</p></div>
                 <div><p className="text-xs text-muted-foreground">After opening</p><p className="num mt-1 font-medium">{money(trade.balance_after_open, trade.account_mode)}</p></div>
-                <div><p className="text-xs text-muted-foreground">Result</p><p className={cn("num mt-1 font-semibold", Number(trade.pnl) > 0 ? "text-primary" : Number(trade.pnl) < 0 ? "text-destructive" : "text-muted-foreground")}>{Number(trade.pnl) > 0 ? "+" : ""}{formatMoney(Number(trade.pnl))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
+                <div><p className="text-xs text-muted-foreground">Result</p><p className={cn("num mt-1 font-semibold", Number(trade.pnl) > 0 ? "text-primary" : Number(trade.pnl) < 0 ? "text-destructive" : "text-muted-foreground")}>{Number(trade.pnl) > 0 ? "+" : Number(trade.pnl) < 0 ? "minus " : ""}{formatMoney(Math.abs(Number(trade.pnl)))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Resulting balance</p><p className="num mt-1 font-semibold text-primary">{money(resultingBalance, trade.account_mode)}</p></div>
               </div>
               <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} · {trade.duration_seconds}s</p>

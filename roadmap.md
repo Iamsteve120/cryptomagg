@@ -8,9 +8,9 @@
 
 # Trading experience upgrade
 
-- [ ] Add atomic trade balance snapshots and source tracking
-- [ ] Add real cryptocurrency icons and the refined asset card
-- [ ] Add Trade Assist and controlled Demo auto trading
-- [ ] Expand History with account filters and exact balance results
-- [ ] Remove visible dash punctuation and refine interface copy
-- [ ] Verify desktop, mobile, trading, and settlement behavior
+- [x] Add atomic trade balance snapshots and source tracking
+- [x] Add real cryptocurrency icons and the refined asset card
+- [x] Add Trade Assist and controlled Demo auto trading
+- [x] Expand History with account filters and exact balance results
+- [x] Remove visible dash punctuation and refine interface copy
+- [x] Verify desktop, mobile, trading, and settlement behavior
