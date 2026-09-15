@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       },
       { property: "og:title", content: "Dashboard — CryptoMagg" },
       { property: "og:description", content: "Track your simulated trading performance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
@@ -44,7 +46,7 @@ function Dashboard() {
             Welcome back{profile?.full_name ? ", " + profile.full_name.split(" ")[0] : ""}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {mode === "demo" ? "Practice with simulated funds." : "Live account balances are held in USDT."}
+            {mode === "demo" ? "Practice with simulated funds." : "Real account balances are held in USDT."}
           </p>
         </div>
         <Button asChild>
@@ -54,7 +56,7 @@ function Dashboard() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label={mode === "demo" ? "Demo balance" : "Live balance"}
+          label={mode === "demo" ? "Demo balance" : "Real balance"}
           value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "—"}
           hint={mode === "demo" ? "Simulated funds" : "Verification required"}
           tone="positive"
@@ -80,7 +82,7 @@ function Dashboard() {
             <p className="mt-4 text-sm text-muted-foreground">
               {mode === "demo"
                 ? "No open positions. Head to Trade to open a demo position."
-                : "Live trading remains locked until verification is complete."}
+                : "Real trading remains locked until verification is complete."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border/60">

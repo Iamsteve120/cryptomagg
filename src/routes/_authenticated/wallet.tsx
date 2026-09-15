@@ -86,12 +86,12 @@ function WalletPage() {
         <p className="text-sm text-muted-foreground">
           {mode === "demo"
             ? "Add simulated funds to practise with CryptoMagg."
-            : "Fund your Live account in USDT after payment verification is enabled."}
+            : "Fund your Real account in USDT after payment verification is enabled."}
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label={mode === "demo" ? "Demo balance" : "Live balance"} value={mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"} tone="positive" />
+        <StatCard label={mode === "demo" ? "Demo balance" : "Real balance"} value={mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"} tone="positive" />
         <StatCard
           label="Total deposited"
           value={formatMoney(deposits.reduce((s, t) => s + Number(t.amount), 0)) + (mode === "live" ? " USDT" : " USD")}
@@ -154,7 +154,7 @@ function WalletPage() {
               <p className="mt-1 font-semibold text-muted-foreground">Awaiting provider verification</p>
             </div>
             <div className="border-t border-border pt-4">
-              <p className="text-sm font-semibold">Live account protection</p>
+              <p className="text-sm font-semibold">Real account protection</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Never send money to a number shown outside this verified deposit screen.
               </p>
@@ -174,9 +174,10 @@ function WalletPage() {
                 <Label>Method</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {DEPOSIT_METHODS.map((m) => (
-                    <button
+                    <Button
                       key={m.id}
                       type="button"
+                      variant="outline"
                       onClick={() => setMethod(m.id)}
                       className={cn(
                         "rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
@@ -186,7 +187,7 @@ function WalletPage() {
                       )}
                     >
                       {m.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

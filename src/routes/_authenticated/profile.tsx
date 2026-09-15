@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/profile")({
       },
       { property: "og:title", content: "Profile — CryptoMagg" },
       { property: "og:description", content: "Manage your demo trading account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProfilePage,
@@ -66,13 +68,13 @@ function ProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold">Profile</h1>
         <p className="text-sm text-muted-foreground">
-          {mode === "demo" ? "Manage your practice account." : "Your Live account is awaiting verification."}
+          {mode === "demo" ? "Manage your practice account." : "Your Real account is awaiting verification."}
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
-          label={mode === "demo" ? "Demo balance" : "Live balance"}
+          label={mode === "demo" ? "Demo balance" : "Real balance"}
           value={data?.profile ? (mode === "demo" ? "$" + formatMoney(Number(data.profile.demo_balance)) : formatMoney(Number(data.profile.live_balance)) + " USDT") : "—"}
           tone="positive"
         />

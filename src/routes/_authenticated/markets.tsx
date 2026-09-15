@@ -14,6 +14,8 @@ export const Route = createFileRoute("/_authenticated/markets")({
       },
       { property: "og:title", content: "Markets — CryptoMagg" },
       { property: "og:description", content: "Live crypto prices and simulated payout rates." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Markets,

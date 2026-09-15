@@ -29,6 +29,8 @@ export const Route = createFileRoute("/_authenticated/trade")({
       },
       { property: "og:title", content: "Trade — CryptoMagg" },
       { property: "og:description", content: "Simulated up/down trading on live crypto prices." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TradePage,
@@ -90,7 +92,7 @@ function TradePage() {
         <p className="text-sm text-muted-foreground">
           {mode === "demo"
             ? "Predict the direction. Demo trades settle automatically against the live price."
-            : "Live trading is locked until account and payment verification is complete."}
+            : "Real trading is locked until account and payment verification is complete."}
         </p>
       </div>
 
@@ -182,9 +184,10 @@ function TradePage() {
             <Label>Asset</Label>
             <div className="grid grid-cols-3 gap-2">
               {ASSETS.map((a) => (
-                <button
+                <Button
                   key={a.symbol}
                   type="button"
+                  variant="outline"
                   onClick={() => setSymbol(a.symbol)}
                   className={cn(
                     "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
@@ -194,7 +197,7 @@ function TradePage() {
                   )}
                 >
                   {a.symbol}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -203,9 +206,10 @@ function TradePage() {
             <Label>Expiry</Label>
             <div className="grid grid-cols-4 gap-2">
               {DURATIONS.map((d) => (
-                <button
+                <Button
                   key={d.seconds}
                   type="button"
+                  variant="outline"
                   onClick={() => setDuration(d.seconds)}
                   className={cn(
                     "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
@@ -215,7 +219,7 @@ function TradePage() {
                   )}
                 >
                   {d.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -283,7 +287,7 @@ function TradePage() {
           <p className="text-center text-[11px] text-muted-foreground">
             {mode === "demo"
               ? "Demo trade. No real money is placed."
-              : "Live trading will unlock only after a regulated provider is connected."}
+              : "Real trading will unlock only after a regulated provider is connected."}
           </p>
         </div>
       </div>

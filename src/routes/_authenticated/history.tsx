@@ -15,6 +15,8 @@ export const Route = createFileRoute("/_authenticated/history")({
       },
       { property: "og:title", content: "History — CryptoMagg" },
       { property: "og:description", content: "Your simulated trade and wallet history." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: HistoryPage,

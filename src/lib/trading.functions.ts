@@ -157,7 +157,7 @@ export const moveFunds = createServerFn({ method: "POST" })
     if (!method) throw new Error("Unsupported method.");
 
     const amount = Math.round(data.amount * 100) / 100;
-  if (amount < 2) throw new Error("Minimum amount is 2.00 demo USD.");
+    if (amount < 2) throw new Error("Minimum amount is 2.00 demo USD.");
 
     const profile = await ensureProfile(context.userId, null);
     const balance = Number(profile.demo_balance);
@@ -257,8 +257,8 @@ export const resetDemoAccount = createServerFn({ method: "POST" })
     rateLimit(context.userId, "reset");
     const db = await admin();
     await ensureProfile(context.userId, null);
-    await db.from("trades").delete().eq("user_id", context.userId);
-    await db.from("transactions").delete().eq("user_id", context.userId);
+    await db.from("trades").delete().eq("user_id", context.userId).eq("account_mode", "demo");
+    await db.from("transactions").delete().eq("user_id", context.userId).eq("account_mode", "demo");
     await db
       .from("profiles")
       .update({ demo_balance: 10000, updated_at: new Date().toISOString() })

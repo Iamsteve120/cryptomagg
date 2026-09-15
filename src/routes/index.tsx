@@ -21,6 +21,8 @@ export const Route = createFileRoute("/")({
         content:
           "Live market prices, simulated wallet and up/down trades. Practise trading with zero risk.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Landing,
