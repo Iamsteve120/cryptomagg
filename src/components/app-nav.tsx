@@ -62,7 +62,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden">
+      <nav className="grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden">
         {links.map((l) => (
           <Link
             key={l.to}
