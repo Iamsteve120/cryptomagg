@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          demo_balance: number
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          demo_balance?: number
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          demo_balance?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          asset_name: string
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          asset_name: string
+          created_at?: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price?: number | null
+          expires_at: string
+          id?: string
+          payout_rate: number
+          pnl?: number
+          settled_at?: string | null
+          stake: number
+          status?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          asset_name?: string
+          created_at?: string
+          direction?: string
+          duration_seconds?: number
+          entry_price?: number
+          exit_price?: number | null
+          expires_at?: string
+          id?: string
+          payout_rate?: number
+          pnl?: number
+          settled_at?: string | null
+          stake?: number
+          status?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          asset: string
+          created_at: string
+          destination: string | null
+          id: string
+          kind: string
+          method: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          asset?: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          kind: string
+          method: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          asset?: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          kind?: string
+          method?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
