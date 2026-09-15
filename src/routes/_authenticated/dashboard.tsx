@@ -1,11 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
 import { StockCard } from "@/components/ui/stock-card";
 import { useAccountMode } from "@/components/account-mode";
-import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({

@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccount } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
+import { useAccountMode } from "@/components/account-mode";
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({
@@ -29,15 +30,18 @@ function when(value: string) {
 }
 
 function HistoryPage() {
+  const { mode } = useAccountMode();
   const { data } = useAccount();
-  const trades = data?.trades ?? [];
-  const transactions = data?.transactions ?? [];
+  const trades = (data?.trades ?? []).filter((trade) => trade.account_mode === mode);
+  const transactions = (data?.transactions ?? []).filter((transaction) => transaction.account_mode === mode);
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">History</h1>
-        <p className="text-sm text-muted-foreground">Every entry below is simulated activity.</p>
+        <p className="text-sm text-muted-foreground">
+          {mode === "demo" ? "Your demo account activity." : "Your verified Live account activity."}
+        </p>
       </div>
 
       <Tabs defaultValue="trades">
@@ -122,7 +126,7 @@ function HistoryPage() {
                 {transactions.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      No simulated deposits or withdrawals yet.
+                      No deposits or withdrawals yet.
                     </td>
                   </tr>
                 ) : (

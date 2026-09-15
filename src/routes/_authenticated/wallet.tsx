@@ -47,7 +47,7 @@ function WalletPage() {
   });
 
   const [method, setMethod] = useState(DEPOSIT_METHODS[0]!.id);
-  const [amount, setAmount] = useState(mode === "live" ? "10" : "500");
+  const [amount, setAmount] = useState("10");
   const [destination, setDestination] = useState("");
 
   const balance = data?.profile

@@ -41,6 +41,7 @@ async function settleDueTrades(userId: string) {
     .select("*")
     .eq("user_id", userId)
     .eq("status", "open")
+    .eq("account_mode", "demo")
     .lte("expires_at", new Date().toISOString());
 
   if (!open || open.length === 0) return;
@@ -156,7 +157,7 @@ export const moveFunds = createServerFn({ method: "POST" })
     if (!method) throw new Error("Unsupported method.");
 
     const amount = Math.round(data.amount * 100) / 100;
-    if (amount < 10) throw new Error("Minimum amount is 10.00 demo USD.");
+  if (amount < 2) throw new Error("Minimum amount is 2.00 demo USD.");
 
     const profile = await ensureProfile(context.userId, null);
     const balance = Number(profile.demo_balance);
