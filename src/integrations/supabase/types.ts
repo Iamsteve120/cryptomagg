@@ -48,6 +48,9 @@ export type Database = {
         Row: {
           account_mode: string
           asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
           created_at: string
           direction: string
           duration_seconds: number
@@ -61,11 +64,15 @@ export type Database = {
           stake: number
           status: string
           symbol: string
+          trade_source: string
           user_id: string
         }
         Insert: {
           account_mode?: string
           asset_name: string
+          balance_after_open?: number | null
+          balance_after_settlement?: number | null
+          balance_before?: number | null
           created_at?: string
           direction: string
           duration_seconds: number
@@ -79,11 +86,15 @@ export type Database = {
           stake: number
           status?: string
           symbol: string
+          trade_source?: string
           user_id: string
         }
         Update: {
           account_mode?: string
           asset_name?: string
+          balance_after_open?: number | null
+          balance_after_settlement?: number | null
+          balance_before?: number | null
           created_at?: string
           direction?: string
           duration_seconds?: number
@@ -97,6 +108,7 @@ export type Database = {
           stake?: number
           status?: string
           symbol?: string
+          trade_source?: string
           user_id?: string
         }
         Relationships: []
@@ -145,7 +157,79 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reserve_demo_trade: {
+        Args: {
+          p_asset_name: string
+          p_direction: string
+          p_duration_seconds: number
+          p_entry_price: number
+          p_expires_at: string
+          p_payout_rate: number
+          p_stake: number
+          p_symbol: string
+          p_trade_source: string
+          p_user_id: string
+        }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          symbol: string
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      settle_demo_trade: {
+        Args: { p_exit_price: number; p_trade_id: string; p_user_id: string }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          symbol: string
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
