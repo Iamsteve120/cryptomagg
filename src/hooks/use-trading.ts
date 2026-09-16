@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMarkets } from "@/lib/market.functions";
 import { getAccount } from "@/lib/trading.functions";
@@ -21,4 +22,14 @@ export function useAccount() {
     refetchInterval: 1_000,
     staleTime: 0,
   });
+}
+
+/** Drives fast visual market ticks between live provider refreshes. */
+export function useRapidMarketClock() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, []);
+  return now;
 }
