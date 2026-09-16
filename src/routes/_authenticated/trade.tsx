@@ -303,7 +303,6 @@ function TradePage() {
     const botStake = botStakeRef.current;
     if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
       setAutoEnabled(false);
-      toast.info("Demo auto trading stopped at your session limit.");
       return;
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
