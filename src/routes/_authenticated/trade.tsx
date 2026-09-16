@@ -379,7 +379,7 @@ function TradePage() {
 
   function stopAutoTrading() {
     setAutoEnabled(false);
-    toast.info("AI trading stopped. Open trades continue until closed or expired.");
+    
   }
 
   function resetBotSession() {
