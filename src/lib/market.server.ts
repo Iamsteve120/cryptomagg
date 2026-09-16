@@ -157,6 +157,17 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
 }
 
 export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
+  // Fast tick source first: prices refresh on every poll so live PNL moves immediately.
+  try {
+    const ticker = await fetchBinanceTickerQuotes();
+    if (ticker) {
+      lastSuccessfulQuotes = ticker;
+      return ticker;
+    }
+  } catch {
+    // Fall through to the slower reference source.
+  }
+
   const ids = ASSETS.map((a) => a.id).join(",");
   const url =
     "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" +
