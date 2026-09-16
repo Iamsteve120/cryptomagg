@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, CircleUserRound, Repeat2, ScanLine } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Bot, CircleUserRound, Repeat2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetIcon } from "@/components/ui/asset-icon";
@@ -52,6 +52,13 @@ function HistoryPage() {
     takeProfit: summary.takeProfit + (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100,
     stopLoss: summary.stopLoss + (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100,
   }), { pnl: 0, takeProfit: 0, stopLoss: 0 });
+  const botTrades = trades.filter((trade) => trade.trade_source === "auto");
+  const runningBotTrades = botTrades.filter((trade) => trade.status === "open");
+  const botLivePnl = runningBotTrades.reduce((total, trade) => {
+    const currentPrice = markets?.quotes.find((quote) => quote.symbol === trade.symbol)?.price;
+    return total + calculateLivePnl(trade, currentPrice);
+  }, 0);
+  const botSettledPnl = botTrades.filter((trade) => trade.status !== "open").reduce((total, trade) => total + Number(trade.pnl), 0);
   const totalUnit = filter === "live" ? "USDT" : filter === "demo" ? "USD" : "USD value";
 
   return (
@@ -69,8 +76,22 @@ function HistoryPage() {
         <StatCard label="Total SL risk" value={`${formatMoney(totals.stopLoss)} ${totalUnit}`} hint="Combined stop loss amount" tone="negative" />
       </div>
 
+      <section className="rounded-lg border border-primary/30 bg-card p-4" aria-label="Bot PNL summary">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary"><Bot className="size-5" /></span>
+            <div><h2 className="font-semibold">Trading Bot PNL</h2><p className="text-xs text-muted-foreground">Updates while automatic trades are running</p></div>
+          </div>
+          <div className="grid grid-cols-3 gap-5 text-right">
+            <div><p className="text-[10px] uppercase text-muted-foreground">Running</p><p className="num font-semibold">{runningBotTrades.length}</p></div>
+            <div><p className="text-[10px] uppercase text-muted-foreground">Live PNL</p><p className={cn("num font-semibold", botLivePnl >= 0 ? "text-primary" : "text-destructive")}>{botLivePnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(botLivePnl))} {totalUnit}</p></div>
+            <div><p className="text-[10px] uppercase text-muted-foreground">Settled PNL</p><p className={cn("num font-semibold", botSettledPnl >= 0 ? "text-primary" : "text-destructive")}>{botSettledPnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(botSettledPnl))} {totalUnit}</p></div>
+          </div>
+        </div>
+      </section>
+
       <Tabs defaultValue="trades">
-        <TabsList><TabsTrigger value="trades">Trades</TabsTrigger><TabsTrigger value="wallet">Wallet</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="trades">Trades</TabsTrigger><TabsTrigger value="transactions">Transactions</TabsTrigger><TabsTrigger value="wallet">Wallet</TabsTrigger></TabsList>
         <TabsContent value="trades">
           {trades.length === 0 ? <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">No trades match this account filter.</div> : <div className="grid gap-3">{trades.map((trade) => {
             const source = sourceLabel(trade.trade_source);
@@ -95,6 +116,28 @@ function HistoryPage() {
               <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} | TP {trade.take_profit_percent ?? "Unavailable"}% | SL {trade.stop_loss_percent ?? "Unavailable"}% | {trade.duration_seconds}s</p>
             </article>;
           })}</div>}
+        </TabsContent>
+        <TabsContent value="transactions">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Time</th><th className="px-4 py-3">Market</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Position</th><th className="px-4 py-3 text-right">Stake</th><th className="px-4 py-3 text-right">PNL</th><th className="px-4 py-3 text-right">Status</th></tr></thead>
+              <tbody>{trades.length === 0 ? <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No trade transactions match this account filter.</td></tr> : trades.map((trade) => {
+                const source = sourceLabel(trade.trade_source);
+                const SourceIcon = source.icon;
+                const currentPrice = markets?.quotes.find((quote) => quote.symbol === trade.symbol)?.price;
+                const transactionPnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
+                return <tr key={trade.id} className="border-t border-border/60">
+                  <td className="num whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{when(trade.created_at)}</td>
+                  <td className="px-4 py-3"><span className="flex items-center gap-2 font-semibold"><AssetIcon symbol={trade.symbol} className="size-5" />{trade.symbol}</span></td>
+                  <td className="px-4 py-3"><span className="flex items-center gap-1.5"><SourceIcon className="size-4" />{source.label}</span></td>
+                  <td className={cn("px-4 py-3 font-medium", trade.direction === "up" ? "text-primary" : "text-destructive")}>{trade.direction === "up" ? "Up" : "Down"}</td>
+                  <td className="num px-4 py-3 text-right">{formatMoney(Number(trade.stake))} {trade.account_mode === "demo" ? "USD" : "USDT"}</td>
+                  <td className={cn("num px-4 py-3 text-right font-semibold", transactionPnl >= 0 ? "text-primary" : "text-destructive")}>{transactionPnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(transactionPnl))}</td>
+                  <td className="px-4 py-3 text-right"><span className={cn("rounded px-2 py-1 text-xs font-semibold capitalize", trade.status === "open" ? "bg-primary/15 text-primary" : trade.status === "lost" ? "bg-destructive/15 text-destructive" : "bg-secondary text-foreground")}>{trade.status === "open" ? "Live" : trade.status}</span></td>
+                </tr>;
+              })}</tbody>
+            </table>
+          </div>
         </TabsContent>
         <TabsContent value="wallet">
           <div className="overflow-x-auto rounded-lg border border-border bg-card"><table className="w-full min-w-[600px] text-sm"><thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Account</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Method</th><th className="px-4 py-3 text-right">Amount</th></tr></thead><tbody>{transactions.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No wallet activity matches this account filter.</td></tr> : transactions.map((transaction) => <tr key={transaction.id} className="border-t border-border/60"><td className="num px-4 py-3 text-xs text-muted-foreground">{when(transaction.created_at)}</td><td className="px-4 py-3">{transaction.account_mode === "demo" ? "Demo" : "Real"}</td><td className="px-4 py-3 capitalize">{transaction.kind}</td><td className="px-4 py-3 text-muted-foreground">{transaction.method}</td><td className={cn("num px-4 py-3 text-right font-semibold", transaction.kind === "deposit" ? "text-primary" : "text-destructive")}>{transaction.kind === "deposit" ? "+" : transaction.kind === "withdrawal" ? "-" : ""}{formatMoney(Number(transaction.amount))} {transaction.account_mode === "demo" ? "USD" : "USDT"}</td></tr>)}</tbody></table></div>

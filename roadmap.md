@@ -84,3 +84,9 @@
 - [x] Allow 5 to 40 trades per bot run
 - [x] Automatically select eligible crypto markets
 - [x] Verify setup and execution on desktop and mobile
+
+## Bot PNL and trade transactions
+- [x] Show combined live and settled Bot PNL on History
+- [x] Add a Transactions tab for all bot and manual trades
+- [x] Update active transaction PNL from live market prices
+- [ ] Verify History on desktop and mobile
