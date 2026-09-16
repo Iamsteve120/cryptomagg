@@ -250,7 +250,8 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     }
 
     const { priceForSymbol } = await import("./market.server");
-    const exitPrice = await priceForSymbol(trade.symbol);
+    // Never let a price provider hiccup block closing: fall back to the entry price.
+    const exitPrice = await priceForSymbol(trade.symbol).catch(() => Number((trade as { entry_price?: number }).entry_price) || 0);
     const { data: rows, error } = await db.rpc("close_demo_trade_at_live_pnl", {
       p_user_id: context.userId,
       p_trade_id: trade.id,
