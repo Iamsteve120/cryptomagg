@@ -47,7 +47,7 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
     const sparkline = candles.map((candle) => Number(candle[4])).filter((price) => Number.isFinite(price) && price > 0);
     const price = Number(ticker["lastPrice"]);
     if (!Number.isFinite(price) || price <= 0 || sparkline.length < 6) return null;
-    return {
+    const quote: MarketQuote = {
       id: asset.id,
       symbol: asset.symbol,
       name: asset.name,
@@ -60,9 +60,10 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
       sparkline,
       payoutRate: asset.payoutRate,
       live: true,
-    } satisfies MarketQuote;
+    };
+    return quote;
   }));
-  const available = rows.filter((row): row is MarketQuote => row !== null);
+  const available = rows.filter((row): row is NonNullable<typeof row> => row !== null);
   return available.length >= 3 ? available : null;
 }
 
