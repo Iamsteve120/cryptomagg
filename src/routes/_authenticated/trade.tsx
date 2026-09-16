@@ -528,9 +528,7 @@ function TradePage() {
                   <span className="num text-[11px] font-semibold">{signal.confidence}% confidence</span>
                 </div>
               </div>
-              <Button size="sm" variant="outline" disabled={signal.direction === "wait" || disabled} onClick={() => signal.direction !== "wait" && mutation.mutate({ direction: signal.direction, source: "assist" })}>
-                <ChartNoAxesCombined className="size-4" /> Review and place
-              </Button>
+              <span className="text-[11px] text-muted-foreground">Read only guidance. Place trades yourself from the order pad.</span>
             </div>
           </section>
 
@@ -670,7 +668,7 @@ function TradePage() {
 
                 <div className="grid grid-cols-3 gap-1.5">
                   <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
-                  <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="5" max="40" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
+                  <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="5" max="20" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
                   <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
                 </div>
 
@@ -695,24 +693,6 @@ function TradePage() {
         Simulation mode | No real funds involved | Virtual balance for practice only
       </p>
 
-      <MarketScanner
-        mode={mode}
-        balance={balance}
-        busy={mutation.isPending}
-        onExecute={(setup) => {
-          setSymbol(setup.symbol);
-          setDuration(setup.durationSeconds);
-          setStake(String(setup.stake));
-          mutation.mutate({
-            direction: setup.direction,
-            source: "scanner",
-            selectedSymbol: setup.symbol,
-            selectedStake: setup.stake,
-            selectedDuration: setup.durationSeconds,
-          });
-        }}
-      />
-
       <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1.5rem)] max-w-md overflow-y-auto rounded-lg bg-card p-0">
           <DialogHeader className="border-b border-border px-5 py-4 text-left">
@@ -734,8 +714,8 @@ function TradePage() {
             </div>
             <div>
               <Label htmlFor="botTradeCount">How many trades should the bot run?</Label>
-              <Input id="botTradeCount" className="num mt-2 h-11" type="number" inputMode="numeric" min="5" max="40" step="1" value={botTradeCount} onChange={(event) => setBotTradeCount(event.target.value)} />
-              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 5 trades | Maximum 40 trades</p>
+              <Input id="botTradeCount" className="num mt-2 h-11" type="number" inputMode="numeric" min="5" max="20" step="1" value={botTradeCount} onChange={(event) => setBotTradeCount(event.target.value)} />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 5 trades | Maximum 20 trades</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="botTakeProfit">Take Profit (USD)</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
@@ -766,7 +746,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
