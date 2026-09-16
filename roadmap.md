@@ -33,3 +33,11 @@
 - [x] Show fluctuating live PNL on Trade, Dashboard, and History
 - [x] Emphasize the Profile Demo balance reset control
 - [x] Verify Stop, TP or SL, reset, and responsive layouts
+
+## Trading terminal redesign
+- [x] Three column terminal layout on Trade page (market list, chart, order pad)
+- [x] Market list with live price and change for all assets
+- [x] Compact order pad with expiry, amount presets, TP and SL, payout summary, Up and Down
+- [x] Open trades panel with live PNL and Stop control
+- [x] Same layout in Real mode with placing locked
+- [x] Verified desktop 1280 and mobile 393 with no overflow or console errors
