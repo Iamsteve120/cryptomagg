@@ -176,8 +176,10 @@ const tradeSchema = z.object({
   stake: z.number().min(1).max(2000),
   durationSeconds: z.number().int(),
   source: z.enum(["manual", "assist", "auto", "scanner"]).default("manual"),
-  takeProfitPercent: z.number().min(0.1).max(50),
-  stopLossPercent: z.number().min(0.1).max(50),
+  takeProfitPercent: z.number().min(0.1).max(2000),
+  stopLossPercent: z.number().min(0.1).max(2000),
+}).superRefine((data, context) => {
+  if (data.stopLossPercent > data.stake) context.addIssue({ code: "custom", path: ["stopLossPercent"], message: "Stop Loss cannot exceed the trade amount." });
 });
 
 export const placeTrade = createServerFn({ method: "POST" })
