@@ -47,7 +47,7 @@ function HistoryPage() {
   const [filter, setFilter] = useState<"all" | AccountMode>(mode);
   const trades = (data?.trades ?? []).filter((trade) => filter === "all" || trade.account_mode === filter);
   const transactions = (data?.transactions ?? []).filter((transaction) => filter === "all" || transaction.account_mode === filter);
-  const totals = trades.reduce((summary, trade) => ({
+  const totals = trades.filter((trade) => trade.status !== "open").reduce((summary, trade) => ({
     pnl: summary.pnl + Number(trade.pnl),
     takeProfit: summary.takeProfit + Number(trade.take_profit_amount ?? (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100),
     stopLoss: summary.stopLoss + Number(trade.stop_loss_amount ?? (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100),
@@ -99,6 +99,7 @@ function HistoryPage() {
             const resultingBalance = trade.balance_after_settlement ?? trade.balance_after_open;
             const currentPrice = markets?.quotes.find((quote) => quote.symbol === trade.symbol)?.price;
             const livePnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : null;
+            const displayedResult = livePnl ?? Number(trade.pnl);
             return <article key={trade.id} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-full border border-border bg-secondary"><AssetIcon symbol={trade.symbol} /></div><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? <ArrowUpRight className="inline size-4" /> : <ArrowDownRight className="inline size-4" />} {trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-xs text-muted-foreground">{when(trade.created_at)}</p></div></div>
@@ -110,8 +111,8 @@ function HistoryPage() {
                 <div><p className="text-xs text-muted-foreground">Opening balance</p><p className="num mt-1 font-medium">{money(trade.balance_before, trade.account_mode)}</p></div>
                 <div><p className="text-xs text-muted-foreground">Stake</p><p className="num mt-1 font-medium">{money(Number(trade.stake), trade.account_mode)}</p></div>
                 <div><p className="text-xs text-muted-foreground">After opening</p><p className="num mt-1 font-medium">{money(trade.balance_after_open, trade.account_mode)}</p></div>
-                <div><p className="text-xs text-muted-foreground">Result</p><p className={cn("num mt-1 font-semibold", Number(trade.pnl) > 0 ? "text-primary" : Number(trade.pnl) < 0 ? "text-destructive" : "text-muted-foreground")}>{Number(trade.pnl) > 0 ? "+" : Number(trade.pnl) < 0 ? "-" : ""}{formatMoney(Math.abs(Number(trade.pnl)))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
-                <div><p className="text-xs text-muted-foreground">Resulting balance</p><p className="num mt-1 font-semibold text-primary">{money(resultingBalance, trade.account_mode)}</p></div>
+                <div><p className="text-xs text-muted-foreground">{trade.status === "open" ? "Live result" : "Final result"}</p><p className={cn("num mt-1 font-semibold", displayedResult > 0 ? "text-primary" : displayedResult < 0 ? "text-destructive" : "text-muted-foreground")}>{displayedResult > 0 ? "+" : displayedResult < 0 ? "-" : ""}{formatMoney(Math.abs(displayedResult))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
+                <div><p className="text-xs text-muted-foreground">{trade.status === "open" ? "Balance after opening" : "Resulting balance"}</p><p className="num mt-1 font-semibold text-primary">{money(resultingBalance, trade.account_mode)}</p></div>
               </div>
               <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} | TP +${formatMoney(Number(trade.take_profit_amount ?? (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100))} | SL -${formatMoney(Number(trade.stop_loss_amount ?? (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100))} | {trade.duration_seconds}s</p>
             </article>;
