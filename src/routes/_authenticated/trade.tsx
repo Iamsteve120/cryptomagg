@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AssetIcon } from "@/components/ui/asset-icon";
-import { Sparkline } from "@/components/market-widgets";
+import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
