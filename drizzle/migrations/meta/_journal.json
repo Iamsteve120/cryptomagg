@@ -92,6 +92,13 @@
       "when": 1789530838004,
       "tag": "0012_ratio_demo_close_result_to_stake",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789531050745,
+      "tag": "0013_demo_profit_ratio_of_stake",
+      "breakpoints": true
     }
   ]
 }
