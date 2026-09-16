@@ -48,8 +48,9 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 
 function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined }) {
   const entry = Number(trade.entry_price);
-  const tp = Number(trade.take_profit_price);
-  const sl = Number(trade.stop_loss_price);
+  const hasLevels = trade.take_profit_price !== null && trade.stop_loss_price !== null;
+  const tp = hasLevels ? Number(trade.take_profit_price) : entry;
+  const sl = hasLevels ? Number(trade.stop_loss_price) : entry;
   const price = currentPrice ?? entry;
   const movement = trade.direction === "up" ? price - entry : entry - price;
   const targetDistance = tp && sl ? Math.max(Math.abs(tp - entry), Math.abs(sl - entry)) : 1;
@@ -64,15 +65,17 @@ function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType
       </div>
       <div className="text-right"><Countdown expiresAt={trade.expires_at} /><p className={cn("num mt-1 text-xs font-semibold", favorable ? "text-primary" : "text-destructive")}>{favorable ? "+" : "minus "}{Math.abs(((price / entry) - 1) * 100).toFixed(3)}%</p></div>
     </div>
-    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-      <div className="rounded-md border border-primary/30 bg-primary/10 p-2"><span className="text-muted-foreground">Take Profit</span><p className="num mt-1 font-semibold text-primary">{trade.take_profit_percent}% | ${formatPrice(tp)}</p></div>
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2"><span className="text-muted-foreground">Stop Loss</span><p className="num mt-1 font-semibold text-destructive">{trade.stop_loss_percent}% | ${formatPrice(sl)}</p></div>
-    </div>
-    <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-secondary" aria-label={`Position progress ${Math.round(progress)} percent`}>
-      <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
-      <div className={cn("absolute top-0 h-full transition-all", favorable ? "left-1/2 bg-primary" : "right-1/2 bg-destructive")} style={{ width: `${Math.abs(progress) / 2}%` }} />
-    </div>
-    <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price. This trade settles only at expiry.</p>
+    {hasLevels ? <>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <div className="rounded-md border border-primary/30 bg-primary/10 p-2"><span className="text-muted-foreground">Take Profit</span><p className="num mt-1 font-semibold text-primary">{trade.take_profit_percent}% | ${formatPrice(tp)}</p></div>
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2"><span className="text-muted-foreground">Stop Loss</span><p className="num mt-1 font-semibold text-destructive">{trade.stop_loss_percent}% | ${formatPrice(sl)}</p></div>
+      </div>
+      <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-secondary" aria-label={`Position progress ${Math.round(progress)} percent`}>
+        <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
+        <div className={cn("absolute top-0 h-full transition-all", favorable ? "left-1/2 bg-primary" : "right-1/2 bg-destructive")} style={{ width: `${Math.abs(progress) / 2}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price. This trade settles only at expiry.</p>
+    </> : <p className="mt-2 text-xs text-muted-foreground">This earlier trade settles at expiry without TP or SL levels.</p>}
   </li>;
 }
 
