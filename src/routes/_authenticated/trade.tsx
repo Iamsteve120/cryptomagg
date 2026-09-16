@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AssetIcon } from "@/components/ui/asset-icon";
-import { Sparkline } from "@/components/market-widgets";
+import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
@@ -22,6 +22,13 @@ import { MarketScanner } from "@/components/market-scanner";
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
 type TradeSource = "manual" | "assist" | "auto" | "scanner";
+type CandleInterval = "1" | "5" | "15" | "60";
+const CANDLE_INTERVALS: { value: CandleInterval; label: string }[] = [
+  { value: "1", label: "1m" },
+  { value: "5", label: "5m" },
+  { value: "15", label: "15m" },
+  { value: "60", label: "1h" },
+];
 
 export const Route = createFileRoute("/_authenticated/trade")({
   validateSearch: (search) => searchSchema.parse(search),
@@ -142,6 +149,7 @@ function TradePage() {
   const stopTrade = useServerFn(stopDemoTrade);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
+  const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
   const [stake, setStake] = useState("50");
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
@@ -288,14 +296,24 @@ function TradePage() {
                 <span>H {sessionHigh ? formatPrice(sessionHigh) : "Unavailable"}</span>
                 <span>L {sessionLow ? formatPrice(sessionLow) : "Unavailable"}</span>
               </span>
-            }>Live chart</PanelTitle>
-            <div className="relative flex h-52 items-center justify-center px-2 lg:h-64">
-              {quote ? <Sparkline points={quote.sparkline} up={quote.change24h >= 0} /> : <p className="text-xs text-muted-foreground">Market data is loading</p>}
-              {quote ? (
-                <div className="pointer-events-none absolute inset-x-0 top-1/2 flex justify-end border-t border-dashed border-primary/40">
-                  <span className="num mr-3 rounded-sm bg-primary px-1 text-[10px] font-semibold text-primary-foreground">{formatPrice(quote.price)}</span>
-                </div>
-              ) : null}
+            }>Live candles</PanelTitle>
+            <div className="flex items-center gap-1 border-b border-border px-2 py-1">
+              {CANDLE_INTERVALS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setCandleInterval(item.value)}
+                  className={cn(
+                    "rounded-sm px-2 py-0.5 text-[10px] font-semibold",
+                    candleInterval === item.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="h-64 px-1 pb-1 lg:h-80">
+              <CandlestickChart symbol={symbol} interval={candleInterval} className="h-full w-full" />
             </div>
           </section>
 
