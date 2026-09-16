@@ -98,3 +98,10 @@
 - [x] Close bot trades only at TP, SL, or expiry
 - [x] Vary Demo expiry outcomes within a 60 to 80 percent practice range
 - [x] Verify bot setup and active trade behavior
+
+## Bot transaction flow
+- [x] Add bot amount to the complete setup dialog
+- [x] Enforce bot amounts from 1 to 2,000 USD
+- [x] Open an in place live Transactions view after starting
+- [x] Keep automatic market selection and running PNL visible
+- [x] Verify the video inspired flow on desktop and mobile

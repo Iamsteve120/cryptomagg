@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, Bot, ChartNoAxesCombined, Play, ShieldCheck, Square, Target } from "lucide-react";
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Bot, ChartNoAxesCombined, Play, ShieldCheck, Square, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,10 +165,13 @@ function TradePage() {
   const [pendingBotId, setPendingBotId] = useState("momentum");
   const [botDuration, setBotDuration] = useState("60");
   const [botTradeCount, setBotTradeCount] = useState("5");
+  const [botStake, setBotStake] = useState("10");
   const [botTakeProfit, setBotTakeProfit] = useState("2");
   const [botStopLoss, setBotStopLoss] = useState("1");
   const botTakeProfitRef = useRef(2);
   const botStopLossRef = useRef(1);
+  const botStakeRef = useRef(10);
+  const [showBotTransactions, setShowBotTransactions] = useState(false);
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
 
@@ -251,7 +254,7 @@ function TradePage() {
     const autoDirection = autoCandidate.signal.direction;
     if (autoDirection === "wait") return;
     setSymbol(autoCandidate.quote.symbol);
-    mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
+      mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStakeRef.current });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
   function openBotSetup(bot = selectedBot) {
@@ -259,6 +262,7 @@ function TradePage() {
     setPendingBotId(bot.id);
     setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
     setBotTradeCount(String(Math.min(40, Math.max(5, bot.tradeLimit))));
+    setBotStake(stakeValue >= 1 && stakeValue <= 2000 ? stake : "10");
     setBotTakeProfit(takeProfit);
     setBotStopLoss(stopLoss);
     setBotSetupOpen(true);
@@ -269,6 +273,7 @@ function TradePage() {
     const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
+    const configuredStake = Math.min(2000, Math.max(1, Number(botStake) || 1));
     const configuredTakeProfit = Math.min(50, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(50, Math.max(0.1, Number(botStopLoss) || 0.1));
     if (bot) {
@@ -281,10 +286,12 @@ function TradePage() {
     sessionStartedAt.current = Date.now();
     botTakeProfitRef.current = configuredTakeProfit;
     botStopLossRef.current = configuredStopLoss;
+    botStakeRef.current = configuredStake;
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
     setBotSetupOpen(false);
+    setShowBotTransactions(true);
     toast.success(`${bot?.name ?? "Trading bot"} started. It will run several trades across the strongest markets.`);
   }
 
@@ -292,6 +299,9 @@ function TradePage() {
     setAutoEnabled(false);
     toast.info("AI trading stopped. Open trades continue until closed or expired.");
   }
+
+  const sessionBotTrades = (account?.trades ?? []).filter((trade) => trade.trade_source === "auto" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current);
+  const sessionBotPnl = sessionBotTrades.reduce((total, trade) => total + (trade.status === "open" ? calculateLivePnl(trade, quotes.find((item) => item.symbol === trade.symbol)?.price) : Number(trade.pnl)), 0);
 
   return (
     <div className="space-y-2">
@@ -316,7 +326,24 @@ function TradePage() {
         </div>
       </section>
 
-      <div className="grid gap-2 lg:grid-cols-12">
+      {showBotTransactions ? (
+        <section className="rounded-lg border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
+            <div><p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Bot transactions</p><h1 className="mt-1 text-lg font-semibold">{selectedBot?.name ?? "Trading Bot"}</h1></div>
+            <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> Trade setup</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={!autoEnabled}><Square className="size-4" /> Stop bot</Button></div>
+          </div>
+          <div className="grid grid-cols-3 border-b border-border bg-secondary/20 text-center">
+            <div className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Runs</p><p className="num mt-1 font-semibold">{autoPlaced} / {autoLimit}</p></div>
+            <div className="border-x border-border p-3"><p className="text-[10px] uppercase text-muted-foreground">Live PNL</p><p className={cn("num mt-1 font-semibold", sessionBotPnl >= 0 ? "text-primary" : "text-destructive")}>{sessionBotPnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(sessionBotPnl))} USD</p></div>
+            <div className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Status</p><p className={cn("mt-1 font-semibold", autoEnabled ? "text-primary" : "text-muted-foreground")}>{autoEnabled ? "Running" : "Stopped"}</p></div>
+          </div>
+          {sessionBotTrades.length === 0 ? <div className="px-4 py-16 text-center"><Bot className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">Scanning all crypto markets</p><p className="mt-1 text-sm text-muted-foreground">The first eligible trade will appear here automatically.</p></div> : <div className="divide-y divide-border">{sessionBotTrades.map((trade) => {
+            const currentPrice = quotes.find((item) => item.symbol === trade.symbol)?.price;
+            const pnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
+            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{trade.duration_seconds}s | {formatMoney(Number(trade.stake))} USD</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">{trade.take_profit_percent}% / {trade.stop_loss_percent}%</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p></div></div>;
+          })}</div>}
+        </section>
+      ) : <div className="grid gap-2 lg:grid-cols-12">
         {/* Market list */}
         <section className="order-3 flex flex-col rounded-lg border border-border bg-card lg:order-1 lg:col-span-3">
           <PanelTitle right={<span className="text-[10px] text-muted-foreground">{quotes.length || TRADABLE_ASSETS.length} markets</span>}>Market assets</PanelTitle>
@@ -549,7 +576,7 @@ function TradePage() {
             <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Trading tools are available in Demo mode."}</p>
           </div>
         </aside>
-      </div>
+      </div>}
 
       <p className="rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         Simulation mode | No real funds involved | Virtual balance for practice only
@@ -581,6 +608,11 @@ function TradePage() {
           </DialogHeader>
           <div className="space-y-5 px-5 py-4">
             <div>
+              <Label htmlFor="botStake">Amount per trade (USD)</Label>
+              <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="1" max="2000" step="1" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 1 USD | Maximum 2,000 USD</p>
+            </div>
+            <div>
               <Label htmlFor="botDuration">How long should each trade run?</Label>
               <select id="botDuration" value={botDuration} onChange={(event) => setBotDuration(event.target.value)} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {DURATIONS.filter((item) => item.seconds <= 3600).map((item) => <option key={item.seconds} value={item.seconds}>{item.label}</option>)}
@@ -603,7 +635,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
