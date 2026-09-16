@@ -21,7 +21,10 @@ export function DemoFooter() {
           <p className="font-semibold text-foreground">CryptoMagg | cryptomagg.site</p>
         </div>
         <p className="mt-3 max-w-2xl leading-relaxed">
-          CryptoMagg is a trading simulator. Demo balances, trades, wins and losses use simulated money only.
+          Demo balances, trades, wins and losses use simulated money only. On a real account, trades
+          open and close on live exchange prices: a winning trade pays 80 percent of your amount and a
+          losing trade costs the full amount, so most short term traders lose money. Never stake money
+          you cannot afford to lose.
         </p>
       </div>
     </footer>

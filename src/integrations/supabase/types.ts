@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      deposit_intents: {
+        Row: {
+          amount_kes: number
+          amount_usdt: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          phone: string
+          provider: string
+          provider_checkout_id: string | null
+          provider_receipt: string | null
+          status: string
+          updated_at: string
+          usd_kes_rate: number
+          user_id: string
+        }
+        Insert: {
+          amount_kes: number
+          amount_usdt: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          phone: string
+          provider?: string
+          provider_checkout_id?: string | null
+          provider_receipt?: string | null
+          status?: string
+          updated_at?: string
+          usd_kes_rate: number
+          user_id: string
+        }
+        Update: {
+          amount_kes?: number
+          amount_usdt?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          phone?: string
+          provider?: string
+          provider_checkout_id?: string | null
+          provider_receipt?: string | null
+          status?: string
+          updated_at?: string
+          usd_kes_rate?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -170,6 +218,48 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          amount_usdt: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          phone: string
+          provider_receipt: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_usdt: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          phone: string
+          provider_receipt?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_usdt?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          phone?: string
+          provider_receipt?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -208,6 +298,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      credit_confirmed_deposit: {
+        Args: { p_intent_id: string; p_receipt: string }
+        Returns: number
+      }
+      hold_withdrawal_amount: {
+        Args: { p_amount: number; p_phone: string; p_user_id: string }
+        Returns: {
+          amount_usdt: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          phone: string
+          provider_receipt: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "withdrawal_requests"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -310,7 +426,91 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      reserve_live_trade: {
+        Args: {
+          p_asset_name: string
+          p_direction: string
+          p_duration_seconds: number
+          p_entry_price: number
+          p_expires_at: string
+          p_payout_rate: number
+          p_stake: number
+          p_symbol: string
+          p_user_id: string
+        }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          stop_loss_amount: number | null
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
+          symbol: string
+          take_profit_amount: number | null
+          take_profit_percent: number | null
+          take_profit_price: number | null
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       settle_demo_trade: {
+        Args: { p_exit_price: number; p_trade_id: string; p_user_id: string }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          stop_loss_amount: number | null
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
+          symbol: string
+          take_profit_amount: number | null
+          take_profit_percent: number | null
+          take_profit_price: number | null
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      settle_live_trade_at_market: {
         Args: { p_exit_price: number; p_trade_id: string; p_user_id: string }
         Returns: {
           account_mode: string
