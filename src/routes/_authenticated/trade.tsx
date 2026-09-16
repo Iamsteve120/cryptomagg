@@ -327,8 +327,8 @@ function TradePage() {
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
     const configuredStake = Math.min(2000, Math.max(1, Number(botStake) || 1));
-    const configuredTakeProfit = Math.min(50, Math.max(0.1, Number(botTakeProfit) || 0.1));
-    const configuredStopLoss = Math.min(50, Math.max(0.1, Number(botStopLoss) || 0.1));
+    const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
+    const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (bot) {
       setBotId(bot.id);

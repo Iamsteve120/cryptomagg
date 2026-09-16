@@ -125,4 +125,4 @@
 - [x] Use dollar targets for live PNL and manual stopping
 - [x] Show dollar targets in Trade and History
 - [x] Preserve readable values for earlier percentage based trades
-- [ ] Verify manual and bot setup on desktop and mobile
+- [x] Verify manual and bot setup on desktop and mobile
