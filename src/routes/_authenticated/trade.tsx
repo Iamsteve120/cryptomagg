@@ -162,7 +162,7 @@ function TradePage() {
   const [autoLimit, setAutoLimit] = useState("3");
   const [lossLimit, setLossLimit] = useState("150");
   const [autoPlaced, setAutoPlaced] = useState(0);
-  const sessionBalance = useRef<number | null>(null);
+  const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
 
   const quotes = markets?.quotes ?? [];
@@ -181,11 +181,14 @@ function TradePage() {
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
+  const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
   const autoCandidate = useMemo(() => quotes
     .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
-    .filter((item) => item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
-    .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, quotes]);
-  const sessionLoss = sessionBalance.current === null ? 0 : Math.max(0, sessionBalance.current - balance);
+    .filter((item) => !openAutoSymbols.has(item.quote.symbol) && item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
+    .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, openAutoSymbols, quotes]);
+  const sessionLoss = (account?.trades ?? [])
+    .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
+    .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
   const sparkline = quote?.sparkline ?? [];
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
@@ -231,8 +234,7 @@ function TradePage() {
   useEffect(() => {
     if (!autoEnabled || !autoCandidate || mutation.isPending || !validLevels) return;
     if (Date.now() - dataUpdatedAt > 30_000) return;
-    const openAutoTrades = openTrades.filter((trade) => trade.trade_source === "auto");
-    if (autoPlaced >= Math.min(10, Math.max(1, Number(autoLimit) || 1)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake || openAutoTrades.length > 0) {
+    if (autoPlaced >= Math.min(10, Math.max(1, Number(autoLimit) || 1)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
@@ -245,18 +247,20 @@ function TradePage() {
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
-  function startAutoTrading() {
+  function startAutoTrading(bot = selectedBot) {
     if (mode !== "demo" || !validStake || !validLevels) return;
-    if (selectedBot) {
-      setDuration(selectedBot.durationSeconds);
-      setMultiplier(selectedBot.multiplier);
-      setAutoMinimum(String(selectedBot.minConfidence));
+    if (bot) {
+      setBotId(bot.id);
+      setDuration(bot.durationSeconds);
+      setMultiplier(bot.multiplier);
+      setAutoMinimum(String(bot.minConfidence));
+      setAutoLimit(String(bot.tradeLimit));
     }
-    sessionBalance.current = balance;
+    sessionStartedAt.current = Date.now();
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
-    toast.success("AI trading started. Scanning all available markets.");
+    toast.success(`${bot?.name ?? "Trading bot"} started. It will run several trades across the strongest markets.`);
   }
 
   function stopAutoTrading() {
@@ -485,12 +489,13 @@ function TradePage() {
                     <li key={bot.id}>
                       <button
                         type="button"
-                        onClick={() => setBotId(bot.id)}
+                        onClick={() => startAutoTrading(bot)}
+                        disabled={locked || mutation.isPending || !validStake || !validLevels}
                         className={cn("w-full rounded-md border px-2.5 py-2 text-left transition-colors", botId === bot.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-secondary/40")}
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span className="text-xs font-semibold">{bot.name}</span>
-                          <span className="num text-[10px] text-muted-foreground">x{bot.multiplier} | {bot.durationSeconds < 60 ? `${bot.durationSeconds}s` : `${bot.durationSeconds / 60}m`}</span>
+                          <span className="num text-[10px] text-muted-foreground">{bot.tradeLimit} trades | x{bot.multiplier} | {bot.durationSeconds < 60 ? `${bot.durationSeconds}s` : `${bot.durationSeconds / 60}m`}</span>
                         </span>
                         <span className="mt-0.5 block text-[11px] text-muted-foreground">{bot.description}</span>
                       </button>
@@ -505,14 +510,14 @@ function TradePage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button className="h-10" onClick={startAutoTrading} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                  <Button className="h-10" onClick={() => startAutoTrading()} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
                     <Play className="size-4" /> Start trading
                   </Button>
                   <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
                     <Square className="size-4" /> Stop trading
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
+                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo results target an 80% practice win mix and still include losses."}</p>
               </div>
             )}
 
