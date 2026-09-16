@@ -13,7 +13,8 @@ export function calculateLivePnl(trade: {
   const targetPrice = favorable ? trade.take_profit_price : trade.stop_loss_price;
   const targetDistance = targetPrice === null ? 0 : Math.abs(Number(targetPrice) - entry);
   if (targetDistance === 0) return 0;
-  const ratio = Math.min(1, Math.abs(movement) / targetDistance);
+  // Practice sensitivity: small real price moves translate into a visibly moving simulated result.
+  const ratio = Math.min(1, (Math.abs(movement) / targetDistance) * LIVE_PNL_SENSITIVITY);
   return favorable
     ? (Number(trade.stake) * Number(trade.payout_rate) * ratio) / 100
     : 0 - Number(trade.stake) * ratio;
