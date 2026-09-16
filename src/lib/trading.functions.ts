@@ -225,7 +225,10 @@ export const placeTrade = createServerFn({ method: "POST" })
       p_stop_loss_percent: data.stopLossPercent,
     });
     const trade = rows?.[0];
-    if (error || !trade) throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
+    if (error || !trade) {
+      console.error("reserve_demo_trade_with_risk failed", JSON.stringify(error), JSON.stringify({ stake, entry, tp: data.takeProfitPercent, sl: data.stopLossPercent, duration: data.durationSeconds, source: data.source, symbol: data.symbol }));
+      throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
+    }
 
     return { trade, balance: Number(trade.balance_after_open) };
   });
