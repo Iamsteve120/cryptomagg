@@ -12,7 +12,7 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
-import { TRADABLE_ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
+import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateLivePnl } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
@@ -152,6 +152,9 @@ function TradePage() {
   const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
   const { theme } = useThemeMode();
   const [stake, setStake] = useState("50");
+  const [tradeMode, setTradeMode] = useState<"manual" | "auto">("manual");
+  const [multiplier, setMultiplier] = useState(1);
+  const [botId, setBotId] = useState(TRADING_BOTS[0].id);
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -172,6 +175,9 @@ function TradePage() {
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 50 && stopLossValue >= 0.1 && stopLossValue <= 50;
+  const effectiveTakeProfit = Math.max(0.1, Math.round((takeProfitValue / multiplier) * 100) / 100);
+  const effectiveStopLoss = Math.max(0.1, Math.round((stopLossValue / multiplier) * 100) / 100);
+  const selectedBot = TRADING_BOTS.find((bot) => bot.id === botId) ?? TRADING_BOTS[0];
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
