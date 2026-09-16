@@ -149,6 +149,7 @@ function TradePage() {
   const stopTrade = useServerFn(stopDemoTrade);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
+  const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
   const [stake, setStake] = useState("50");
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
