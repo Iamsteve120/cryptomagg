@@ -22,6 +22,13 @@ import { MarketScanner } from "@/components/market-scanner";
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
 type TradeSource = "manual" | "assist" | "auto" | "scanner";
+type CandleInterval = "1" | "5" | "15" | "60";
+const CANDLE_INTERVALS: { value: CandleInterval; label: string }[] = [
+  { value: "1", label: "1m" },
+  { value: "5", label: "5m" },
+  { value: "15", label: "15m" },
+  { value: "60", label: "1h" },
+];
 
 export const Route = createFileRoute("/_authenticated/trade")({
   validateSearch: (search) => searchSchema.parse(search),
