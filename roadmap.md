@@ -118,4 +118,4 @@
 - [x] Show hours, minutes, and seconds remaining on every running trade
 - [x] Allow manual stopping of bot and manual Demo positions
 - [x] Set expiry outcomes to a labeled 95 percent simulated practice target
-- [ ] Verify countdown and stop controls on desktop and mobile
+- [x] Verify countdown and stop controls on desktop and mobile
