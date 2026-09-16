@@ -91,3 +91,10 @@
 - [x] Update active transaction PNL from live market prices
 - [x] Use full transaction cards on mobile so no PNL details are hidden
 - [x] Verify History on desktop and mobile
+
+## Bot risk settings and varied outcomes
+- [x] Add Take Profit and Stop Loss to bot setup
+- [x] Prevent manual closing of bot trades
+- [x] Close bot trades only at TP, SL, or expiry
+- [x] Vary Demo expiry outcomes within a 60 to 80 percent practice range
+- [ ] Verify bot setup and active trade behavior
