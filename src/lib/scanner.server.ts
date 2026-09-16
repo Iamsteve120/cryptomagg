@@ -2,9 +2,12 @@ import { Output, streamText } from "ai";
 import { z } from "zod";
 import { createScannerAi } from "./ai-gateway.server";
 import { fetchMarketQuotes } from "./market.server";
+import { assetBySymbol, TRADABLE_ASSETS } from "./assets";
+
+const TRADABLE_SYMBOLS = TRADABLE_ASSETS.map((asset) => asset.symbol);
 
 const ScanOutput = z.object({
-  symbol: z.enum(["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "LINK", "DOT"]),
+  symbol: z.string().refine((value) => TRADABLE_SYMBOLS.includes(value), "Unsupported market"),
   direction: z.enum(["up", "down", "wait"]),
   confidence: z.number(),
   durationSeconds: z.union([z.literal(30), z.literal(60), z.literal(300), z.literal(900)]),
@@ -74,7 +77,8 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
 }
 
 export async function analyzeMarketsWithAi(apiKey: string) {
-  const quotes = await fetchMarketQuotes();
+  const allQuotes = await fetchMarketQuotes();
+  const quotes = allQuotes.filter((quote) => assetBySymbol(quote.symbol)?.tradable !== false);
   const liveQuotes = quotes.filter((quote) => quote.live && quote.sparkline.length >= 6);
   const usableQuotes = liveQuotes.length >= 3 ? liveQuotes : quotes.filter((quote) => quote.sparkline.length >= 6);
   const options = buildMarketOptions(quotes);

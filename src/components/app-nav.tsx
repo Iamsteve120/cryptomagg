@@ -2,6 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, CandlestickChart } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
+import { ThemeToggle } from "@/components/theme-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
@@ -46,6 +47,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="Account type">
             <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
             <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Real</Button>

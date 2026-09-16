@@ -13,11 +13,12 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
-import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
+import { TRADABLE_ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateLivePnl } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
 import { MarketScanner } from "@/components/market-scanner";
+import { useThemeMode } from "@/components/theme-mode";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
@@ -150,6 +151,7 @@ function TradePage() {
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
   const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
+  const { theme } = useThemeMode();
   const [stake, setStake] = useState("50");
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
@@ -163,7 +165,7 @@ function TradePage() {
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
-  const asset = ASSETS.find((item) => item.symbol === symbol);
+  const asset = TRADABLE_ASSETS.find((item) => item.symbol === symbol);
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
@@ -265,9 +267,9 @@ function TradePage() {
       <div className="grid gap-2 lg:grid-cols-12">
         {/* Market list */}
         <section className="order-3 flex flex-col rounded-lg border border-border bg-card lg:order-1 lg:col-span-3">
-          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{quotes.length || ASSETS.length} markets</span>}>Market assets</PanelTitle>
+          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{quotes.length || TRADABLE_ASSETS.length} markets</span>}>Market assets</PanelTitle>
           <ul className="max-h-[320px] overflow-y-auto lg:max-h-[560px]">
-            {ASSETS.map((item) => {
+            {TRADABLE_ASSETS.map((item) => {
               const row = quotes.find((entry) => entry.symbol === item.symbol);
               const active = item.symbol === symbol;
               return (
@@ -318,7 +320,7 @@ function TradePage() {
               ))}
             </div>
             <div className="h-64 px-1 pb-1 lg:h-80">
-              <CandlestickChart symbol={symbol} interval={candleInterval} className="h-full w-full" />
+              <CandlestickChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />
             </div>
           </section>
 
