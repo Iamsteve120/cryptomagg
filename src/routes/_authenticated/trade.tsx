@@ -12,8 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { AssetIcon } from "@/components/ui/asset-icon";
 import { ChangeBadge, PriceText, Sparkline } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
-import { placeTrade } from "@/lib/trading.functions";
+import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
+import { calculateLivePnl } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
 import { MarketScanner } from "@/components/market-scanner";
@@ -46,7 +47,7 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   return <span className="num">{left > 0 ? left + "s" : "Settling"}</span>;
 }
 
-function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined }) {
+function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined; stopping: boolean; onStop: () => void }) {
   const entry = Number(trade.entry_price);
   const hasLevels = trade.take_profit_price !== null && trade.stop_loss_price !== null;
   const tp = hasLevels ? Number(trade.take_profit_price) : entry;
@@ -57,12 +58,9 @@ function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType
   const progress = Math.max(-100, Math.min(100, (movement / targetDistance) * 100));
   const favorable = movement >= 0;
   const stake = Number(trade.stake);
-  const profitTarget = (stake * Number(trade.payout_rate)) / 100;
+  const livePnl = calculateLivePnl(trade, currentPrice);
   const tpDistance = hasLevels ? Math.abs(tp - entry) : 0;
   const slDistance = hasLevels ? Math.abs(sl - entry) : 0;
-  const livePnl = favorable
-    ? profitTarget * (tpDistance > 0 ? Math.min(1, movement / tpDistance) : 0)
-    : -stake * (slDistance > 0 ? Math.min(1, Math.abs(movement) / slDistance) : 0);
   const tpHit = hasLevels && favorable && tpDistance > 0 && movement >= tpDistance;
   const slHit = hasLevels && !favorable && slDistance > 0 && Math.abs(movement) >= slDistance;
 
@@ -79,8 +77,11 @@ function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType
         <p className="text-xs uppercase text-muted-foreground">Live PNL</p>
         <p className={cn("num text-xl font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(livePnl))} USD</p>
       </div>
-      <p className="text-right text-xs text-muted-foreground">{tpHit ? "Take Profit level reached" : slHit ? "Stop Loss level reached" : "Moving with the live price"}<br />Settles at expiry</p>
+      <p className="text-right text-xs text-muted-foreground">{tpHit ? "Closing at Take Profit" : slHit ? "Closing at Stop Loss" : "Moving with the live price"}<br />Stop any time</p>
     </div>
+    <Button type="button" variant="destructive" className="mt-3 w-full" disabled={stopping} onClick={onStop}>
+      {stopping ? "Stopping trade" : "Stop trade now"}
+    </Button>
     {hasLevels ? <>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-md border border-primary/30 bg-primary/10 p-2"><span className="text-muted-foreground">Take Profit</span><p className="num mt-1 font-semibold text-primary">{trade.take_profit_percent}% | ${formatPrice(tp)}</p></div>
@@ -90,8 +91,8 @@ function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType
         <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
         <div className={cn("absolute top-0 h-full transition-all", favorable ? "left-1/2 bg-primary" : "right-1/2 bg-destructive")} style={{ width: `${Math.abs(progress) / 2}%` }} />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price. This trade settles only at expiry.</p>
-    </> : <p className="mt-2 text-xs text-muted-foreground">This earlier trade settles at expiry without TP or SL levels.</p>}
+      <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price and close the trade when reached.</p>
+    </> : <p className="mt-2 text-xs text-muted-foreground">This earlier trade can be stopped now or settled at expiry.</p>}
   </li>;
 }
 
@@ -116,6 +117,7 @@ function TradePage() {
   const { data: markets, dataUpdatedAt } = useMarkets();
   const { data: account } = useAccount();
   const submit = useServerFn(placeTrade);
+  const stopTrade = useServerFn(stopDemoTrade);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
   const [stake, setStake] = useState("50");
@@ -157,6 +159,15 @@ function TradePage() {
       setAutoEnabled(false);
       toast.error(error instanceof Error ? error.message : "Could not open the trade.");
     },
+  });
+
+  const stopMutation = useMutation({
+    mutationFn: (tradeId: string) => stopTrade({ data: { tradeId } }),
+    onSuccess: (res) => {
+      toast.success(`Trade stopped at ${res.trade.pnl >= 0 ? "+" : "minus "}${formatMoney(Math.abs(Number(res.trade.pnl)))} USD PNL.`);
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
   });
 
   useEffect(() => {
@@ -234,7 +245,7 @@ function TradePage() {
 
           <section className="rounded-lg border border-border bg-card p-4">
             <h2 className="text-lg font-semibold">Open positions</h2>
-            {openTrades.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nothing open right now.</p> : <ul className="mt-3 divide-y divide-border/60">{openTrades.map((trade) => <ActivePosition key={trade.id} trade={trade} currentPrice={quotes.find((item) => item.symbol === trade.symbol)?.price} />)}</ul>}
+            {openTrades.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Nothing open right now.</p> : <ul className="mt-3 divide-y divide-border/60">{openTrades.map((trade) => <ActivePosition key={trade.id} trade={trade} currentPrice={quotes.find((item) => item.symbol === trade.symbol)?.price} stopping={stopMutation.isPending && stopMutation.variables === trade.id} onStop={() => stopMutation.mutate(trade.id)} />)}</ul>}
           </section>
         </div>
 
@@ -246,9 +257,9 @@ function TradePage() {
             <div><Label htmlFor="takeProfit">Take Profit %</Label><Input id="takeProfit" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} /></div>
             <div><Label htmlFor="stopLoss">Stop Loss %</Label><Input id="stopLoss" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} /></div>
           </div>
-          <p className="flex items-start gap-2 text-xs text-muted-foreground"><Target className="mt-0.5 size-4 shrink-0" />Levels must be between 0.1% and 50%. They guide the active trade and do not close it early.</p>
+          <p className="flex items-start gap-2 text-xs text-muted-foreground"><Target className="mt-0.5 size-4 shrink-0" />Levels must be between 0.1% and 50%. Reaching either level closes the Demo trade.</p>
           <dl className="space-y-2 border-y border-border py-4 text-sm"><div className="flex justify-between"><dt className="text-muted-foreground">Payout rate</dt><dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Profit if correct</dt><dd className="num font-semibold text-primary">+{formatMoney(payout)} {mode === "demo" ? "USD" : "USDT"}</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Available</dt><dd className="num font-semibold">{formatMoney(balance)} {mode === "demo" ? "USD" : "USDT"}</dd></div></dl>
-          <div className="grid grid-cols-2 gap-2"><Button className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}><ArrowUpRight className="size-5" /> Up</Button><Button variant="destructive" className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}><ArrowDownRight className="size-5" /> Down</Button></div>
+          <div><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Trade now</p><div className="grid grid-cols-2 gap-2"><Button className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}><ArrowUpRight className="size-5" /> Up</Button><Button variant="destructive" className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}><ArrowDownRight className="size-5" /> Down</Button></div></div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>
         </aside>
       </div>

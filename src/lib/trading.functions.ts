@@ -41,8 +41,7 @@ async function settleDueTrades(userId: string) {
     .select("*")
     .eq("user_id", userId)
     .eq("status", "open")
-    .eq("account_mode", "demo")
-    .lte("expires_at", new Date().toISOString());
+    .eq("account_mode", "demo");
 
   if (!open || open.length === 0) return;
 
@@ -51,12 +50,25 @@ async function settleDueTrades(userId: string) {
   for (const trade of open) {
     const quote = quotes.find((q) => q.symbol === trade.symbol);
     const exit = quote ? quote.price : Number(trade.entry_price);
-    const entry = Number(trade.entry_price);
-    const { error } = await db.rpc("settle_demo_trade", {
-      p_user_id: userId,
-      p_trade_id: trade.id,
-      p_exit_price: exit,
-    });
+    const tp = trade.take_profit_price === null ? null : Number(trade.take_profit_price);
+    const sl = trade.stop_loss_price === null ? null : Number(trade.stop_loss_price);
+    const levelReached = trade.direction === "up"
+      ? (tp !== null && exit >= tp) || (sl !== null && exit <= sl)
+      : (tp !== null && exit <= tp) || (sl !== null && exit >= sl);
+    const expired = new Date(trade.expires_at).getTime() <= Date.now();
+    if (!levelReached && !expired) continue;
+
+    const { error } = levelReached
+      ? await db.rpc("close_demo_trade_at_live_pnl", {
+          p_user_id: userId,
+          p_trade_id: trade.id,
+          p_exit_price: exit,
+        })
+      : await db.rpc("settle_demo_trade", {
+          p_user_id: userId,
+          p_trade_id: trade.id,
+          p_exit_price: exit,
+        });
     if (error) console.error("Trade settlement failed", trade.id, error.message);
   }
 }
@@ -212,6 +224,36 @@ export const placeTrade = createServerFn({ method: "POST" })
     if (error || !trade) throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
 
     return { trade, balance: Number(trade.balance_after_open) };
+  });
+
+const stopTradeSchema = z.object({ tradeId: z.string().uuid() });
+
+export const stopDemoTrade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => stopTradeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    rateLimit(context.userId, "stop-trade");
+    const db = await admin();
+    const { data: trade } = await db
+      .from("trades")
+      .select("id, symbol, status, account_mode")
+      .eq("id", data.tradeId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!trade || trade.account_mode !== "demo" || trade.status !== "open") {
+      throw new Error("This Demo trade is no longer open.");
+    }
+
+    const { priceForSymbol } = await import("./market.server");
+    const exitPrice = await priceForSymbol(trade.symbol);
+    const { data: rows, error } = await db.rpc("close_demo_trade_at_live_pnl", {
+      p_user_id: context.userId,
+      p_trade_id: trade.id,
+      p_exit_price: exitPrice,
+    });
+    const closed = rows?.[0];
+    if (error || !closed) throw new Error("Could not stop the Demo trade.");
+    return { trade: closed, balance: Number(closed.balance_after_settlement) };
   });
 
 export const resetDemoAccount = createServerFn({ method: "POST" })
