@@ -46,7 +46,7 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   return <span className="num">{left > 0 ? left + "s" : "Settling"}</span>;
 }
 
-function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice?: number }) {
+function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined }) {
   const entry = Number(trade.entry_price);
   const tp = Number(trade.take_profit_price);
   const sl = Number(trade.stop_loss_price);
