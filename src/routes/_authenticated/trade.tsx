@@ -297,7 +297,7 @@ function TradePage() {
   });
 
   const stopAllMutation = useMutation({
-    mutationFn: () => stopAllTrades({ data: {} }),
+    mutationFn: () => stopAllTrades(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
