@@ -723,6 +723,19 @@ function TradePage() {
               <div><Label htmlFor="botTakeProfit">Take Profit (USD)</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
               <div><Label htmlFor="botStopLoss">Stop Loss (USD)</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max={Number(botStake) || 1} step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Label htmlFor="botConfidence" className="text-xs">Min conf.</Label><Input id="botConfidence" className="num mt-2 h-11 px-2" type="number" inputMode="numeric" min="80" max="87" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
+              <div><Label htmlFor="botLossLimit" className="text-xs">Max loss</Label><Input id="botLossLimit" className="num mt-2 h-11 px-2" type="number" inputMode="decimal" min="0" max="2000" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
+              <div><Label htmlFor="botMultiplier" className="text-xs">Multiplier</Label><select id="botMultiplier" value={multiplier} onChange={(event) => setMultiplier(Number(event.target.value))} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-2 text-sm">{MULTIPLIERS.map((item) => <option key={item} value={item}>x{item}</option>)}</select></div>
+            </div>
+            <div>
+              <Label className="text-xs">Pairs this bot trades</Label>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(TRADING_BOTS.find((item) => item.id === pendingBotId)?.pairs ?? []).map((pair) => (
+                  <span key={pair} className="num rounded-md border border-border bg-secondary/40 px-2 py-1 text-[11px] font-semibold">{pair}/USDT</span>
+                ))}
+              </div>
+            </div>
             <div className="rounded-md border border-border p-3">
               <div className="flex items-center justify-between gap-3"><div><Label htmlFor="martingale">Martingale</Label><p className="mt-1 text-xs text-muted-foreground">After a loss, multiply the next trade amount. A win resets it.</p></div><Switch id="martingale" checked={martingaleEnabled} onCheckedChange={setMartingaleEnabled} /></div>
               {martingaleEnabled ? <div className="mt-3"><Label htmlFor="martingaleLevel">Martingale level</Label><Input id="martingaleLevel" className="num mt-2 h-11" type="number" inputMode="decimal" min="1.25" max="5.5" step="0.05" value={martingaleLevel} onChange={(event) => setMartingaleLevel(event.target.value)} /><p className="mt-1.5 text-xs text-muted-foreground">Minimum 1.25x | Maximum 5.5x | Never above 2,000 USD</p></div> : null}
