@@ -206,6 +206,7 @@ function TradePage() {
   const botStopLossRef = useRef(1);
   const botStakeRef = useRef(10);
   const botDurationRef = useRef(60);
+  const activeBotPairsRef = useRef<string[]>([]);
   const baseBotStakeRef = useRef(10);
   const martingaleEnabledRef = useRef(false);
   const martingaleLevelRef = useRef(1.5);
@@ -232,7 +233,9 @@ function TradePage() {
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
   const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
   const autoCandidate = useMemo(() => {
-    const available = quotes
+    const allowed = activeBotPairsRef.current;
+    const pool = allowed.length > 0 ? quotes.filter((item) => allowed.includes(item.symbol)) : quotes;
+    const available = (pool.length > 0 ? pool : quotes)
       .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
       .filter((item) => !openAutoSymbols.has(item.quote.symbol));
     const ranked = available
@@ -263,11 +266,18 @@ function TradePage() {
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
       submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: source === "auto" ? botTakeProfitRef.current : effectiveTakeProfit, stopLossPercent: source === "auto" ? botStopLossRef.current : effectiveStopLoss } }),
     onSuccess: (res, variables) => {
-      toast.success(`${variables.source === "auto" ? "Automatic" : variables.source === "scanner" ? "Scanner Demo" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
+      // Show the new position instantly, before the account query refetches.
+      queryClient.setQueryData(["account"], (old: unknown) => {
+        const previous = old as { trades?: unknown[]; profile?: Record<string, unknown> } | undefined;
+        if (!previous?.trades) return old;
+        return {
+          ...previous,
+          trades: [res.trade, ...previous.trades],
+          profile: previous.profile ? { ...previous.profile, demo_balance: res.balance } : previous.profile,
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["account"] });
       if (variables.source === "auto") setAutoPlaced((value) => value + 1);
-      if (variables.source === "assist") toast.info("Assisted trade added to History with its opening balance.");
-      if (variables.source === "scanner") toast.info("Scanner Demo outcomes follow the simulator's win and loss mix.");
     },
     onError: (error) => {
       setAutoEnabled(false);
@@ -277,13 +287,7 @@ function TradePage() {
 
   const stopMutation = useMutation({
     mutationFn: (tradeId: string) => stopTrade({ data: { tradeId } }),
-    onSuccess: (res) => {
-      if (!res.trade) {
-        toast.info("That trade had already closed at its take profit, stop loss, or expiry.");
-      } else {
-        const pnl = Number(res.trade.pnl);
-        toast.success(`Trade stopped at ${pnl >= 0 ? "+" : "-"}${formatMoney(Math.abs(pnl))} USD PNL.`);
-      }
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
@@ -301,7 +305,6 @@ function TradePage() {
     const botStake = botStakeRef.current;
     if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
       setAutoEnabled(false);
-      toast.info("Demo auto trading stopped at your session limit.");
       return;
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
@@ -352,11 +355,10 @@ function TradePage() {
       return;
     }
     botDurationRef.current = configuredDuration;
+    activeBotPairsRef.current = bot?.pairs ?? [];
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
-      setMultiplier(bot.multiplier);
-      setAutoMinimum(String(bot.minConfidence));
       setAutoLimit(String(configuredTradeCount));
     }
     sessionStartedAt.current = Date.now();
@@ -372,12 +374,12 @@ function TradePage() {
     setAutoEnabled(true);
     setBotSetupOpen(false);
     setShowBotTransactions(true);
-    toast.success(`${bot?.name ?? "Trading bot"} started. It will run several trades across the strongest markets.`);
+    
   }
 
   function stopAutoTrading() {
     setAutoEnabled(false);
-    toast.info("AI trading stopped. Open trades continue until closed or expired.");
+    
   }
 
   function resetBotSession() {
@@ -387,7 +389,7 @@ function TradePage() {
     botStakeRef.current = baseBotStakeRef.current;
     processedOutcomes.current.clear();
     lastAutoQuote.current = null;
-    toast.success("Bot session reset. Existing open trades continue to TP, SL, or expiry.");
+    
   }
 
   const sessionBotTrades = (account?.trades ?? []).filter((trade) => trade.trade_source === "auto" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current);
@@ -629,7 +631,7 @@ function TradePage() {
                   </span>
                 </div>
 
-                <ul className="space-y-1.5">
+                <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
                   {TRADING_BOTS.map((bot) => (
                     <li key={bot.id}>
                       <button
@@ -643,6 +645,7 @@ function TradePage() {
                           <span className="num text-[10px] text-muted-foreground">{bot.tradeLimit} trades | x{bot.multiplier} | {bot.durationSeconds < 60 ? `${bot.durationSeconds}s` : `${bot.durationSeconds / 60}m`}</span>
                         </span>
                         <span className="mt-0.5 block text-[11px] text-muted-foreground">{bot.description}</span>
+                        <span className="num mt-1 block text-[10px] font-semibold text-primary">{bot.pairs.map((pair) => `${pair}/USDT`).join(" | ")}</span>
                       </button>
                     </li>
                   ))}
@@ -697,7 +700,7 @@ function TradePage() {
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1.5rem)] max-w-md overflow-y-auto rounded-lg bg-card p-0">
           <DialogHeader className="border-b border-border px-5 py-4 text-left">
             <DialogTitle>Set up trading bot</DialogTitle>
-            <DialogDescription>The bot automatically chooses the strongest crypto markets.</DialogDescription>
+            <DialogDescription>Every setting is editable. The bot picks the strongest of its own five pairs.</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 px-5 py-4">
             <div>
@@ -720,6 +723,19 @@ function TradePage() {
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="botTakeProfit">Take Profit (USD)</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
               <div><Label htmlFor="botStopLoss">Stop Loss (USD)</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max={Number(botStake) || 1} step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Label htmlFor="botConfidence" className="text-xs">Min conf.</Label><Input id="botConfidence" className="num mt-2 h-11 px-2" type="number" inputMode="numeric" min="80" max="87" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
+              <div><Label htmlFor="botLossLimit" className="text-xs">Max loss</Label><Input id="botLossLimit" className="num mt-2 h-11 px-2" type="number" inputMode="decimal" min="0" max="2000" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
+              <div><Label htmlFor="botMultiplier" className="text-xs">Multiplier</Label><select id="botMultiplier" value={multiplier} onChange={(event) => setMultiplier(Number(event.target.value))} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-2 text-sm">{MULTIPLIERS.map((item) => <option key={item} value={item}>x{item}</option>)}</select></div>
+            </div>
+            <div>
+              <Label className="text-xs">Pairs this bot trades</Label>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(TRADING_BOTS.find((item) => item.id === pendingBotId)?.pairs ?? []).map((pair) => (
+                  <span key={pair} className="num rounded-md border border-border bg-secondary/40 px-2 py-1 text-[11px] font-semibold">{pair}/USDT</span>
+                ))}
+              </div>
             </div>
             <div className="rounded-md border border-border p-3">
               <div className="flex items-center justify-between gap-3"><div><Label htmlFor="martingale">Martingale</Label><p className="mt-1 text-xs text-muted-foreground">After a loss, multiply the next trade amount. A win resets it.</p></div><Switch id="martingale" checked={martingaleEnabled} onCheckedChange={setMartingaleEnabled} /></div>

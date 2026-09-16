@@ -18,6 +18,7 @@ export function useAccount() {
   return useQuery({
     queryKey: ["account"],
     queryFn: () => fetchAccount(),
-    refetchInterval: 2_000,
+    refetchInterval: 1_000,
+    staleTime: 0,
   });
 }
