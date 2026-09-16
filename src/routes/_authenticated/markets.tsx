@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { CryptoCard } from "@/components/ui/asset-card";
 import { useMarkets } from "@/hooks/use-trading";
+import { MarketRankings } from "@/components/market-rankings";
+import { assetBySymbol } from "@/lib/assets";
 
 export const Route = createFileRoute("/_authenticated/markets")({
   head: () => ({
