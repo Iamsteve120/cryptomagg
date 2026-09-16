@@ -265,11 +265,18 @@ function TradePage() {
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
       submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: source === "auto" ? botTakeProfitRef.current : effectiveTakeProfit, stopLossPercent: source === "auto" ? botStopLossRef.current : effectiveStopLoss } }),
     onSuccess: (res, variables) => {
-      toast.success(`${variables.source === "auto" ? "Automatic" : variables.source === "scanner" ? "Scanner Demo" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
+      // Show the new position instantly, before the account query refetches.
+      queryClient.setQueryData(["account"], (old: unknown) => {
+        const previous = old as { trades?: unknown[]; profile?: Record<string, unknown> } | undefined;
+        if (!previous?.trades) return old;
+        return {
+          ...previous,
+          trades: [res.trade, ...previous.trades],
+          profile: previous.profile ? { ...previous.profile, demo_balance: res.balance } : previous.profile,
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["account"] });
       if (variables.source === "auto") setAutoPlaced((value) => value + 1);
-      if (variables.source === "assist") toast.info("Assisted trade added to History with its opening balance.");
-      if (variables.source === "scanner") toast.info("Scanner Demo outcomes follow the simulator's win and loss mix.");
     },
     onError: (error) => {
       setAutoEnabled(false);
@@ -279,13 +286,7 @@ function TradePage() {
 
   const stopMutation = useMutation({
     mutationFn: (tradeId: string) => stopTrade({ data: { tradeId } }),
-    onSuccess: (res) => {
-      if (!res.trade) {
-        toast.info("That trade had already closed at its take profit, stop loss, or expiry.");
-      } else {
-        const pnl = Number(res.trade.pnl);
-        toast.success(`Trade stopped at ${pnl >= 0 ? "+" : "-"}${formatMoney(Math.abs(pnl))} USD PNL.`);
-      }
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
