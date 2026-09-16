@@ -59,3 +59,13 @@
 - [x] Replace the automatic trading switch with clear Start trading and Stop trading buttons
 - [x] Show running and stopped status in the Trade order panel
 - [x] Keep automatic trades limited to one open position and the configured session controls
+
+## Manual and auto trading options
+- [x] Manual and Auto tabs in the order pad
+- [x] Multipliers x1 to x300 scaling take profit and stop loss distance
+- [x] Trade times 30s, 1m, 5m, 15m, 30m, 1h, 24h
+- [x] Country list on sign up
+- [x] Minus sign on negative numbers
+- [x] Dark green side bands in light mode
+- [x] Faster live price and PNL refresh
+- [x] Trading bots on the trade tab with start and stop
