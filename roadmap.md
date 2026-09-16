@@ -112,4 +112,4 @@
 - [x] Cap Martingale at 2,000 USD and available Demo balance
 - [x] Play distinct win and loss sounds
 - [x] Add a bot session reset action
-- [ ] Verify setup and reset on desktop and mobile
+- [x] Verify setup and reset on desktop and mobile
