@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Switch } from "@/components/ui/switch";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
-import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
+import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
@@ -180,6 +180,7 @@ function TradePage() {
   const rapidNow = useRapidMarketClock();
   const submit = useServerFn(placeTrade);
   const stopTrade = useServerFn(stopDemoTrade);
+  const stopAllTrades = useServerFn(stopAllDemoTrades);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
   const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
@@ -295,6 +296,14 @@ function TradePage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
   });
 
+  const stopAllMutation = useMutation({
+    mutationFn: () => stopAllTrades({ data: {} }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not close the open Demo trades."),
+  });
+
   const disabled = locked || mutation.isPending || !validStake || !validLevels;
 
   useEffect(() => {
@@ -381,7 +390,8 @@ function TradePage() {
 
   function stopAutoTrading() {
     setAutoEnabled(false);
-    
+    // Closing every open Demo trade immediately at its current live result.
+    stopAllMutation.mutate();
   }
 
   function resetBotSession() {
