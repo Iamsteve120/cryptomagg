@@ -41,3 +41,11 @@
 - [x] Open trades panel with live PNL and Stop control
 - [x] Same layout in Real mode with placing locked
 - [x] Verified desktop 1280 and mobile 393 with no overflow or console errors
+
+## Bigger market list, light and dark theme, ranking boards
+- [x] Expand tradable markets to the top crypto coins with matching brand icons
+- [x] Light mode by default with white and green surfaces plus a dark mode toggle in the top bar
+- [x] Candlestick chart follows the selected theme
+- [x] Market rankings boards on Markets (market cap, volume, gainers, losers) and a compact set on Dashboard
+- [x] Stablecoins appear in rankings only, never in the trading list
+- [x] Desktop and mobile checks with no overflow and no console errors
