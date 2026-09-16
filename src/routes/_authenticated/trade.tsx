@@ -345,7 +345,7 @@ function TradePage() {
     if (!bot) return;
     setPendingBotId(bot.id);
     setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
-    setBotTradeCount(String(Math.min(40, Math.max(5, bot.tradeLimit))));
+    setBotTradeCount(String(Math.min(20, Math.max(5, bot.tradeLimit))));
     setBotStake(stakeValue >= 1 && stakeValue <= 2000 ? stake : "10");
     setBotTakeProfit(takeProfit);
     setBotStopLoss(stopLoss);
