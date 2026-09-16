@@ -306,7 +306,7 @@ function TradePage() {
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
-    const autoDirection = autoCandidate.signal.direction;
+    const autoDirection: Direction = autoCandidate.signal.direction === "down" ? "down" : "up";
     setSymbol(autoCandidate.quote.symbol);
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStake, selectedDuration: botDurationRef.current });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, sessionLoss]);
