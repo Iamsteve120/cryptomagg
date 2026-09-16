@@ -50,6 +50,13 @@
       "when": 1789523161172,
       "tag": "0006_set_demo_expiry_outcome_mix",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789525290767,
+      "tag": "0007_vary_demo_win_probability",
+      "breakpoints": true
     }
   ]
 }
