@@ -83,4 +83,4 @@
 - [x] Allow 30 second to 1 hour trade duration
 - [x] Allow 5 to 40 trades per bot run
 - [x] Automatically select eligible crypto markets
-- [ ] Verify setup and execution on desktop and mobile
+- [x] Verify setup and execution on desktop and mobile
