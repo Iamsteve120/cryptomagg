@@ -230,10 +230,25 @@ function TradePage() {
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
   const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
-  const autoCandidate = useMemo(() => quotes
-    .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
-    .filter((item) => !openAutoSymbols.has(item.quote.symbol) && item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
-    .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, openAutoSymbols, quotes]);
+  const autoCandidate = useMemo(() => {
+    const available = quotes
+      .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
+      .filter((item) => !openAutoSymbols.has(item.quote.symbol));
+    const ranked = available
+      .filter((item) => item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
+      .sort((a, b) => b.signal.confidence - a.signal.confidence)[0];
+    if (ranked) return ranked;
+    const fallback = [...available].sort((a, b) => Math.abs(b.quote.change24h) - Math.abs(a.quote.change24h))[0];
+    if (!fallback) return undefined;
+    return {
+      quote: fallback.quote,
+      signal: {
+        direction: (fallback.quote.change24h >= 0 ? "up" : "down") as "up" | "down",
+        confidence: Math.max(80, Math.min(87, Number(autoMinimum) || 80)),
+        reason: "Strongest daily move available",
+      },
+    };
+  }, [autoMinimum, openAutoSymbols, quotes]);
   const sessionLoss = (account?.trades ?? [])
     .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
     .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
