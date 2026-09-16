@@ -13,4 +13,4 @@
 - [x] Add a backup live market source and last successful price fallback
 - [x] Return a cautious scanner result instead of a market data error
 - [x] Enforce Demo stakes from 2 to 500 USD on the server and every trade control
-- [ ] Verify scanner and stake limits on mobile
+- [x] Verify scanner and stake limits on mobile
