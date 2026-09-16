@@ -113,3 +113,9 @@
 - [x] Play distinct win and loss sounds
 - [x] Add a bot session reset action
 - [x] Verify setup and reset on desktop and mobile
+
+## Trade countdown, stopping, and Demo outcome target
+- [x] Show hours, minutes, and seconds remaining on every running trade
+- [x] Allow manual stopping of bot and manual Demo positions
+- [x] Set expiry outcomes to a labeled 95 percent simulated practice target
+- [x] Verify countdown and stop controls on desktop and mobile

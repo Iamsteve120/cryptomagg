@@ -57,6 +57,13 @@
       "when": 1789525290767,
       "tag": "0007_vary_demo_win_probability",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789526317311,
+      "tag": "0008_set_demo_outcome_target_95_percent",
+      "breakpoints": true
     }
   ]
 }

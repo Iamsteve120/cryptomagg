@@ -142,7 +142,7 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
                 <div className="grid gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}><Radar className="size-4" /> Scan again</Button><Button className="min-h-10 whitespace-normal" disabled={!canExecute} onClick={executeResult}><ChartNoAxesCombined className="size-4 shrink-0" />{mode === "live" ? "Demo scanner only" : `Place Demo trade on ${active.symbol}`}</Button></div>
               </div>
             ) : null}
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner confidence is a simulated score from 80% to 87%. Demo outcomes vary within a 60 to 80 percent practice win range and include losses. This is not financial advice or a real market promise.</p>
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner confidence is a simulated score from 80% to 87%. Demo outcomes target a simulated 95 percent practice win rate and still include losses. This is not financial advice or a real market promise.</p>
           </div>
         </DialogContent>
       </Dialog>
