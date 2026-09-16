@@ -7,4 +7,4 @@
 ## Remove Demo wallet funding
 - [x] Remove Demo deposit and withdrawal controls
 - [x] Block Demo wallet funding actions on the server
-- [ ] Verify the Demo wallet on mobile
+- [x] Verify the Demo wallet on mobile
