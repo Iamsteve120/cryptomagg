@@ -63,7 +63,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
           symbol: string
+          take_profit_percent: number | null
+          take_profit_price: number | null
           trade_source: string
           user_id: string
         }
@@ -85,7 +89,11 @@ export type Database = {
           settled_at?: string | null
           stake: number
           status?: string
+          stop_loss_percent?: number | null
+          stop_loss_price?: number | null
           symbol: string
+          take_profit_percent?: number | null
+          take_profit_price?: number | null
           trade_source?: string
           user_id: string
         }
@@ -107,7 +115,11 @@ export type Database = {
           settled_at?: string | null
           stake?: number
           status?: string
+          stop_loss_percent?: number | null
+          stop_loss_price?: number | null
           symbol?: string
+          take_profit_percent?: number | null
+          take_profit_price?: number | null
           trade_source?: string
           user_id?: string
         }
@@ -188,7 +200,59 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
           symbol: string
+          take_profit_percent: number | null
+          take_profit_price: number | null
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      reserve_demo_trade_with_risk: {
+        Args: {
+          p_asset_name: string
+          p_direction: string
+          p_duration_seconds: number
+          p_entry_price: number
+          p_expires_at: string
+          p_payout_rate: number
+          p_stake: number
+          p_stop_loss_percent: number
+          p_symbol: string
+          p_take_profit_percent: number
+          p_trade_source: string
+          p_user_id: string
+        }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
+          symbol: string
+          take_profit_percent: number | null
+          take_profit_price: number | null
           trade_source: string
           user_id: string
         }[]
@@ -219,7 +283,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
           symbol: string
+          take_profit_percent: number | null
+          take_profit_price: number | null
           trade_source: string
           user_id: string
         }[]
