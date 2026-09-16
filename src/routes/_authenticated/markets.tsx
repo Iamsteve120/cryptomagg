@@ -47,10 +47,18 @@ function Markets() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {quotes.map((q) => (
+        {quotes.filter((q) => assetBySymbol(q.symbol)?.tradable !== false).map((q) => (
           <CryptoCard key={q.symbol} ticker={q.symbol} name={q.name} currentPrice={q.price} percentageChange={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onTrade={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
         ))}
       </div>
+
+      <section className="space-y-3 pt-2">
+        <div>
+          <h2 className="text-xl font-semibold">Market rankings</h2>
+          <p className="text-sm text-muted-foreground">Top coins by market cap and volume, plus today's biggest movers.</p>
+        </div>
+        <MarketRankings quotes={data?.quotes ?? []} />
+      </section>
     </div>
   );
 }
