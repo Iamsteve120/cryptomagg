@@ -8,8 +8,8 @@ export function useMarkets() {
   return useQuery({
     queryKey: ["markets"],
     queryFn: () => fetchMarkets(),
-    refetchInterval: 20_000,
-    staleTime: 10_000,
+    refetchInterval: 6_000,
+    staleTime: 3_000,
   });
 }
 
