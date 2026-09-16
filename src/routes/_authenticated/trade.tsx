@@ -234,8 +234,10 @@ function TradePage() {
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
+    const autoDirection = autoCandidate.signal.direction;
+    if (autoDirection === "wait") return;
     setSymbol(autoCandidate.quote.symbol);
-    mutation.mutate({ direction: autoCandidate.signal.direction, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
+    mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
   function toggleAuto(checked: boolean) {
