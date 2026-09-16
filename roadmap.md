@@ -25,3 +25,11 @@
 - [x] Show every market with a simulated confidence score from 80% to 87%
 - [x] Record scanner entries separately and settle Scanner Demo trades as wins
 - [x] Verify scanner layout and trade settlement on desktop and mobile
+
+## Active trade controls and live PNL
+- [ ] Add atomic Demo Stop settlement using the current live price and visible PNL
+- [ ] Close Demo trades immediately at TP or SL while retaining expiry fallback
+- [ ] Add Trade Now and Stop controls matching the mobile reference
+- [ ] Show fluctuating live PNL on Trade, Dashboard, and History
+- [ ] Emphasize the Profile Demo balance reset control
+- [ ] Verify Stop, TP or SL, reset, and responsive layouts
