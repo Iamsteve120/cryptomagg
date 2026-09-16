@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DemoBanner } from "@/components/demo-banner";
+import { COUNTRIES } from "@/lib/countries";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -36,6 +37,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [country, setCountry] = useState("Kenya");
   const [busy, setBusy] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,7 +50,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin + "/dashboard",
-            data: { full_name: fullName },
+            data: { full_name: fullName, country },
           },
         });
         if (error) throw error;
@@ -111,6 +113,20 @@ function AuthPage() {
                   placeholder="Alex Trader"
                   autoComplete="name"
                 />
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="country">Country</Label>
+                  <select
+                    id="country"
+                    required
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {COUNTRIES.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ) : null}
 
