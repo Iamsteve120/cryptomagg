@@ -56,14 +56,30 @@ function ActivePosition({ trade, currentPrice }: { trade: NonNullable<ReturnType
   const targetDistance = tp && sl ? Math.max(Math.abs(tp - entry), Math.abs(sl - entry)) : 1;
   const progress = Math.max(-100, Math.min(100, (movement / targetDistance) * 100));
   const favorable = movement >= 0;
+  const stake = Number(trade.stake);
+  const profitTarget = (stake * Number(trade.payout_rate)) / 100;
+  const tpDistance = hasLevels ? Math.abs(tp - entry) : 0;
+  const slDistance = hasLevels ? Math.abs(sl - entry) : 0;
+  const livePnl = favorable
+    ? profitTarget * (tpDistance > 0 ? Math.min(1, movement / tpDistance) : 0)
+    : -stake * (slDistance > 0 ? Math.min(1, Math.abs(movement) / slDistance) : 0);
+  const tpHit = hasLevels && favorable && tpDistance > 0 && movement >= tpDistance;
+  const slHit = hasLevels && !favorable && slDistance > 0 && Math.abs(movement) >= slDistance;
 
   return <li className="py-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "▲ Up" : "▼ Down"}</span></p>
-        <p className="num text-xs text-muted-foreground">Entry ${formatPrice(entry)} | Live ${formatPrice(price)} | Stake {formatMoney(Number(trade.stake))} USD</p>
+        <p className="num text-xs text-muted-foreground">Entry ${formatPrice(entry)} | Live ${formatPrice(price)} | Stake {formatMoney(stake)} USD</p>
       </div>
       <div className="text-right"><Countdown expiresAt={trade.expires_at} /><p className={cn("num mt-1 text-xs font-semibold", favorable ? "text-primary" : "text-destructive")}>{favorable ? "+" : "minus "}{Math.abs(((price / entry) - 1) * 100).toFixed(3)}%</p></div>
+    </div>
+    <div className={cn("mt-3 flex items-center justify-between gap-3 rounded-md border p-3", favorable ? "border-primary/30 bg-primary/10" : "border-destructive/30 bg-destructive/10")}>
+      <div>
+        <p className="text-xs uppercase text-muted-foreground">Live PNL</p>
+        <p className={cn("num text-xl font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(livePnl))} USD</p>
+      </div>
+      <p className="text-right text-xs text-muted-foreground">{tpHit ? "Take Profit level reached" : slHit ? "Stop Loss level reached" : "Moving with the live price"}<br />Settles at expiry</p>
     </div>
     {hasLevels ? <>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
