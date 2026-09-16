@@ -18,4 +18,4 @@
 ## History totals
 - [x] Show total PNL for the selected account filter
 - [x] Show combined TP target and SL risk amounts
-- [ ] Verify History totals on desktop and mobile
+- [x] Verify History totals on desktop and mobile
