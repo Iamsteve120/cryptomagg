@@ -143,3 +143,4 @@
 - [x] Bot setup window edits amount, time, count, TP, SL, confidence, max loss, multiplier
 - [x] New trades appear immediately in the list
 - [x] Popup messages removed
+- [x] Live PNL updates every second from fast tick prices with practice sensitivity
