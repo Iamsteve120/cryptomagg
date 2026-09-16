@@ -63,9 +63,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_amount: number | null
           stop_loss_percent: number | null
           stop_loss_price: number | null
           symbol: string
+          take_profit_amount: number | null
           take_profit_percent: number | null
           take_profit_price: number | null
           trade_source: string
@@ -89,9 +91,11 @@ export type Database = {
           settled_at?: string | null
           stake: number
           status?: string
+          stop_loss_amount?: number | null
           stop_loss_percent?: number | null
           stop_loss_price?: number | null
           symbol: string
+          take_profit_amount?: number | null
           take_profit_percent?: number | null
           take_profit_price?: number | null
           trade_source?: string
@@ -115,9 +119,11 @@ export type Database = {
           settled_at?: string | null
           stake?: number
           status?: string
+          stop_loss_amount?: number | null
           stop_loss_percent?: number | null
           stop_loss_price?: number | null
           symbol?: string
+          take_profit_amount?: number | null
           take_profit_percent?: number | null
           take_profit_price?: number | null
           trade_source?: string
@@ -189,9 +195,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_amount: number | null
           stop_loss_percent: number | null
           stop_loss_price: number | null
           symbol: string
+          take_profit_amount: number | null
           take_profit_percent: number | null
           take_profit_price: number | null
           trade_source: string
@@ -235,9 +243,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_amount: number | null
           stop_loss_percent: number | null
           stop_loss_price: number | null
           symbol: string
+          take_profit_amount: number | null
           take_profit_percent: number | null
           take_profit_price: number | null
           trade_source: string
@@ -283,9 +293,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_amount: number | null
           stop_loss_percent: number | null
           stop_loss_price: number | null
           symbol: string
+          take_profit_amount: number | null
           take_profit_percent: number | null
           take_profit_price: number | null
           trade_source: string
@@ -318,9 +330,11 @@ export type Database = {
           settled_at: string | null
           stake: number
           status: string
+          stop_loss_amount: number | null
           stop_loss_percent: number | null
           stop_loss_price: number | null
           symbol: string
+          take_profit_amount: number | null
           take_profit_percent: number | null
           take_profit_price: number | null
           trade_source: string

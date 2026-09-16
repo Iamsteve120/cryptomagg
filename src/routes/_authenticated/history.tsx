@@ -49,8 +49,8 @@ function HistoryPage() {
   const transactions = (data?.transactions ?? []).filter((transaction) => filter === "all" || transaction.account_mode === filter);
   const totals = trades.reduce((summary, trade) => ({
     pnl: summary.pnl + Number(trade.pnl),
-    takeProfit: summary.takeProfit + (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100,
-    stopLoss: summary.stopLoss + (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100,
+    takeProfit: summary.takeProfit + Number(trade.take_profit_amount ?? (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100),
+    stopLoss: summary.stopLoss + Number(trade.stop_loss_amount ?? (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100),
   }), { pnl: 0, takeProfit: 0, stopLoss: 0 });
   const botTrades = trades.filter((trade) => trade.trade_source === "auto");
   const runningBotTrades = botTrades.filter((trade) => trade.status === "open");
@@ -113,7 +113,7 @@ function HistoryPage() {
                 <div><p className="text-xs text-muted-foreground">Result</p><p className={cn("num mt-1 font-semibold", Number(trade.pnl) > 0 ? "text-primary" : Number(trade.pnl) < 0 ? "text-destructive" : "text-muted-foreground")}>{Number(trade.pnl) > 0 ? "+" : Number(trade.pnl) < 0 ? "-" : ""}{formatMoney(Math.abs(Number(trade.pnl)))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Resulting balance</p><p className="num mt-1 font-semibold text-primary">{money(resultingBalance, trade.account_mode)}</p></div>
               </div>
-              <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} | TP {trade.take_profit_percent ?? "Unavailable"}% | SL {trade.stop_loss_percent ?? "Unavailable"}% | {trade.duration_seconds}s</p>
+              <p className="num mt-3 text-xs text-muted-foreground">Entry ${formatPrice(Number(trade.entry_price))} to {trade.exit_price ? "$" + formatPrice(Number(trade.exit_price)) : "Pending"} | TP +${formatMoney(Number(trade.take_profit_amount ?? (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100))} | SL -${formatMoney(Number(trade.stop_loss_amount ?? (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100))} | {trade.duration_seconds}s</p>
             </article>;
           })}</div>}
         </TabsContent>

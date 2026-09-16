@@ -119,3 +119,10 @@
 - [x] Allow manual stopping of bot and manual Demo positions
 - [x] Set expiry outcomes to a labeled 95 percent simulated practice target
 - [x] Verify countdown and stop controls on desktop and mobile
+
+## Dollar Take Profit and Stop Loss
+- [x] Store Take Profit and Stop Loss as dollar amounts for new trades
+- [x] Use dollar targets for live PNL and manual stopping
+- [x] Show dollar targets in Trade and History
+- [x] Preserve readable values for earlier percentage based trades
+- [x] Verify manual and bot setup on desktop and mobile

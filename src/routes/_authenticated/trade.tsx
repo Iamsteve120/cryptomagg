@@ -39,16 +39,15 @@ function playOutcomeSound(outcome: "won" | "lost") {
     oscillator.frequency.setValueAtTime(980, now + 0.09);
     gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    oscillator.stop(now + 0.3);
   } else {
     oscillator.type = "sawtooth";
     oscillator.frequency.setValueAtTime(150, now);
     oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.35);
     gain.gain.setValueAtTime(0.16, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-    oscillator.stop(now + 0.4);
   }
   oscillator.start(now);
+  oscillator.stop(now + (outcome === "won" ? 0.3 : 0.4));
   oscillator.addEventListener("ended", () => void context.close());
 }
 type TradeSource = "manual" | "assist" | "auto" | "scanner";
@@ -139,8 +138,8 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
       {hasLevels ? (
         <>
           <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-            <div className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5"><span className="text-muted-foreground">Take Profit</span><p className="num font-semibold text-primary">{trade.take_profit_percent}% | ${formatPrice(tp)}</p></div>
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">{trade.stop_loss_percent}% | ${formatPrice(sl)}</p></div>
+            <div className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5"><span className="text-muted-foreground">Take Profit</span><p className="num font-semibold text-primary">+${formatMoney(Number(trade.take_profit_amount ?? (stake * Number(trade.take_profit_percent ?? 0)) / 100))}</p></div>
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">-${formatMoney(Number(trade.stop_loss_amount ?? (stake * Number(trade.stop_loss_percent ?? 0)) / 100))}</p></div>
           </div>
           <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-secondary" aria-label={`Position progress ${Math.round(progress)} percent`}>
             <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
@@ -223,9 +222,9 @@ function TradePage() {
   const validStake = stakeValue >= 2 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
-  const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 50 && stopLossValue >= 0.1 && stopLossValue <= 50;
-  const effectiveTakeProfit = Math.max(0.1, Math.round((takeProfitValue / multiplier) * 100) / 100);
-  const effectiveStopLoss = Math.max(0.1, Math.round((stopLossValue / multiplier) * 100) / 100);
+  const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 2000 && stopLossValue >= 0.1 && stopLossValue <= stakeValue;
+  const effectiveTakeProfit = Math.max(0.1, Math.round(takeProfitValue * 100) / 100);
+  const effectiveStopLoss = Math.max(0.1, Math.round(stopLossValue * 100) / 100);
   const selectedBot = TRADING_BOTS.find((bot) => bot.id === botId);
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
@@ -328,8 +327,8 @@ function TradePage() {
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
     const configuredStake = Math.min(2000, Math.max(1, Number(botStake) || 1));
-    const configuredTakeProfit = Math.min(50, Math.max(0.1, Number(botTakeProfit) || 0.1));
-    const configuredStopLoss = Math.min(50, Math.max(0.1, Number(botStopLoss) || 0.1));
+    const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
+    const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (bot) {
       setBotId(bot.id);
@@ -409,7 +408,10 @@ function TradePage() {
           {sessionBotTrades.length === 0 ? <div className="px-4 py-16 text-center"><Bot className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">Scanning all crypto markets</p><p className="mt-1 text-sm text-muted-foreground">The first eligible trade will appear here automatically.</p></div> : <div className="divide-y divide-border">{sessionBotTrades.map((trade) => {
             const currentPrice = quotes.find((item) => item.symbol === trade.symbol)?.price;
             const pnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
-            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(Number(trade.stake))} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">{trade.take_profit_percent}% / {trade.stop_loss_percent}%</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p>{trade.status === "open" ? <Button type="button" variant="destructive" size="sm" className="mt-2 h-7" disabled={stopMutation.isPending && stopMutation.variables === trade.id} onClick={() => stopMutation.mutate(trade.id)}><Square className="size-3" /> Stop</Button> : null}</div></div>;
+            const tradeStake = Number(trade.stake);
+            const tpAmount = Number(trade.take_profit_amount ?? (tradeStake * Number(trade.take_profit_percent ?? 0)) / 100);
+            const slAmount = Number(trade.stop_loss_amount ?? (tradeStake * Number(trade.stop_loss_percent ?? 0)) / 100);
+            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(tradeStake)} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">+${formatMoney(tpAmount)} / -${formatMoney(slAmount)}</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p>{trade.status === "open" ? <Button type="button" variant="destructive" size="sm" className="mt-2 h-7" disabled={stopMutation.isPending && stopMutation.variables === trade.id} onClick={() => stopMutation.mutate(trade.id)}><Square className="size-3" /> Stop</Button> : null}</div></div>;
           })}</div>}
         </section>
       ) : <div className="grid gap-2 lg:grid-cols-12">
@@ -563,15 +565,15 @@ function TradePage() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label htmlFor="takeProfit" className="text-[10px] uppercase tracking-widest text-muted-foreground">Take profit %</Label>
-                <Input id="takeProfit" className="num mt-1.5 h-9" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} />
+                <Label htmlFor="takeProfit" className="text-[10px] uppercase tracking-widest text-muted-foreground">Take profit (USD)</Label>
+                <Input id="takeProfit" className="num mt-1.5 h-9" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} />
               </div>
               <div>
-                <Label htmlFor="stopLoss" className="text-[10px] uppercase tracking-widest text-muted-foreground">Stop loss %</Label>
-                <Input id="stopLoss" className="num mt-1.5 h-9" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} />
+                <Label htmlFor="stopLoss" className="text-[10px] uppercase tracking-widest text-muted-foreground">Stop loss (USD)</Label>
+                <Input id="stopLoss" className="num mt-1.5 h-9" type="number" inputMode="decimal" min="0.1" max={stakeValue || 1} step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} />
               </div>
             </div>
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><Target className="mt-0.5 size-3.5 shrink-0" />With x{multiplier} your trade closes at a {effectiveTakeProfit}% gain or {effectiveStopLoss}% loss in price.</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><Target className="mt-0.5 size-3.5 shrink-0" />Target profit +${formatMoney(effectiveTakeProfit)} | Maximum loss -${formatMoney(effectiveStopLoss)}. The x{multiplier} setting changes price sensitivity.</p>
 
             <dl className="space-y-1.5 rounded-md border border-border/70 bg-secondary/20 px-3 py-2.5 text-xs">
               <div className="flex justify-between"><dt className="text-muted-foreground">Return rate</dt><dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd></div>
@@ -694,8 +696,8 @@ function TradePage() {
               <p className="mt-1.5 text-xs text-muted-foreground">Minimum 5 trades | Maximum 40 trades</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label htmlFor="botTakeProfit">Take Profit %</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
-              <div><Label htmlFor="botStopLoss">Stop Loss %</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
+              <div><Label htmlFor="botTakeProfit">Take Profit (USD)</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
+              <div><Label htmlFor="botStopLoss">Stop Loss (USD)</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max={Number(botStake) || 1} step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
             </div>
             <div className="rounded-md border border-border p-3">
               <div className="flex items-center justify-between gap-3"><div><Label htmlFor="martingale">Martingale</Label><p className="mt-1 text-xs text-muted-foreground">After a loss, multiply the next trade amount. A win resets it.</p></div><Switch id="martingale" checked={martingaleEnabled} onCheckedChange={setMartingaleEnabled} /></div>
@@ -709,7 +711,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
