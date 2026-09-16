@@ -75,4 +75,5 @@
 - [x] Let each bot execute several trades across different markets
 - [x] Keep Stop trading and session risk limits active
 - [x] Remove visible gradients from light mode
-- [ ] Verify bot execution and light mode on desktop and mobile
+- [x] Count only completed losses toward the bot session loss limit
+- [x] Verify bot execution and light mode on desktop and mobile

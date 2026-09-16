@@ -162,7 +162,7 @@ function TradePage() {
   const [autoLimit, setAutoLimit] = useState("3");
   const [lossLimit, setLossLimit] = useState("150");
   const [autoPlaced, setAutoPlaced] = useState(0);
-  const sessionBalance = useRef<number | null>(null);
+  const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
 
   const quotes = markets?.quotes ?? [];
@@ -186,7 +186,9 @@ function TradePage() {
     .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
     .filter((item) => !openAutoSymbols.has(item.quote.symbol) && item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
     .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, openAutoSymbols, quotes]);
-  const sessionLoss = sessionBalance.current === null ? 0 : Math.max(0, sessionBalance.current - balance);
+  const sessionLoss = (account?.trades ?? [])
+    .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
+    .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
   const sparkline = quote?.sparkline ?? [];
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
@@ -254,7 +256,7 @@ function TradePage() {
       setAutoMinimum(String(bot.minConfidence));
       setAutoLimit(String(bot.tradeLimit));
     }
-    sessionBalance.current = balance;
+    sessionStartedAt.current = Date.now();
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
