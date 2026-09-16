@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
 import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
+import { getLiveAccountStatus } from "@/lib/payments.functions";
+import { LIVE_PAYOUT_RATE } from "@/lib/live-trading";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
