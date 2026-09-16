@@ -339,7 +339,7 @@ function TradePage() {
   }
 
   function startAutoTrading() {
-    if (mode !== "demo" || !validStake || !validLevels) return;
+    if (mode !== "demo") return;
     const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
@@ -347,6 +347,11 @@ function TradePage() {
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
+    if (configuredStake > balance) {
+      toast.error("Bot amount is higher than your Demo balance.");
+      return;
+    }
+    botDurationRef.current = configuredDuration;
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
