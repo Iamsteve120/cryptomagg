@@ -4,11 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, ChartNoAxesCombined, ShieldCheck, Target } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Bot, ChartNoAxesCombined, Play, ShieldCheck, Square, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { AssetIcon } from "@/components/ui/asset-icon";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
@@ -240,13 +239,18 @@ function TradePage() {
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
-  function toggleAuto(checked: boolean) {
-    if (checked) {
-      sessionBalance.current = balance;
-      setAutoPlaced(0);
-      lastAutoQuote.current = dataUpdatedAt;
-    }
-    setAutoEnabled(checked);
+  function startAutoTrading() {
+    if (mode !== "demo" || !validStake || !validLevels) return;
+    sessionBalance.current = balance;
+    setAutoPlaced(0);
+    lastAutoQuote.current = null;
+    setAutoEnabled(true);
+    toast.success("AI trading started. Scanning all available markets.");
+  }
+
+  function stopAutoTrading() {
+    setAutoEnabled(false);
+    toast.info("AI trading stopped. Open trades continue until closed or expired.");
   }
 
   return (
@@ -428,17 +432,30 @@ function TradePage() {
             </div>
 
             <div className="space-y-3 border-t border-border/70 pt-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Demo auto trading</p>
-                  <p className="text-[11px] text-muted-foreground">Selects the strongest market and allows one open automatic trade at a time.</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Bot className="size-4" /></span>
+                  <div>
+                    <p className="text-xs font-semibold">AI Trading</p>
+                    <p className="text-[11px] text-muted-foreground">Scans every market and opens the strongest eligible Demo setup.</p>
+                  </div>
                 </div>
-                <Switch checked={autoEnabled} onCheckedChange={toggleAuto} disabled={locked} aria-label="Demo auto trading" />
+                <span className={cn("shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase", autoEnabled ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground")}>
+                  {autoEnabled ? "Running" : "Stopped"}
+                </span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
                 <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="1" max="10" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
                 <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button className="h-10" onClick={startAutoTrading} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                  <Play className="size-4" /> Start trading
+                </Button>
+                <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
+                  <Square className="size-4" /> Stop trading
+                </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
             </div>

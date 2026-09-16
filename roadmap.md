@@ -54,3 +54,8 @@
 - [x] Set Demo outcomes to an approximately 80 percent win mix with losses
 - [x] Improve automatic trading controls for stronger risk management
 - [x] Verify desktop and mobile behavior
+
+## AI trading controls
+- [x] Replace the automatic trading switch with clear Start trading and Stop trading buttons
+- [x] Show running and stopped status in the Trade order panel
+- [x] Keep automatic trades limited to one open position and the configured session controls
