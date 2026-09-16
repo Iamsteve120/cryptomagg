@@ -131,8 +131,8 @@ function signalFor(points: number[], change: number) {
   const recent = points.slice(-6);
   const shortMove = ((recent.at(-1) ?? 0) / (recent[0] || 1) - 1) * 100;
   const agreement = Math.sign(shortMove) === Math.sign(change);
-  const confidence = Math.min(88, Math.round(52 + Math.abs(shortMove) * 12 + (agreement ? 10 : 0)));
-  if (confidence < 60 || Math.abs(shortMove) < 0.08) return { direction: "wait" as const, confidence, reason: "Momentum is not strong enough" };
+  const confidence = Math.min(87, 80 + Math.round(Math.min(5, Math.abs(shortMove) * 8)) + (agreement ? 2 : 0));
+  if (Math.abs(shortMove) < 0.02) return { direction: "wait" as const, confidence: 80, reason: "Waiting for clearer momentum" };
   return {
     direction: shortMove > 0 ? "up" as const : "down" as const,
     confidence,
@@ -176,6 +176,10 @@ function TradePage() {
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
+  const autoCandidate = useMemo(() => quotes
+    .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
+    .filter((item) => item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
+    .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, quotes]);
   const sessionLoss = sessionBalance.current === null ? 0 : Math.max(0, sessionBalance.current - balance);
   const sparkline = quote?.sparkline ?? [];
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
@@ -191,7 +195,7 @@ function TradePage() {
       queryClient.invalidateQueries({ queryKey: ["account"] });
       if (variables.source === "auto") setAutoPlaced((value) => value + 1);
       if (variables.source === "assist") toast.info("Assisted trade added to History with its opening balance.");
-      if (variables.source === "scanner") toast.info("Scanner Demo trades are configured to win at expiry for practice.");
+      if (variables.source === "scanner") toast.info("Scanner Demo outcomes follow the simulator's win and loss mix.");
     },
     onError: (error) => {
       setAutoEnabled(false);
@@ -220,17 +224,19 @@ function TradePage() {
   }, [mode]);
 
   useEffect(() => {
-    if (!autoEnabled || !quote || signal.direction === "wait" || mutation.isPending || !validLevels) return;
-    if (Date.now() - dataUpdatedAt > 45_000 || signal.confidence < Number(autoMinimum)) return;
-    if (autoPlaced >= Number(autoLimit) || sessionLoss >= Number(lossLimit) || !validStake) {
+    if (!autoEnabled || !autoCandidate || mutation.isPending || !validLevels) return;
+    if (Date.now() - dataUpdatedAt > 30_000) return;
+    const openAutoTrades = openTrades.filter((trade) => trade.trade_source === "auto");
+    if (autoPlaced >= Math.min(10, Math.max(1, Number(autoLimit) || 1)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake || openAutoTrades.length > 0) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
-    mutation.mutate({ direction: signal.direction, source: "auto" });
-  }, [autoEnabled, autoLimit, autoMinimum, autoPlaced, dataUpdatedAt, lossLimit, mutation, quote, sessionLoss, signal, stakeValue, validLevels, validStake]);
+    setSymbol(autoCandidate.quote.symbol);
+    mutation.mutate({ direction: autoCandidate.signal.direction, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
+  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
   function toggleAuto(checked: boolean) {
     if (checked) {
@@ -423,16 +429,16 @@ function TradePage() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Demo auto trading</p>
-                  <p className="text-[11px] text-muted-foreground">Runs only while this page is open.</p>
+                  <p className="text-[11px] text-muted-foreground">Selects the strongest market and allows one open automatic trade at a time.</p>
                 </div>
                 <Switch checked={autoEnabled} onCheckedChange={toggleAuto} disabled={locked} aria-label="Demo auto trading" />
               </div>
               <div className="grid grid-cols-3 gap-1.5">
-                <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
-                <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
-                <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
+                <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
+                <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="1" max="10" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
+                <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
               </div>
-              <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Real accounts can never use automatic trading."}</p>
+              <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
             </div>
 
             <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>
