@@ -198,7 +198,7 @@ function TradePage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
   });
 
-  const disabled = locked || mutation.isPending || !validStake || !validLevels || !canPlace;
+  const disabled = locked || mutation.isPending || !validStake || !validLevels;
 
   useEffect(() => {
     if (mode !== "demo") setAutoEnabled(false);
