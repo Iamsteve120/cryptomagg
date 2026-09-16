@@ -1,3 +1,6 @@
+/** Kept in sync with close_demo_trade_at_live_pnl in the database. */
+export const LIVE_PNL_SENSITIVITY = 100;
+
 export function calculateLivePnl(trade: {
   direction: string;
   entry_price: number;
