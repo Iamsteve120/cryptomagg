@@ -50,14 +50,36 @@ function localAnalysis(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>>) {
   };
 }
 
+function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>>) {
+  return quotes
+    .map((quote) => {
+      const move = momentum(quote.sparkline);
+      const agreement = Math.sign(move) === Math.sign(quote.change24h);
+      const strength = Math.abs(move);
+      const direction = strength < 0.02 ? ("wait" as const) : move > 0 ? ("up" as const) : ("down" as const);
+      return {
+        symbol: quote.symbol,
+        name: quote.name,
+        price: quote.price,
+        change24h: quote.change24h,
+        momentumPercent: Number(move.toFixed(3)),
+        direction,
+        confidence: direction === "wait" ? Math.min(55, Math.round(40 + strength * 10)) : Math.min(82, Math.round(58 + strength * 10 + (agreement ? 8 : 0))),
+        durationSeconds: strength > 0.4 ? 60 : 300,
+      };
+    })
+    .sort((a, b) => b.confidence - a.confidence);
+}
+
 export async function analyzeMarketsWithAi(apiKey: string) {
   const quotes = await fetchMarketQuotes();
   const liveQuotes = quotes.filter((quote) => quote.live && quote.sparkline.length >= 6);
   const usableQuotes = liveQuotes.length >= 3 ? liveQuotes : quotes.filter((quote) => quote.sparkline.length >= 6);
+  const options = buildMarketOptions(quotes);
   if (usableQuotes.length < 3) {
     const fallback = localAnalysis(quotes);
     const selected = quotes.find((quote) => quote.symbol === fallback.symbol) ?? quotes[0];
-    return { ...fallback, price: selected?.price ?? 0, change24h: selected?.change24h ?? 0, scannedAt: new Date().toISOString(), marketsScanned: quotes.length };
+    return { ...fallback, price: selected?.price ?? 0, change24h: selected?.change24h ?? 0, scannedAt: new Date().toISOString(), marketsScanned: quotes.length, options };
   }
 
   const snapshot = usableQuotes.map((quote) => ({
