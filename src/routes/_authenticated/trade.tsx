@@ -25,7 +25,7 @@ const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
 
 function playOutcomeSound(outcome: "won" | "lost") {
-  const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+  const AudioContextClass = window.AudioContext;
   if (!AudioContextClass) return;
   const context = new AudioContextClass();
   const oscillator = context.createOscillator();
@@ -666,7 +666,7 @@ function TradePage() {
       />
 
       <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-lg bg-card p-0">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1.5rem)] max-w-md overflow-y-auto rounded-lg bg-card p-0">
           <DialogHeader className="border-b border-border px-5 py-4 text-left">
             <DialogTitle>Set up trading bot</DialogTitle>
             <DialogDescription>The bot automatically chooses the strongest crypto markets.</DialogDescription>
