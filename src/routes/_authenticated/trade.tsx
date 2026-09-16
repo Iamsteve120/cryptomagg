@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Switch } from "@/components/ui/switch";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
-import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
+import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
@@ -180,6 +180,7 @@ function TradePage() {
   const rapidNow = useRapidMarketClock();
   const submit = useServerFn(placeTrade);
   const stopTrade = useServerFn(stopDemoTrade);
+  const stopAllTrades = useServerFn(stopAllDemoTrades);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
   const [duration, setDuration] = useState(60);
   const [candleInterval, setCandleInterval] = useState<CandleInterval>("1");
@@ -295,6 +296,14 @@ function TradePage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
   });
 
+  const stopAllMutation = useMutation({
+    mutationFn: () => stopAllTrades(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not close the open Demo trades."),
+  });
+
   const disabled = locked || mutation.isPending || !validStake || !validLevels;
 
   useEffect(() => {
@@ -381,7 +390,8 @@ function TradePage() {
 
   function stopAutoTrading() {
     setAutoEnabled(false);
-    
+    // Closing every open Demo trade immediately at its current live result.
+    stopAllMutation.mutate();
   }
 
   function resetBotSession() {
@@ -424,7 +434,7 @@ function TradePage() {
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
             <div><p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Bot transactions</p><h1 className="mt-1 text-lg font-semibold">{selectedBot?.name ?? "Trading Bot"}</h1></div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> Trade setup</Button><Button variant="outline" size="sm" onClick={resetBotSession}><RotateCcw className="size-4" /> Reset</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={!autoEnabled}><Square className="size-4" /> Stop bot</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> Trade setup</Button><Button variant="outline" size="sm" onClick={resetBotSession}><RotateCcw className="size-4" /> Reset</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || (!autoEnabled && openTrades.length === 0)}><Square className="size-4" /> Stop bot</Button></div>
           </div>
           <div className="grid grid-cols-3 border-b border-border bg-secondary/20 text-center">
             <div className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Runs</p><p className="num mt-1 font-semibold">{autoPlaced} / {autoLimit}</p></div>
@@ -665,7 +675,7 @@ function TradePage() {
                   <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled}>
                     <Play className="size-4" /> Start trading
                   </Button>
-                  <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
+                  <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || (!autoEnabled && openTrades.length === 0)}>
                     <Square className="size-4" /> Stop trading
                   </Button>
                 </div>

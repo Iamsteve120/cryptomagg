@@ -78,6 +78,13 @@
       "when": 1789528910576,
       "tag": "0010_scale_live_pnl_sensitivity",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789530426536,
+      "tag": "0011_nonzero_demo_close_result",
+      "breakpoints": true
     }
   ]
 }

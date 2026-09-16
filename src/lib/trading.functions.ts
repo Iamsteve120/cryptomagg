@@ -261,6 +261,38 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     return { trade: closed, balance: Number(closed.balance_after_settlement) };
   });
 
+export const stopAllDemoTrades = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    rateLimit(context.userId, "stop-all", 30);
+    const db = await admin();
+    const { data: open } = await db
+      .from("trades")
+      .select("id, symbol")
+      .eq("user_id", context.userId)
+      .eq("account_mode", "demo")
+      .eq("status", "open");
+    if (!open || open.length === 0) return { closed: 0 };
+
+    const { priceForSymbol } = await import("./market.server");
+    const prices = new Map<string, number>();
+    let closed = 0;
+    for (const trade of open) {
+      let price = prices.get(trade.symbol);
+      if (price === undefined) {
+        price = await priceForSymbol(trade.symbol);
+        prices.set(trade.symbol, price);
+      }
+      const { error } = await db.rpc("close_demo_trade_at_live_pnl", {
+        p_user_id: context.userId,
+        p_trade_id: trade.id,
+        p_exit_price: price,
+      });
+      if (!error) closed += 1;
+    }
+    return { closed };
+  });
+
 export const resetDemoAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
