@@ -20,4 +20,4 @@
 - [x] Add secure AI market analysis across supported assets
 - [x] Add floating scanner panel with explicit Demo execution
 - [x] Keep Real execution locked and preserve risk disclosure
-- [ ] Verify live scan, trade history, desktop, and mobile behavior
+- [x] Verify live scan, trade history, desktop, and mobile behavior
