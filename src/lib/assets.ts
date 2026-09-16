@@ -48,6 +48,20 @@ export const DURATIONS = [
   { seconds: 60, label: "1m" },
   { seconds: 300, label: "5m" },
   { seconds: 900, label: "15m" },
+  { seconds: 1800, label: "30m" },
+  { seconds: 3600, label: "1h" },
+  { seconds: 86400, label: "24h" },
+];
+
+/** Position multipliers. A higher multiplier reaches take profit or stop loss on a smaller price move. */
+export const MULTIPLIERS = [1, 5, 10, 25, 50, 100, 200, 300];
+
+/** Preset automated trading bots for the Auto tab. */
+export const TRADING_BOTS = [
+  { id: "momentum", name: "Momentum Bot", description: "Follows the strongest short term push across all markets.", minConfidence: 82, durationSeconds: 60, multiplier: 50 },
+  { id: "scalper", name: "Scalper Bot", description: "Fast thirty second entries with tight targets.", minConfidence: 80, durationSeconds: 30, multiplier: 100 },
+  { id: "trend", name: "Trend Bot", description: "Holds five minute trades that agree with the daily move.", minConfidence: 84, durationSeconds: 300, multiplier: 25 },
+  { id: "swing", name: "Swing Bot", description: "Patient fifteen minute entries on high confidence setups only.", minConfidence: 86, durationSeconds: 900, multiplier: 10 },
 ];
 
 export const DEPOSIT_METHODS = [

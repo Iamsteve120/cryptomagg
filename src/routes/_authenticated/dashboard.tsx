@@ -65,7 +65,7 @@ function Dashboard() {
         />
         <StatCard
           label="Net P/L"
-          value={(netPnl >= 0 ? "+" : "minus ") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
+          value={(netPnl >= 0 ? "+" : "-") + formatMoney(Math.abs(netPnl)) + (mode === "demo" ? " USD" : " USDT")}
           hint="Across settled trades"
           tone={netPnl < 0 ? "negative" : "positive"}
         />
@@ -99,7 +99,7 @@ function Dashboard() {
                     </p>
                     <p className="num text-xs text-muted-foreground">Entry ${formatPrice(Number(t.entry_price))} | Live ${formatPrice(quotes.find((quote) => quote.symbol === t.symbol)?.price ?? Number(t.entry_price))} | {t.duration_seconds}s</p>
                   </div>
-                  {(() => { const pnl = calculateLivePnl(t, quotes.find((quote) => quote.symbol === t.symbol)?.price); return <div className="text-right"><p className="text-xs text-muted-foreground">Live PNL</p><p className={pnl >= 0 ? "num font-semibold text-primary" : "num font-semibold text-destructive"}>{pnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(pnl))} USD</p></div>; })()}
+                  {(() => { const pnl = calculateLivePnl(t, quotes.find((quote) => quote.symbol === t.symbol)?.price); return <div className="text-right"><p className="text-xs text-muted-foreground">Live PNL</p><p className={pnl >= 0 ? "num font-semibold text-primary" : "num font-semibold text-destructive"}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))} USD</p></div>; })()}
                 </li>
               ))}
             </ul>

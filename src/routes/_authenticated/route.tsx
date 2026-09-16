@@ -22,7 +22,7 @@ function AuthenticatedLayout() {
 
   return (
     <AccountModeProvider>
-      <div className="min-h-screen">
+      <div className="app-shell min-h-screen">
         <DemoBanner />
         <AppNav demoBalance={demoBalance} liveBalance={liveBalance} />
         <main className="mx-auto max-w-7xl px-4 py-6">
