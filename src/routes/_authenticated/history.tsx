@@ -8,6 +8,7 @@ import { useAccount } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 import { useAccountMode, type AccountMode } from "@/components/account-mode";
+import { StatCard } from "@/components/market-widgets";
 
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({
@@ -43,6 +44,12 @@ function HistoryPage() {
   const [filter, setFilter] = useState<"all" | AccountMode>(mode);
   const trades = (data?.trades ?? []).filter((trade) => filter === "all" || trade.account_mode === filter);
   const transactions = (data?.transactions ?? []).filter((transaction) => filter === "all" || transaction.account_mode === filter);
+  const totals = trades.reduce((summary, trade) => ({
+    pnl: summary.pnl + Number(trade.pnl),
+    takeProfit: summary.takeProfit + (Number(trade.stake) * Number(trade.take_profit_percent ?? 0)) / 100,
+    stopLoss: summary.stopLoss + (Number(trade.stake) * Number(trade.stop_loss_percent ?? 0)) / 100,
+  }), { pnl: 0, takeProfit: 0, stopLoss: 0 });
+  const totalUnit = filter === "live" ? "USDT" : filter === "demo" ? "USD" : "USD value";
 
   return (
     <div className="space-y-5">
@@ -51,6 +58,12 @@ function HistoryPage() {
         <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="History account filter">
           {(["all", "demo", "live"] as const).map((value) => <Button key={value} size="sm" variant={filter === value ? "secondary" : "ghost"} onClick={() => setFilter(value)}>{value === "all" ? "All" : value === "demo" ? "Demo" : "Real"}</Button>)}
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Total PNL" value={`${totals.pnl < 0 ? "minus " : totals.pnl > 0 ? "+" : ""}${formatMoney(Math.abs(totals.pnl))} ${totalUnit}`} hint="Settled results in this filter" tone={totals.pnl > 0 ? "positive" : totals.pnl < 0 ? "negative" : "default"} />
+        <StatCard label="Total TP target" value={`${formatMoney(totals.takeProfit)} ${totalUnit}`} hint="Combined take profit amount" tone="positive" />
+        <StatCard label="Total SL risk" value={`${formatMoney(totals.stopLoss)} ${totalUnit}`} hint="Combined stop loss amount" tone="negative" />
       </div>
 
       <Tabs defaultValue="trades">
