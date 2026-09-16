@@ -156,31 +156,16 @@
 }
 
 @utility grid-glow {
-  background-image:
-    radial-gradient(circle at 15% 0%, oklch(0.63 0.072 159 / 22%), transparent 55%),
-    radial-gradient(circle at 85% 10%, oklch(0.74 0.055 162 / 14%), transparent 50%),
-    linear-gradient(to bottom, oklch(1 0 0 / 4%) 1px, transparent 1px),
-    linear-gradient(to right, oklch(1 0 0 / 4%) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    100% 100%,
-    100% 56px,
-    56px 100%;
+  background-color: var(--color-background);
 }
 
-/* Deep green side bands so light mode is not a flat wash of pale green. */
+/* Flat side bands keep light mode grounded without gradients. */
 @utility app-shell {
-  background-image:
-    linear-gradient(90deg, oklch(0.27 0.045 160) 0%, oklch(0.27 0.045 160 / 55%) 2.2%, transparent 12%),
-    linear-gradient(270deg, oklch(0.27 0.045 160) 0%, oklch(0.27 0.045 160 / 55%) 2.2%, transparent 12%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  box-shadow: inset 12px 0 var(--color-sidebar), inset -12px 0 var(--color-sidebar);
 }
 
 .dark .app-shell {
-  background-image:
-    linear-gradient(90deg, oklch(0.12 0.02 160) 0%, transparent 10%),
-    linear-gradient(270deg, oklch(0.12 0.02 160) 0%, transparent 10%);
+  box-shadow: inset 12px 0 var(--color-sidebar), inset -12px 0 var(--color-sidebar);
 }
 
 @utility num {

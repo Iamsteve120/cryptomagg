@@ -69,3 +69,10 @@
 - [x] Dark green side bands in light mode
 - [x] Faster live price and PNL refresh
 - [x] Trading bots on the trade tab with start and stop
+
+## Bot trade sequences and flat light theme
+- [x] Start a bot immediately when its card is selected
+- [x] Let each bot execute several trades across different markets
+- [x] Keep Stop trading and session risk limits active
+- [x] Remove visible gradients from light mode
+- [ ] Verify bot execution and light mode on desktop and mobile

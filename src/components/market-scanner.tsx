@@ -66,7 +66,7 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open AI market scanner"
-          className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-primary via-primary/80 to-[oklch(0.52_0.16_300)] font-display text-xl font-bold tracking-tight text-primary-foreground shadow-[0_0_28px_oklch(0.63_0.072_159_/_0.55)] transition hover:scale-105"
+          className="relative flex size-16 items-center justify-center rounded-full border-4 border-card bg-primary font-display text-xl font-bold tracking-tight text-primary-foreground shadow-xl transition hover:scale-105"
         >
           <span className="absolute inset-0 animate-ping rounded-full bg-primary/25" />
           <span className="relative">AI</span>
@@ -78,7 +78,7 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-xl gap-0 overflow-y-auto rounded-lg border-primary/30 bg-card p-0 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader className="sticky top-0 z-10 border-b border-border bg-card px-4 py-4 text-left sm:px-5 sm:py-5">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.52_0.16_300)] font-display text-sm font-bold text-primary-foreground">AI</div>
+              <div className="flex size-10 items-center justify-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">AI</div>
               <div><DialogTitle>Entry scanner</DialogTitle><DialogDescription>AI analysis across every supported market</DialogDescription></div>
             </div>
           </DialogHeader>

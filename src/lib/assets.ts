@@ -58,10 +58,10 @@ export const MULTIPLIERS = [1, 5, 10, 25, 50, 100, 200, 300];
 
 /** Preset automated trading bots for the Auto tab. */
 export const TRADING_BOTS = [
-  { id: "momentum", name: "Momentum Bot", description: "Follows the strongest short term push across all markets.", minConfidence: 82, durationSeconds: 60, multiplier: 50 },
-  { id: "scalper", name: "Scalper Bot", description: "Fast thirty second entries with tight targets.", minConfidence: 80, durationSeconds: 30, multiplier: 100 },
-  { id: "trend", name: "Trend Bot", description: "Holds five minute trades that agree with the daily move.", minConfidence: 84, durationSeconds: 300, multiplier: 25 },
-  { id: "swing", name: "Swing Bot", description: "Patient fifteen minute entries on high confidence setups only.", minConfidence: 86, durationSeconds: 900, multiplier: 10 },
+  { id: "momentum", name: "Momentum Bot", description: "Runs five short term trades across the strongest markets.", minConfidence: 82, durationSeconds: 60, multiplier: 50, tradeLimit: 5 },
+  { id: "scalper", name: "Scalper Bot", description: "Runs eight fast entries with tight targets.", minConfidence: 80, durationSeconds: 30, multiplier: 100, tradeLimit: 8 },
+  { id: "trend", name: "Trend Bot", description: "Runs four five minute trades that agree with the daily move.", minConfidence: 84, durationSeconds: 300, multiplier: 25, tradeLimit: 4 },
+  { id: "swing", name: "Swing Bot", description: "Runs three patient trades on high confidence setups only.", minConfidence: 86, durationSeconds: 900, multiplier: 10, tradeLimit: 3 },
 ];
 
 export const DEPOSIT_METHODS = [
