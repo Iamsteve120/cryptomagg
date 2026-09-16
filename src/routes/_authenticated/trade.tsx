@@ -178,6 +178,12 @@ function TradePage() {
   const { data: account } = useAccount();
   const rapidNow = useRapidMarketClock();
   const submit = useServerFn(placeTrade);
+  const fetchLiveStatus = useServerFn(getLiveAccountStatus);
+  const { data: liveStatus } = useQuery({
+    queryKey: ["live-account-status"],
+    queryFn: () => fetchLiveStatus(),
+    staleTime: 5 * 60 * 1000,
+  });
   const stopTrade = useServerFn(stopDemoTrade);
   const stopAllTrades = useServerFn(stopAllDemoTrades);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
@@ -262,7 +268,8 @@ function TradePage() {
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
   const sessionOpen = sparkline.length > 0 ? sparkline[0] : null;
-  const locked = mode === "live";
+  // Real trading opens only once M Pesa funding is switched on; bots stay Demo only.
+  const locked = mode === "live" && !liveStatus?.enabled;
 
   const mutation = useMutation({
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
@@ -683,7 +690,7 @@ function TradePage() {
               </div>
             )}
 
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Trading tools are available in Demo mode."}</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades settle on the exchange price at expiry. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
           </div>
         </aside>
       </div>}
