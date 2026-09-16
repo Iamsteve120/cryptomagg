@@ -46,6 +46,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="Account type">
             <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
             <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Real</Button>
