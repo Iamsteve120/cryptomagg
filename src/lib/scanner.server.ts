@@ -21,31 +21,27 @@ function momentum(points: number[]) {
   return first > 0 ? ((last / first) - 1) * 100 : 0;
 }
 
+function scannerConfidence(strength: number, agreement: boolean) {
+  return Math.min(87, 80 + Math.round(Math.min(5, strength * 8)) + (agreement ? 2 : 0));
+}
+
 function localAnalysis(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>>) {
   const ranked = quotes
     .map((quote) => ({ quote, move: momentum(quote.sparkline) }))
     .sort((a, b) => Math.abs(b.move) - Math.abs(a.move));
   const strongest = ranked[0];
-  if (!strongest || Math.abs(strongest.move) < 0.02) {
-    const quote = strongest?.quote ?? quotes[0];
-    return {
-      symbol: quote?.symbol ?? "BTC",
-      direction: "wait" as const,
-      confidence: 45,
-      durationSeconds: 60 as const,
-      marketCondition: "No clear short term momentum",
-      rationale: "Current market movement is too limited or mixed for a supported Demo setup.",
-      riskNote: "Wait for clearer price movement before placing a Demo trade.",
-    };
-  }
-  const agreement = Math.sign(strongest.move) === Math.sign(strongest.quote.change24h);
+  const quote = strongest?.quote ?? quotes[0];
+  if (!quote) throw new Error("Market data is temporarily unavailable.");
+  const move = strongest?.move ?? 0;
+  const fallbackMove = move === 0 ? quote.change24h : move;
+  const agreement = Math.sign(fallbackMove) === Math.sign(quote.change24h);
   return {
-    symbol: strongest.quote.symbol as "BTC" | "ETH" | "SOL" | "BNB" | "XRP" | "ADA" | "DOGE" | "AVAX" | "LINK" | "DOT",
-    direction: strongest.move > 0 ? "up" as const : "down" as const,
-    confidence: Math.min(82, Math.round(58 + Math.abs(strongest.move) * 10 + (agreement ? 8 : 0))),
-    durationSeconds: Math.abs(strongest.move) > 0.4 ? 60 as const : 300 as const,
+    symbol: quote.symbol as "BTC" | "ETH" | "SOL" | "BNB" | "XRP" | "ADA" | "DOGE" | "AVAX" | "LINK" | "DOT",
+    direction: fallbackMove >= 0 ? "up" as const : "down" as const,
+    confidence: scannerConfidence(Math.abs(fallbackMove), agreement),
+    durationSeconds: Math.abs(fallbackMove) > 0.4 ? 60 as const : 300 as const,
     marketCondition: agreement ? "Momentum follows the daily direction" : "Short term momentum differs from the daily direction",
-    rationale: `${strongest.quote.symbol} has the clearest recent price movement among the available markets.`,
+    rationale: `${quote.symbol} has the clearest recent price movement among the available markets.`,
     riskNote: "Momentum can reverse before expiry. Keep the Demo stake within your limit.",
   };
 }
@@ -56,7 +52,8 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
       const move = momentum(quote.sparkline);
       const agreement = Math.sign(move) === Math.sign(quote.change24h);
       const strength = Math.abs(move);
-      const direction = strength < 0.02 ? ("wait" as const) : move > 0 ? ("up" as const) : ("down" as const);
+      const directionalMove = move === 0 ? quote.change24h : move;
+      const direction = directionalMove >= 0 ? ("up" as const) : ("down" as const);
       return {
         symbol: quote.symbol,
         name: quote.name,
@@ -64,7 +61,7 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
         change24h: quote.change24h,
         momentumPercent: Number(move.toFixed(3)),
         direction,
-        confidence: direction === "wait" ? Math.min(55, Math.round(40 + strength * 10)) : Math.min(82, Math.round(58 + strength * 10 + (agreement ? 8 : 0))),
+        confidence: scannerConfidence(Math.abs(directionalMove), agreement),
         durationSeconds: strength > 0.4 ? 60 : 300,
       };
     })
@@ -96,7 +93,7 @@ export async function analyzeMarketsWithAi(apiKey: string) {
   const result = streamText({
     model: lovable.responses("openai/gpt-6-astra"),
     output: Output.object({ schema: ScanOutput }),
-    system: "You are a cautious market pattern analyst inside a paper trading simulator. Analyze only the supplied numeric snapshot. Never claim certainty, guaranteed profit, insider information, or future knowledge. Choose wait when evidence conflicts or confidence is below 60. Keep rationale under 35 words and riskNote under 25 words. This is educational analysis, not financial advice.",
+    system: "You are a market pattern analyst inside a paper trading simulator. Analyze only the supplied numeric snapshot. Select the strongest Up or Down Demo setup. Return a confidence from 80 through 87 as a simulated setup score, never as a real win probability. Never claim certainty, guaranteed real profit, insider information, or future knowledge. Keep rationale under 35 words and riskNote under 25 words. This is educational analysis, not financial advice.",
     prompt: `Return the strongest current simulated setup from this market snapshot. Compare daily movement, recent momentum, daily range position, and liquidity. Pick one supported duration. Data: ${JSON.stringify(snapshot)}`,
     providerOptions: {
       openai: {
@@ -115,7 +112,8 @@ export async function analyzeMarketsWithAi(apiKey: string) {
     if (!selected) throw new Error("The scan returned an unavailable market.");
     return {
       ...output,
-      confidence: Math.max(0, Math.min(95, Math.round(output.confidence))),
+      direction: output.direction === "wait" ? (selected.change24h >= 0 ? "up" as const : "down" as const) : output.direction,
+      confidence: Math.max(80, Math.min(87, Math.round(output.confidence))),
       price: selected.price,
       change24h: selected.change24h,
       scannedAt: new Date().toISOString(),
