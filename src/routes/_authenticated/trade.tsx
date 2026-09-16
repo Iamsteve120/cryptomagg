@@ -655,7 +655,7 @@ function TradePage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                  <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled}>
                     <Play className="size-4" /> Start trading
                   </Button>
                   <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
