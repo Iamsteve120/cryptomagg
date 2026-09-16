@@ -77,3 +77,10 @@
 - [x] Remove visible gradients from light mode
 - [x] Count only completed losses toward the bot session loss limit
 - [x] Verify bot execution and light mode on desktop and mobile
+
+## Bot setup dialog
+- [x] Open setup dialog when a trading bot is selected
+- [x] Allow 30 second to 1 hour trade duration
+- [x] Allow 5 to 40 trades per bot run
+- [x] Automatically select eligible crypto markets
+- [x] Verify setup and execution on desktop and mobile
