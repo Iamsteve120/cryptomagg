@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   symbol: string;
   interval?: "1" | "5" | "15" | "60";
+  theme?: "light" | "dark";
   className?: string;
 };
 
@@ -10,7 +11,7 @@ type Props = {
  * Live candlestick chart. Streams TradingView's crypto market data
  * (same source as tradingview.com/markets/cryptocurrencies) for the pair.
  */
-export function CandlestickChart({ symbol, interval = "1", className }: Props) {
+export function CandlestickChart({ symbol, interval = "1", theme = "dark", className }: Props) {
   const holder = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -37,7 +38,7 @@ export function CandlestickChart({ symbol, interval = "1", className }: Props) {
       symbol: `BINANCE:${symbol}USDT`,
       interval,
       timezone: "Etc/UTC",
-      theme: "dark",
+      theme,
       style: "1",
       locale: "en",
       hide_top_toolbar: true,
@@ -45,8 +46,8 @@ export function CandlestickChart({ symbol, interval = "1", className }: Props) {
       hide_side_toolbar: true,
       allow_symbol_change: false,
       save_image: false,
-      backgroundColor: "rgba(10, 14, 12, 1)",
-      gridColor: "rgba(120, 140, 130, 0.12)",
+      backgroundColor: theme === "dark" ? "rgba(10, 14, 12, 1)" : "rgba(255, 255, 255, 1)",
+      gridColor: theme === "dark" ? "rgba(120, 140, 130, 0.12)" : "rgba(120, 140, 130, 0.16)",
       withdateranges: false,
       details: false,
       calendar: false,
@@ -57,7 +58,7 @@ export function CandlestickChart({ symbol, interval = "1", className }: Props) {
     return () => {
       node.innerHTML = "";
     };
-  }, [symbol, interval]);
+  }, [symbol, interval, theme]);
 
   return (
     <div className={className}>
