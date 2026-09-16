@@ -34,6 +34,77 @@ function fallbackQuotes(): MarketQuote[] {
   }));
 }
 
+/** Sparkline candles change slowly, so they are cached while prices refresh on every request. */
+const sparklineCache = new Map<string, number[]>();
+let sparklineFetchedAt = 0;
+
+async function refreshSparklines() {
+  if (Date.now() - sparklineFetchedAt < 60_000 && sparklineCache.size > 0) return;
+  sparklineFetchedAt = Date.now();
+  await Promise.all(ASSETS.filter((asset) => asset.tradable !== false).map(async (asset) => {
+    try {
+      const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${asset.symbol}USDT&interval=1m&limit=60`, { headers: { accept: "application/json" } });
+      if (!response.ok) return;
+      const candles = await response.json() as unknown[][];
+      const closes = candles.map((candle) => Number(candle[4])).filter((price) => Number.isFinite(price) && price > 0);
+      if (closes.length >= 6) sparklineCache.set(asset.symbol, closes);
+    } catch {
+      // Keep the previous candles when the provider is briefly unavailable.
+    }
+  }));
+}
+
+/** One request returns fresh prices for every tradable pair, so live PNL moves on each poll. */
+async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
+  const tradable = ASSETS.filter((asset) => asset.tradable !== false);
+  const symbols = JSON.stringify(tradable.map((asset) => `${asset.symbol}USDT`));
+  const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`, { headers: { accept: "application/json" } });
+  if (!response.ok) return null;
+  const rows = await response.json() as Array<Record<string, unknown>>;
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  await refreshSparklines();
+  const quotes = ASSETS.map((asset) => {
+    if (asset.tradable === false) {
+      return {
+        id: asset.id,
+        symbol: asset.symbol,
+        name: asset.name,
+        price: asset.fallbackPrice,
+        change24h: 0,
+        high24h: asset.fallbackPrice,
+        low24h: asset.fallbackPrice,
+        volume24h: 0,
+        marketCap: 0,
+        sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
+        payoutRate: asset.payoutRate,
+        live: false,
+      } satisfies MarketQuote;
+    }
+    const row = rows.find((item) => item["symbol"] === `${asset.symbol}USDT`);
+    const price = Number(row?.["lastPrice"] ?? 0);
+    const previous = lastSuccessfulQuotes?.find((item) => item.symbol === asset.symbol);
+    if (!row || !Number.isFinite(price) || price <= 0) {
+      return previous ?? fallbackQuotes().find((item) => item.id === asset.id)!;
+    }
+    const sparkline = sparklineCache.get(asset.symbol) ?? previous?.sparkline ?? [];
+    return {
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      price,
+      change24h: Number(row["priceChangePercent"] ?? 0),
+      high24h: Number(row["highPrice"] ?? price),
+      low24h: Number(row["lowPrice"] ?? price),
+      volume24h: Number(row["quoteVolume"] ?? 0),
+      marketCap: previous?.marketCap ?? 0,
+      sparkline: [...sparkline.slice(0, -1), price],
+      payoutRate: asset.payoutRate,
+      live: true,
+    } satisfies MarketQuote;
+  });
+  return quotes.filter((quote) => quote.live).length >= 3 ? quotes : null;
+}
+
 async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
   const rows = await Promise.all(ASSETS.map(async (asset) => {
     if (asset.tradable === false) {
