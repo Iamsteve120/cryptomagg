@@ -24,4 +24,4 @@
 - [x] Keep the scanner above mobile navigation and fit it within the viewport
 - [x] Show every market with a simulated confidence score from 80% to 87%
 - [x] Record scanner entries separately and settle Scanner Demo trades as wins
-- [ ] Verify scanner layout and trade settlement on desktop and mobile
+- [x] Verify scanner layout and trade settlement on desktop and mobile

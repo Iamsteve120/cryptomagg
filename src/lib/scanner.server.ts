@@ -61,11 +61,16 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
         change24h: quote.change24h,
         momentumPercent: Number(move.toFixed(3)),
         direction,
-        confidence: scannerConfidence(Math.abs(directionalMove), agreement),
+        confidence: 80,
         durationSeconds: strength > 0.4 ? 60 : 300,
+        score: Math.abs(directionalMove) + (agreement ? 0.25 : 0),
       };
     })
-    .sort((a, b) => b.confidence - a.confidence);
+    .sort((a, b) => b.score - a.score)
+    .map(({ score, ...option }, index) => ({
+      ...option,
+      confidence: 87 - Math.min(7, index),
+    }));
 }
 
 export async function analyzeMarketsWithAi(apiKey: string) {
