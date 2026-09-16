@@ -16,6 +16,8 @@ import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading
 import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { getLiveAccountStatus } from "@/lib/payments.functions";
 import { LIVE_PAYOUT_RATE } from "@/lib/live-trading";
+import { SYNTHETIC_INSTRUMENTS, isSyntheticSymbol } from "@/lib/synthetic";
+import { SyntheticChart } from "@/components/synthetic-chart";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
@@ -227,7 +229,17 @@ function TradePage() {
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
-  const asset = TRADABLE_ASSETS.find((item) => item.symbol === symbol);
+  /** Real accounts trade the generated crypto instruments, Demo trades the exchange pairs. */
+  const marketList = useMemo(
+    () => (mode === "live"
+      ? SYNTHETIC_INSTRUMENTS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))
+      : TRADABLE_ASSETS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))),
+    [mode],
+  );
+  useEffect(() => {
+    if (!marketList.some((item) => item.symbol === symbol)) setSymbol(marketList[0]!.symbol);
+  }, [marketList, symbol]);
+  const asset = marketList.find((item) => item.symbol === symbol);
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
@@ -465,9 +477,9 @@ function TradePage() {
       ) : <div className="grid gap-2 lg:grid-cols-12">
         {/* Market list */}
         <section className="order-3 flex flex-col rounded-lg border border-border bg-card lg:order-1 lg:col-span-3">
-          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{quotes.length || TRADABLE_ASSETS.length} markets</span>}>Market assets</PanelTitle>
+          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{marketList.length} markets</span>}>Market assets</PanelTitle>
           <ul className="max-h-[320px] overflow-y-auto lg:max-h-[560px]">
-            {TRADABLE_ASSETS.map((item) => {
+            {marketList.map((item) => {
               const row = quotes.find((entry) => entry.symbol === item.symbol);
               const active = item.symbol === symbol;
               return (
@@ -518,7 +530,9 @@ function TradePage() {
               ))}
             </div>
             <div className="h-64 px-1 pb-1 lg:h-80">
-              <CandlestickChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />
+              {isSyntheticSymbol(symbol)
+                ? <SyntheticChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />
+                : <CandlestickChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />}
             </div>
           </section>
 
@@ -692,7 +706,7 @@ function TradePage() {
               </div>
             )}
 
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades settle on the exchange price at expiry. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades run on CryptoMagg synthetic crypto instruments. These are generated price series, not real coins, identical for every trader and set only by the clock. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
           </div>
         </aside>
       </div>}
@@ -700,7 +714,7 @@ function TradePage() {
       <p className="rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {mode === "demo"
           ? "Simulation mode | No real funds involved | Virtual balance for practice only"
-          : `Real account | Live exchange prices | Win pays ${LIVE_PAYOUT_RATE} percent, a loss costs your full amount`}
+          : `Real account | Synthetic crypto instruments, not real coins | Win pays ${LIVE_PAYOUT_RATE} percent, a loss costs your full amount`}
       </p>
 
       <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>

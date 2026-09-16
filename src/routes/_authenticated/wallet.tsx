@@ -220,10 +220,13 @@ function WalletPage() {
                 </p>
               </div>
               <div className="border-t border-border pt-4">
-                <p className="text-sm font-semibold">Prices you can check</p>
+                <p className="text-sm font-semibold">Synthetic crypto instruments</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Every trade opens and closes on the live exchange price for that pair. CryptoMagg
-                  does not set, delay or adjust it.
+                  Real trades run on CryptoMagg synthetic instruments such as Crypto Volatility 100.
+                  These are generated price series, not real coins. The level depends only on the
+                  instrument and the clock, so every trader sees the same price at the same second
+                  and any past price or settlement can be recalculated and checked. CryptoMagg cannot
+                  change a price for one trader or one trade.
                 </p>
               </div>
               <div className="border-t border-border pt-4">
