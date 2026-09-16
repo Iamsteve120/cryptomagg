@@ -30,7 +30,8 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
     <header className="sticky top-0 z-[60] border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
         <Link to="/dashboard" className="flex items-center">
-          <BrandLogo size="sm" className="shrink-0" />
+          <BrandLogo size="sm" withWordmark={false} className="shrink-0" />
+          <span className="ml-2.5 hidden font-display text-lg font-bold leading-none text-foreground sm:inline">CryptoMagg</span>
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex">
@@ -46,7 +47,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="Account type">
             <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>

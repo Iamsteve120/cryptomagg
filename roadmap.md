@@ -49,3 +49,8 @@
 - [x] Market rankings boards on Markets (market cap, volume, gainers, losers) and a compact set on Dashboard
 - [x] Stablecoins appear in rankings only, never in the trading list
 - [x] Desktop and mobile checks with no overflow and no console errors
+- [x] Soften the light theme and improve the theme toggle
+- [x] Remove locked Real services wording across visible pages
+- [x] Set Demo outcomes to an approximately 80 percent win mix with losses
+- [x] Improve automatic trading controls for stronger risk management
+- [x] Verify desktop and mobile behavior

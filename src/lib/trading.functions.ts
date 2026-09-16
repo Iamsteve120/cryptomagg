@@ -131,7 +131,7 @@ export const moveFunds = createServerFn({ method: "POST" })
       throw new Error("Demo deposits and withdrawals are unavailable.");
     }
     if (data.accountMode === "live") {
-      throw new Error("Live deposits and withdrawals are unavailable until payment verification is complete.");
+      throw new Error("Real deposits and withdrawals are not available.");
     }
     const method = DEPOSIT_METHODS.find((m) => m.id === data.method);
     if (!method) throw new Error("Unsupported method.");
@@ -186,7 +186,7 @@ export const placeTrade = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "trade");
     if (data.accountMode === "live") {
-      throw new Error("Live trading is unavailable until account verification is complete.");
+      throw new Error("Real trading is not available.");
     }
 
     const asset = ASSETS.find((a) => a.symbol === data.symbol);

@@ -60,7 +60,7 @@ function Dashboard() {
         <StatCard
           label={mode === "demo" ? "Demo balance" : "Real balance"}
           value={profile ? (mode === "demo" ? "$" + formatMoney(Number(profile.demo_balance)) : formatMoney(Number(profile.live_balance)) + " USDT") : "Unavailable"}
-          hint={mode === "demo" ? "Simulated funds" : "Verification required"}
+          hint={mode === "demo" ? "Simulated funds" : "Not available"}
           tone="positive"
         />
         <StatCard
@@ -84,7 +84,7 @@ function Dashboard() {
             <p className="mt-4 text-sm text-muted-foreground">
               {mode === "demo"
                 ? "No open positions. Head to Trade to open a demo position."
-                : "Real trading remains locked until verification is complete."}
+                : "Real trading is not available."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border/60">

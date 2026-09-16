@@ -55,7 +55,7 @@ function WalletPage() {
         <p className="text-sm text-muted-foreground">
           {mode === "demo"
             ? "Your Demo balance changes only through trades or a full account reset."
-            : "Fund your Real account in USDT after payment verification is enabled."}
+            : "Real account funding is not available."}
         </p>
       </div>
 
@@ -101,7 +101,7 @@ function WalletPage() {
               <LockKeyhole className="size-4" /> Continue with M Pesa
             </Button>
             <p className="text-xs text-muted-foreground">
-              Deposits will open after the payment provider verifies this account. No balance is credited before a signed payment confirmation.
+              Real deposits are not available. No money is collected and no balance is credited.
             </p>
           </div>
 
@@ -112,12 +112,12 @@ function WalletPage() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Till or paybill</p>
-              <p className="mt-1 font-semibold text-muted-foreground">Awaiting provider verification</p>
+              <p className="mt-1 font-semibold text-muted-foreground">Not available</p>
             </div>
             <div className="border-t border-border pt-4">
               <p className="text-sm font-semibold">Real account protection</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Never send money to a number shown outside this verified deposit screen.
+                Do not send money to any number claiming to fund CryptoMagg.
               </p>
             </div>
           </aside>

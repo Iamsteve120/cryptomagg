@@ -40,12 +40,18 @@ export function ThemeToggle() {
   const { theme, setTheme } = useThemeMode();
   return (
     <Button
-      variant="ghost"
-      size="icon"
+      variant="outline"
+      size="sm"
+      className="group h-9 gap-1 rounded-full bg-card/80 px-1.5 shadow-sm"
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
     >
-      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      <span className={theme === "light" ? "flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground" : "flex size-6 items-center justify-center rounded-full text-muted-foreground"}>
+        <Sun className="size-3.5" />
+      </span>
+      <span className={theme === "dark" ? "flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground" : "flex size-6 items-center justify-center rounded-full text-muted-foreground"}>
+        <Moon className="size-3.5" />
+      </span>
     </Button>
   );
 }

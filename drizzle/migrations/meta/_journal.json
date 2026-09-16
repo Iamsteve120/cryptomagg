@@ -43,6 +43,13 @@
       "when": 1789519135168,
       "tag": "0005_add_live_pnl_demo_trade_close",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789523161172,
+      "tag": "0006_set_demo_expiry_outcome_mix",
+      "breakpoints": true
     }
   ]
 }
