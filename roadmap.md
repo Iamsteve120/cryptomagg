@@ -104,4 +104,4 @@
 - [x] Enforce bot amounts from 1 to 2,000 USD
 - [x] Open an in place live Transactions view after starting
 - [x] Keep automatic market selection and running PNL visible
-- [ ] Verify the video inspired flow on desktop and mobile
+- [x] Verify the video inspired flow on desktop and mobile
