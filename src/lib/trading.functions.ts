@@ -161,6 +161,8 @@ const tradeSchema = z.object({
   stake: z.number().positive().max(1_000_000),
   durationSeconds: z.number().int(),
   source: z.enum(["manual", "assist", "auto"]).default("manual"),
+  takeProfitPercent: z.number().min(0.1).max(50),
+  stopLossPercent: z.number().min(0.1).max(50),
 });
 
 export const placeTrade = createServerFn({ method: "POST" })
@@ -189,7 +191,7 @@ export const placeTrade = createServerFn({ method: "POST" })
     const db = await admin();
     const expiresAt = new Date(Date.now() + data.durationSeconds * 1000).toISOString();
 
-    const { data: rows, error } = await db.rpc("reserve_demo_trade", {
+    const { data: rows, error } = await db.rpc("reserve_demo_trade_with_risk", {
       p_user_id: context.userId,
       p_symbol: asset.symbol,
       p_asset_name: asset.name,
@@ -200,6 +202,8 @@ export const placeTrade = createServerFn({ method: "POST" })
       p_entry_price: entry,
       p_expires_at: expiresAt,
       p_trade_source: data.source,
+      p_take_profit_percent: data.takeProfitPercent,
+      p_stop_loss_percent: data.stopLossPercent,
     });
     const trade = rows?.[0];
     if (error || !trade) throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
