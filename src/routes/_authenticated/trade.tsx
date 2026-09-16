@@ -699,7 +699,7 @@ function TradePage() {
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1.5rem)] max-w-md overflow-y-auto rounded-lg bg-card p-0">
           <DialogHeader className="border-b border-border px-5 py-4 text-left">
             <DialogTitle>Set up trading bot</DialogTitle>
-            <DialogDescription>The bot automatically chooses the strongest crypto markets.</DialogDescription>
+            <DialogDescription>Every setting is editable. The bot picks the strongest of its own five pairs.</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 px-5 py-4">
             <div>
