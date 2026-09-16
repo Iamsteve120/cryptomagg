@@ -5,6 +5,6 @@
 - [x] Verify expiry settlement and responsive layouts
 
 ## Remove Demo wallet funding
-- [ ] Remove Demo deposit and withdrawal controls
-- [ ] Block Demo wallet funding actions on the server
+- [x] Remove Demo deposit and withdrawal controls
+- [x] Block Demo wallet funding actions on the server
 - [ ] Verify the Demo wallet on mobile

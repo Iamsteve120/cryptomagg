@@ -24,9 +24,10 @@ function momentum(points: number[]) {
 export async function analyzeMarketsWithAi(apiKey: string) {
   const quotes = await fetchMarketQuotes();
   const liveQuotes = quotes.filter((quote) => quote.live && quote.sparkline.length >= 6);
-  if (liveQuotes.length < 3) throw new Error("Live market data is temporarily unavailable. Please scan again later.");
+  const usableQuotes = liveQuotes.length >= 3 ? liveQuotes : quotes.filter((quote) => quote.sparkline.length >= 6);
+  if (usableQuotes.length < 3) throw new Error("Market data is temporarily unavailable. Please scan again later.");
 
-  const snapshot = liveQuotes.map((quote) => ({
+  const snapshot = usableQuotes.map((quote) => ({
     symbol: quote.symbol,
     price: quote.price,
     change24hPercent: Number(quote.change24h.toFixed(3)),
@@ -55,7 +56,7 @@ export async function analyzeMarketsWithAi(apiKey: string) {
 
   try {
     const output = await result.output;
-    const selected = liveQuotes.find((quote) => quote.symbol === output.symbol);
+    const selected = usableQuotes.find((quote) => quote.symbol === output.symbol);
     if (!selected) throw new Error("The scan returned an unavailable market.");
     return {
       ...output,
@@ -63,7 +64,7 @@ export async function analyzeMarketsWithAi(apiKey: string) {
       price: selected.price,
       change24h: selected.change24h,
       scannedAt: new Date().toISOString(),
-      marketsScanned: liveQuotes.length,
+      marketsScanned: usableQuotes.length,
     };
   } catch (error) {
     if (NoObjectGeneratedError.isInstance(error)) {
