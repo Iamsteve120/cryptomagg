@@ -34,6 +34,35 @@ async function ensureProfile(userId: string, email: string | null) {
   return created;
 }
 
+/**
+ * Real trades settle only on the exchange price at expiry: up wins when the
+ * price is above entry, down wins when it is below. Nothing else decides it.
+ */
+async function settleDueLiveTrades(userId: string) {
+  const db = await admin();
+  const { data: open } = await db
+    .from("trades")
+    .select("id, symbol, entry_price, expires_at")
+    .eq("user_id", userId)
+    .eq("status", "open")
+    .eq("account_mode", "live");
+  if (!open || open.length === 0) return;
+
+  const { fetchMarketQuotes } = await import("./market.server");
+  const quotes = await fetchMarketQuotes();
+  for (const trade of open) {
+    if (new Date(trade.expires_at).getTime() > Date.now()) continue;
+    const quote = quotes.find((q) => q.symbol === trade.symbol);
+    if (!quote) continue; // Never settle a real trade on a guessed price.
+    const { error } = await db.rpc("settle_live_trade_at_market", {
+      p_user_id: userId,
+      p_trade_id: trade.id,
+      p_exit_price: quote.price,
+    });
+    if (error) console.error("Live settlement failed", trade.id, error.message);
+  }
+}
+
 async function settleDueTrades(userId: string) {
   const db = await admin();
   const { data: open } = await db
