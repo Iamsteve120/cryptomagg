@@ -172,10 +172,6 @@ function TradePage() {
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
   const sessionOpen = sparkline.length > 0 ? sparkline[0] : null;
   const locked = mode === "live";
-  const canPlace = !locked && !mutationPendingPlaceholder();
-  function mutationPendingPlaceholder() {
-    return false;
-  }
 
   const mutation = useMutation({
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
