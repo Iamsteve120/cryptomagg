@@ -156,7 +156,7 @@ function TradePage() {
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
   const [autoEnabled, setAutoEnabled] = useState(false);
-  const [autoMinimum, setAutoMinimum] = useState("70");
+  const [autoMinimum, setAutoMinimum] = useState("80");
   const [autoLimit, setAutoLimit] = useState("3");
   const [lossLimit, setLossLimit] = useState("150");
   const [autoPlaced, setAutoPlaced] = useState(0);
@@ -374,7 +374,7 @@ function TradePage() {
 
         {/* Order pad */}
         <aside className="order-2 flex flex-col rounded-lg border border-border bg-card lg:order-3 lg:col-span-3">
-          <PanelTitle right={locked ? <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">Locked</span> : null}>Order pad</PanelTitle>
+          <PanelTitle right={locked ? <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">Demo only</span> : null}>Order pad</PanelTitle>
           <div className="space-y-4 p-3">
             <div>
               <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Expiry time</Label>
@@ -443,7 +443,7 @@ function TradePage() {
               <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
             </div>
 
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Trading tools are available in Demo mode."}</p>
           </div>
         </aside>
       </div>

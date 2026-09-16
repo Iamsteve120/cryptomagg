@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownRight, ArrowUpRight, ChartNoAxesCombined, LoaderCircle, LockKeyhole, Radar, ShieldCheck } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChartNoAxesCombined, LoaderCircle, Radar, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AssetIcon } from "@/components/ui/asset-icon";
@@ -139,10 +139,10 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
                 <div className="rounded-md border border-border bg-secondary/25 p-3 text-sm text-muted-foreground"><ShieldCheck className="mr-2 inline size-4 text-primary" />{result.riskNote}</div>
 
                 <div><Label htmlFor="scannerStake">Demo stake</Label><Input id="scannerStake" className="mt-2" type="number" inputMode="decimal" min="2" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} /><p className="mt-1 text-xs text-muted-foreground">Minimum 2 USD | Maximum 500 USD | Available {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</p></div>
-                <div className="grid gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}><Radar className="size-4" /> Scan again</Button><Button className="min-h-10 whitespace-normal" disabled={!canExecute} onClick={executeResult}>{mode === "live" ? <LockKeyhole className="size-4 shrink-0" /> : <ChartNoAxesCombined className="size-4 shrink-0" />}{mode === "live" ? "Real trading locked" : `Place winning Demo trade on ${active.symbol}`}</Button></div>
+                <div className="grid gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}><Radar className="size-4" /> Scan again</Button><Button className="min-h-10 whitespace-normal" disabled={!canExecute} onClick={executeResult}><ChartNoAxesCombined className="size-4 shrink-0" />{mode === "live" ? "Demo scanner only" : `Place Demo trade on ${active.symbol}`}</Button></div>
               </div>
             ) : null}
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner confidence is a simulated score from 80% to 87%. Scanner Demo trades run for one minute and are configured to win at expiry for practice only. This is not financial advice or a real market promise.</p>
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner confidence is a simulated score from 80% to 87%. Scanner Demo trades run for one minute within an 80% practice win mix that includes losses. This is not financial advice or a real market promise.</p>
           </div>
         </DialogContent>
       </Dialog>

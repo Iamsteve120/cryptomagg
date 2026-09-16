@@ -69,7 +69,7 @@ function ProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold">Profile</h1>
         <p className="text-sm text-muted-foreground">
-          {mode === "demo" ? "Manage your practice account." : "Your Real account is awaiting verification."}
+          {mode === "demo" ? "Manage your practice account." : "View your Real account profile."}
         </p>
       </div>
 
