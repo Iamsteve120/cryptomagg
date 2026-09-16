@@ -105,3 +105,11 @@
 - [x] Open an in place live Transactions view after starting
 - [x] Keep automatic market selection and running PNL visible
 - [x] Verify the video inspired flow on desktop and mobile
+
+## Martingale and bot alerts
+- [x] Add optional Martingale from 1.25x to 5.5x
+- [x] Increase the next amount after a settled loss and reset after a win
+- [x] Cap Martingale at 2,000 USD and available Demo balance
+- [x] Play distinct win and loss sounds
+- [x] Add a bot session reset action
+- [ ] Verify setup and reset on desktop and mobile

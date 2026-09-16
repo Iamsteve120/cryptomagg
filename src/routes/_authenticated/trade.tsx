@@ -4,12 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Bot, ChartNoAxesCombined, Play, ShieldCheck, Square, Target } from "lucide-react";
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Bot, ChartNoAxesCombined, Play, RotateCcw, ShieldCheck, Square, Target, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AssetIcon } from "@/components/ui/asset-icon";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
@@ -22,6 +23,34 @@ import { useThemeMode } from "@/components/theme-mode";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
+
+function playOutcomeSound(outcome: "won" | "lost") {
+  const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  const context = new AudioContextClass();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  const now = context.currentTime;
+  if (outcome === "won") {
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(740, now);
+    oscillator.frequency.setValueAtTime(980, now + 0.09);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    oscillator.stop(now + 0.3);
+  } else {
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(150, now);
+    oscillator.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    oscillator.stop(now + 0.4);
+  }
+  oscillator.start(now);
+  oscillator.addEventListener("ended", () => void context.close());
+}
 type TradeSource = "manual" | "assist" | "auto" | "scanner";
 type CandleInterval = "1" | "5" | "15" | "60";
 const CANDLE_INTERVALS: { value: CandleInterval; label: string }[] = [
@@ -168,9 +197,15 @@ function TradePage() {
   const [botStake, setBotStake] = useState("10");
   const [botTakeProfit, setBotTakeProfit] = useState("2");
   const [botStopLoss, setBotStopLoss] = useState("1");
+  const [martingaleEnabled, setMartingaleEnabled] = useState(false);
+  const [martingaleLevel, setMartingaleLevel] = useState("1.5");
   const botTakeProfitRef = useRef(2);
   const botStopLossRef = useRef(1);
   const botStakeRef = useRef(10);
+  const baseBotStakeRef = useRef(10);
+  const martingaleEnabledRef = useRef(false);
+  const martingaleLevelRef = useRef(1.5);
+  const processedOutcomes = useRef(new Set<string>());
   const [showBotTransactions, setShowBotTransactions] = useState(false);
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
@@ -257,6 +292,21 @@ function TradePage() {
       mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStakeRef.current });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
+  useEffect(() => {
+    const completed = (account?.trades ?? [])
+      .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
+      .sort((a, b) => new Date(a.settled_at ?? a.created_at).getTime() - new Date(b.settled_at ?? b.created_at).getTime());
+    for (const trade of completed) {
+      if (processedOutcomes.current.has(trade.id)) continue;
+      processedOutcomes.current.add(trade.id);
+      if (trade.status === "won" || trade.status === "lost") playOutcomeSound(trade.status);
+      if (!martingaleEnabledRef.current) continue;
+      botStakeRef.current = trade.status === "lost"
+        ? Math.min(2000, balance, Math.round(Number(trade.stake) * martingaleLevelRef.current * 100) / 100)
+        : baseBotStakeRef.current;
+    }
+  }, [account?.trades, balance]);
+
   function openBotSetup(bot = selectedBot) {
     if (!bot) return;
     setPendingBotId(bot.id);
@@ -276,6 +326,7 @@ function TradePage() {
     const configuredStake = Math.min(2000, Math.max(1, Number(botStake) || 1));
     const configuredTakeProfit = Math.min(50, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(50, Math.max(0.1, Number(botStopLoss) || 0.1));
+    const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
@@ -287,6 +338,10 @@ function TradePage() {
     botTakeProfitRef.current = configuredTakeProfit;
     botStopLossRef.current = configuredStopLoss;
     botStakeRef.current = configuredStake;
+    baseBotStakeRef.current = configuredStake;
+    martingaleEnabledRef.current = martingaleEnabled;
+    martingaleLevelRef.current = configuredMartingale;
+    processedOutcomes.current.clear();
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
@@ -298,6 +353,16 @@ function TradePage() {
   function stopAutoTrading() {
     setAutoEnabled(false);
     toast.info("AI trading stopped. Open trades continue until closed or expired.");
+  }
+
+  function resetBotSession() {
+    setAutoEnabled(false);
+    setAutoPlaced(0);
+    sessionStartedAt.current = Date.now();
+    botStakeRef.current = baseBotStakeRef.current;
+    processedOutcomes.current.clear();
+    lastAutoQuote.current = null;
+    toast.success("Bot session reset. Existing open trades continue to TP, SL, or expiry.");
   }
 
   const sessionBotTrades = (account?.trades ?? []).filter((trade) => trade.trade_source === "auto" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current);
@@ -330,7 +395,7 @@ function TradePage() {
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
             <div><p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Bot transactions</p><h1 className="mt-1 text-lg font-semibold">{selectedBot?.name ?? "Trading Bot"}</h1></div>
-            <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> Trade setup</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={!autoEnabled}><Square className="size-4" /> Stop bot</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> Trade setup</Button><Button variant="outline" size="sm" onClick={resetBotSession}><RotateCcw className="size-4" /> Reset</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={!autoEnabled}><Square className="size-4" /> Stop bot</Button></div>
           </div>
           <div className="grid grid-cols-3 border-b border-border bg-secondary/20 text-center">
             <div className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Runs</p><p className="num mt-1 font-semibold">{autoPlaced} / {autoLimit}</p></div>
@@ -628,6 +693,11 @@ function TradePage() {
               <div><Label htmlFor="botTakeProfit">Take Profit %</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
               <div><Label htmlFor="botStopLoss">Stop Loss %</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
             </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="flex items-center justify-between gap-3"><div><Label htmlFor="martingale">Martingale</Label><p className="mt-1 text-xs text-muted-foreground">After a loss, multiply the next trade amount. A win resets it.</p></div><Switch id="martingale" checked={martingaleEnabled} onCheckedChange={setMartingaleEnabled} /></div>
+              {martingaleEnabled ? <div className="mt-3"><Label htmlFor="martingaleLevel">Martingale level</Label><Input id="martingaleLevel" className="num mt-2 h-11" type="number" inputMode="decimal" min="1.25" max="5.5" step="0.05" value={martingaleLevel} onChange={(event) => setMartingaleLevel(event.target.value)} /><p className="mt-1.5 text-xs text-muted-foreground">Minimum 1.25x | Maximum 5.5x | Never above 2,000 USD</p></div> : null}
+            </div>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground"><Volume2 className="mt-0.5 size-4 shrink-0" />A ping plays after a win and a bang plays after a loss.</p>
             <div className="rounded-md border border-primary/25 bg-primary/10 p-3 text-sm">
               <p className="font-semibold">Automatic market selection</p>
               <p className="mt-1 text-xs text-muted-foreground">The bot scans all available assets and picks a different eligible market for each open trade.</p>
@@ -635,7 +705,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
