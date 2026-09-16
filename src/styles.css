@@ -57,8 +57,47 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Light: white surfaces with the CryptoMagg green accent. */
 :root {
   --radius: 0.5rem;
+  --background: oklch(0.995 0.002 160);
+  --foreground: oklch(0.24 0.02 160);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.02 160);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.02 160);
+  --primary: oklch(0.53 0.09 159);
+  --primary-foreground: oklch(0.99 0.005 160);
+  --secondary: oklch(0.965 0.012 160);
+  --secondary-foreground: oklch(0.3 0.025 160);
+  --muted: oklch(0.965 0.008 160);
+  --muted-foreground: oklch(0.52 0.02 160);
+  --accent: oklch(0.945 0.03 159);
+  --accent-foreground: oklch(0.32 0.04 159);
+  --destructive: oklch(0.56 0.18 25);
+  --destructive-foreground: oklch(0.99 0.005 20);
+  --success: oklch(0.53 0.09 159);
+  --success-foreground: oklch(0.99 0.005 160);
+  --border: oklch(0.9 0.01 160);
+  --input: oklch(0.9 0.01 160);
+  --ring: oklch(0.53 0.09 159);
+  --chart-1: oklch(0.53 0.09 159);
+  --chart-2: oklch(0.66 0.08 162);
+  --chart-3: oklch(0.42 0.06 158);
+  --chart-4: oklch(0.56 0.18 25);
+  --chart-5: oklch(0.6 0.05 178);
+  --sidebar: oklch(0.985 0.005 160);
+  --sidebar-foreground: oklch(0.24 0.02 160);
+  --sidebar-primary: oklch(0.53 0.09 159);
+  --sidebar-primary-foreground: oklch(0.99 0.005 160);
+  --sidebar-accent: oklch(0.945 0.03 159);
+  --sidebar-accent-foreground: oklch(0.32 0.04 159);
+  --sidebar-border: oklch(0.9 0.01 160);
+  --sidebar-ring: oklch(0.53 0.09 159);
+}
+
+/* Dark: the original deep green terminal. */
+.dark {
   --background: oklch(0.165 0.019 160);
   --foreground: oklch(0.96 0.012 158);
   --card: oklch(0.212 0.022 160);
@@ -93,11 +132,6 @@
   --sidebar-accent-foreground: oklch(0.94 0.016 158);
   --sidebar-border: oklch(0.31 0.03 159);
   --sidebar-ring: oklch(0.63 0.072 159);
-}
-
-.dark {
-  --background: oklch(0.165 0.019 160);
-  --foreground: oklch(0.96 0.012 158);
 }
 
 @layer base {
