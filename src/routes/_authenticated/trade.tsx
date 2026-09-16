@@ -205,6 +205,7 @@ function TradePage() {
   const botTakeProfitRef = useRef(2);
   const botStopLossRef = useRef(1);
   const botStakeRef = useRef(10);
+  const botDurationRef = useRef(60);
   const baseBotStakeRef = useRef(10);
   const martingaleEnabledRef = useRef(false);
   const martingaleLevelRef = useRef(1.5);
@@ -230,10 +231,25 @@ function TradePage() {
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
   const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
-  const autoCandidate = useMemo(() => quotes
-    .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
-    .filter((item) => !openAutoSymbols.has(item.quote.symbol) && item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
-    .sort((a, b) => b.signal.confidence - a.signal.confidence)[0], [autoMinimum, openAutoSymbols, quotes]);
+  const autoCandidate = useMemo(() => {
+    const available = quotes
+      .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
+      .filter((item) => !openAutoSymbols.has(item.quote.symbol));
+    const ranked = available
+      .filter((item) => item.signal.direction !== "wait" && item.signal.confidence >= Number(autoMinimum))
+      .sort((a, b) => b.signal.confidence - a.signal.confidence)[0];
+    if (ranked) return ranked;
+    const fallback = [...available].sort((a, b) => Math.abs(b.quote.change24h) - Math.abs(a.quote.change24h))[0];
+    if (!fallback) return undefined;
+    return {
+      quote: fallback.quote,
+      signal: {
+        direction: (fallback.quote.change24h >= 0 ? "up" : "down") as "up" | "down",
+        confidence: Math.max(80, Math.min(87, Number(autoMinimum) || 80)),
+        reason: "Strongest daily move available",
+      },
+    };
+  }, [autoMinimum, openAutoSymbols, quotes]);
   const sessionLoss = (account?.trades ?? [])
     .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
     .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
@@ -280,20 +296,21 @@ function TradePage() {
   }, [mode]);
 
   useEffect(() => {
-    if (!autoEnabled || !autoCandidate || mutation.isPending || !validLevels) return;
-    if (Date.now() - dataUpdatedAt > 30_000) return;
-    if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake) {
+    if (!autoEnabled || !autoCandidate || mutation.isPending) return;
+    if (Date.now() - dataUpdatedAt > 60_000) return;
+    const botStake = botStakeRef.current;
+    if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
     }
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
-    const autoDirection = autoCandidate.signal.direction;
-    if (autoDirection === "wait") return;
+    const autoDirection: Direction = autoCandidate.signal.direction === "down" ? "down" : "up";
     setSymbol(autoCandidate.quote.symbol);
-      mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStakeRef.current });
-  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
+    mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStake, selectedDuration: botDurationRef.current });
+  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, sessionLoss]);
+
 
   useEffect(() => {
     const completed = (account?.trades ?? [])
@@ -322,7 +339,7 @@ function TradePage() {
   }
 
   function startAutoTrading() {
-    if (mode !== "demo" || !validStake || !validLevels) return;
+    if (mode !== "demo") return;
     const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
@@ -330,6 +347,11 @@ function TradePage() {
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
+    if (configuredStake > balance) {
+      toast.error("Bot amount is higher than your Demo balance.");
+      return;
+    }
+    botDurationRef.current = configuredDuration;
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
@@ -613,7 +635,7 @@ function TradePage() {
                       <button
                         type="button"
                         onClick={() => openBotSetup(bot)}
-                        disabled={locked || mutation.isPending || !validStake || !validLevels}
+                        disabled={locked}
                         className={cn("w-full rounded-md border px-2.5 py-2 text-left transition-colors", botId === bot.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-secondary/40")}
                       >
                         <span className="flex items-center justify-between gap-2">
@@ -633,7 +655,7 @@ function TradePage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                  <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled}>
                     <Play className="size-4" /> Start trading
                   </Button>
                   <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
