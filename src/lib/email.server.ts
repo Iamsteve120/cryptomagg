@@ -38,7 +38,8 @@ type Duplex = {
 
 async function openTlsSocket(host: string, port: number): Promise<Duplex> {
   try {
-    const { connect } = (await import("cloudflare:sockets")) as {
+    const specifier = "cloudflare:sockets";
+    const { connect } = (await import(/* @vite-ignore */ specifier)) as {
       connect: (
         address: { hostname: string; port: number },
         options?: { secureTransport?: string },
