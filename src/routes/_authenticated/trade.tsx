@@ -247,6 +247,11 @@ function TradePage() {
 
   function startAutoTrading() {
     if (mode !== "demo" || !validStake || !validLevels) return;
+    if (selectedBot) {
+      setDuration(selectedBot.durationSeconds);
+      setMultiplier(selectedBot.multiplier);
+      setAutoMinimum(String(selectedBot.minConfidence));
+    }
     sessionBalance.current = balance;
     setAutoPlaced(0);
     lastAutoQuote.current = null;
