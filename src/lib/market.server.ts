@@ -22,6 +22,8 @@ export type MarketQuote = {
   sparkline: number[];
   payoutRate: number;
   live: boolean;
+  /** True for generated instruments that are not real coins. */
+  synthetic?: boolean;
 };
 
 function fallbackQuotes(): MarketQuote[] {
