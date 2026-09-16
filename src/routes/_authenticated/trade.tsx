@@ -154,7 +154,7 @@ function TradePage() {
   const [stake, setStake] = useState("50");
   const [tradeMode, setTradeMode] = useState<"manual" | "auto">("manual");
   const [multiplier, setMultiplier] = useState(1);
-  const [botId, setBotId] = useState(TRADING_BOTS[0].id);
+  const [botId, setBotId] = useState("momentum");
   const [takeProfit, setTakeProfit] = useState("2");
   const [stopLoss, setStopLoss] = useState("1");
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -177,7 +177,7 @@ function TradePage() {
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 50 && stopLossValue >= 0.1 && stopLossValue <= 50;
   const effectiveTakeProfit = Math.max(0.1, Math.round((takeProfitValue / multiplier) * 100) / 100);
   const effectiveStopLoss = Math.max(0.1, Math.round((stopLossValue / multiplier) * 100) / 100);
-  const selectedBot = TRADING_BOTS.find((bot) => bot.id === botId) ?? TRADING_BOTS[0];
+  const selectedBot = TRADING_BOTS.find((bot) => bot.id === botId);
   const payout = asset ? (stakeValue * asset.payoutRate) / 100 : 0;
   const openTrades = (account?.trades ?? []).filter((trade) => trade.status === "open" && trade.account_mode === mode);
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
@@ -194,7 +194,7 @@ function TradePage() {
 
   const mutation = useMutation({
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
-      submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: takeProfitValue, stopLossPercent: stopLossValue } }),
+      submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: effectiveTakeProfit, stopLossPercent: effectiveStopLoss } }),
     onSuccess: (res, variables) => {
       toast.success(`${variables.source === "auto" ? "Automatic" : variables.source === "scanner" ? "Scanner Demo" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
       queryClient.invalidateQueries({ queryKey: ["account"] });
