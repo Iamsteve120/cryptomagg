@@ -226,7 +226,11 @@ export const placeTrade = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "trade", data.source === "auto" ? 45 : RATE_MAX);
 
-    const asset = ASSETS.find((a) => a.symbol === data.symbol);
+    const { SYNTHETIC_INSTRUMENTS } = await import("./synthetic");
+    const synthetic = SYNTHETIC_INSTRUMENTS.find((instrument) => instrument.symbol === data.symbol);
+    const asset = synthetic
+      ? { symbol: synthetic.symbol, name: synthetic.name, payoutRate: synthetic.payoutRate }
+      : ASSETS.find((a) => a.symbol === data.symbol);
     if (!asset) throw new Error("Unsupported asset.");
     if (!DURATIONS.some((d) => d.seconds === data.durationSeconds)) {
       throw new Error("Unsupported duration.");
@@ -236,6 +240,7 @@ export const placeTrade = createServerFn({ method: "POST" })
       const { realMoneyEnabled } = await import("./mpesa.server");
       if (!realMoneyEnabled()) throw new Error("Real trading is not switched on yet.");
       if (data.source !== "manual") throw new Error("Real trades must be placed by you, not by a bot.");
+      if (!synthetic) throw new Error("Real accounts trade the synthetic crypto instruments only.");
 
       const { LIVE_MAX_STAKE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
       const liveStake = Math.round(data.stake * 100) / 100;
