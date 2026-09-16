@@ -14,3 +14,8 @@
 - [x] Return a cautious scanner result instead of a market data error
 - [x] Enforce Demo stakes from 2 to 500 USD on the server and every trade control
 - [x] Verify scanner and stake limits on mobile
+
+## History totals
+- [x] Show total PNL for the selected account filter
+- [x] Show combined TP target and SL risk amounts
+- [ ] Verify History totals on desktop and mobile
