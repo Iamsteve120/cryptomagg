@@ -13,7 +13,7 @@ type Board = {
   pill?: boolean;
 };
 
-function Row({ quote, value, pill }: { quote: MarketQuote; value: string; pill?: boolean }) {
+function Row({ quote, value, pill }: { quote: MarketQuote; value: string; pill?: boolean | undefined }) {
   const up = quote.change24h >= 0;
   return (
     <Link
