@@ -137,3 +137,9 @@
 - [x] Bot uses its own amount, duration, TP and SL instead of the manual panel values
 - [x] Bot buttons no longer blocked by manual panel validation
 - [x] Verified five bot trades open with live PNL on mobile
+
+## Bot pairs, editable settings, instant trades
+- [x] Ten named bots, each trading its own top five pairs against USDT
+- [x] Bot setup window edits amount, time, count, TP, SL, confidence, max loss, multiplier
+- [x] New trades appear immediately in the list
+- [x] Popup messages removed
