@@ -2,6 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, CandlestickChart } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
+import { ThemeToggle } from "@/components/theme-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
