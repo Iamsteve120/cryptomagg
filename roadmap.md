@@ -97,4 +97,4 @@
 - [x] Prevent manual closing of bot trades
 - [x] Close bot trades only at TP, SL, or expiry
 - [x] Vary Demo expiry outcomes within a 60 to 80 percent practice range
-- [ ] Verify bot setup and active trade behavior
+- [x] Verify bot setup and active trade behavior
