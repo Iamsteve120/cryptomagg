@@ -645,6 +645,7 @@ function TradePage() {
                           <span className="num text-[10px] text-muted-foreground">{bot.tradeLimit} trades | x{bot.multiplier} | {bot.durationSeconds < 60 ? `${bot.durationSeconds}s` : `${bot.durationSeconds / 60}m`}</span>
                         </span>
                         <span className="mt-0.5 block text-[11px] text-muted-foreground">{bot.description}</span>
+                        <span className="num mt-1 block text-[10px] font-semibold text-primary">{bot.pairs.map((pair) => `${pair}/USDT`).join(" | ")}</span>
                       </button>
                     </li>
                   ))}
