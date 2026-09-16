@@ -476,9 +476,9 @@ function TradePage() {
       ) : <div className="grid gap-2 lg:grid-cols-12">
         {/* Market list */}
         <section className="order-3 flex flex-col rounded-lg border border-border bg-card lg:order-1 lg:col-span-3">
-          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{quotes.length || TRADABLE_ASSETS.length} markets</span>}>Market assets</PanelTitle>
+          <PanelTitle right={<span className="text-[10px] text-muted-foreground">{marketList.length} markets</span>}>Market assets</PanelTitle>
           <ul className="max-h-[320px] overflow-y-auto lg:max-h-[560px]">
-            {TRADABLE_ASSETS.map((item) => {
+            {marketList.map((item) => {
               const row = quotes.find((entry) => entry.symbol === item.symbol);
               const active = item.symbol === symbol;
               return (
