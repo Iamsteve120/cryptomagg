@@ -97,7 +97,7 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
       <div className={cn("mt-2 flex items-center justify-between gap-3 rounded-md border px-3 py-2", favorable ? "border-primary/30 bg-primary/10" : "border-destructive/30 bg-destructive/10")}>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Live PNL</p>
-          <p className={cn("num text-lg font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(livePnl))} USD</p>
+          <p className={cn("num text-lg font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(livePnl))} USD</p>
         </div>
         <p className="num text-right text-[11px] text-muted-foreground">Entry ${formatPrice(entry)}<br />Live ${formatPrice(price)}</p>
       </div>
@@ -209,7 +209,7 @@ function TradePage() {
         toast.info("That trade had already closed at its take profit, stop loss, or expiry.");
       } else {
         const pnl = Number(res.trade.pnl);
-        toast.success(`Trade stopped at ${pnl >= 0 ? "+" : "minus "}${formatMoney(Math.abs(pnl))} USD PNL.`);
+        toast.success(`Trade stopped at ${pnl >= 0 ? "+" : "-"}${formatMoney(Math.abs(pnl))} USD PNL.`);
       }
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -265,7 +265,7 @@ function TradePage() {
           </div>
           <div className="flex items-baseline gap-2 border-l border-border pl-3">
             <span className={cn("num text-base font-semibold", (quote?.change24h ?? 0) >= 0 ? "text-primary" : "text-destructive")}>{quote ? formatPrice(quote.price) : "Unavailable"}</span>
-            {quote ? <span className={cn("num text-[11px]", quote.change24h >= 0 ? "text-primary" : "text-destructive")}>{quote.change24h >= 0 ? "+" : "minus "}{Math.abs(quote.change24h).toFixed(2)}%</span> : null}
+            {quote ? <span className={cn("num text-[11px]", quote.change24h >= 0 ? "text-primary" : "text-destructive")}>{quote.change24h >= 0 ? "+" : "-"}{Math.abs(quote.change24h).toFixed(2)}%</span> : null}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -297,7 +297,7 @@ function TradePage() {
                     </span>
                     <span className="text-right">
                       <span className="num block text-[11px] font-semibold">{row ? formatPrice(row.price) : "Unavailable"}</span>
-                      {row ? <span className={cn("num block text-[10px]", row.change24h >= 0 ? "text-primary" : "text-destructive")}>{row.change24h >= 0 ? "+" : "minus "}{Math.abs(row.change24h).toFixed(1)}%</span> : null}
+                      {row ? <span className={cn("num block text-[10px]", row.change24h >= 0 ? "text-primary" : "text-destructive")}>{row.change24h >= 0 ? "+" : "-"}{Math.abs(row.change24h).toFixed(1)}%</span> : null}
                     </span>
                   </button>
                 </li>
