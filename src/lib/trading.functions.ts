@@ -115,6 +115,9 @@ export const moveFunds = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => fundsSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "funds");
+    if (data.accountMode === "demo") {
+      throw new Error("Demo deposits and withdrawals are unavailable.");
+    }
     if (data.accountMode === "live") {
       throw new Error("Live deposits and withdrawals are unavailable until payment verification is complete.");
     }
