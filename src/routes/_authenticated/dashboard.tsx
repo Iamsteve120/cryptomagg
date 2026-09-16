@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
+import { MarketRankings } from "@/components/market-rankings";
 import { CryptoCard } from "@/components/ui/asset-card";
 import { useAccountMode } from "@/components/account-mode";
 import { calculateLivePnl } from "@/lib/trade-pnl";
@@ -117,6 +118,11 @@ function Dashboard() {
           </Button>
         </div>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Market rankings</h2>
+        <MarketRankings quotes={quotes} limit={4} />
+      </section>
     </div>
   );
 }
