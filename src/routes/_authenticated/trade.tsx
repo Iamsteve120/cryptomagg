@@ -205,6 +205,7 @@ function TradePage() {
   const botTakeProfitRef = useRef(2);
   const botStopLossRef = useRef(1);
   const botStakeRef = useRef(10);
+  const botDurationRef = useRef(60);
   const baseBotStakeRef = useRef(10);
   const martingaleEnabledRef = useRef(false);
   const martingaleLevelRef = useRef(1.5);
