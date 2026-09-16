@@ -119,9 +119,7 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
         <p className="mt-2 text-[11px] text-muted-foreground">This earlier trade can be stopped now or settled at expiry.</p>
       )}
 
-      <Button type="button" variant="destructive" size="sm" className="mt-2 w-full" disabled={stopping} onClick={onStop}>
-        {stopping ? "Stopping trade" : "Stop trade now"}
-      </Button>
+      {trade.trade_source === "auto" ? <p className="mt-2 rounded-md border border-border bg-card px-3 py-2 text-center text-[11px] text-muted-foreground">Bot trade closes only at Take Profit, Stop Loss, or when time expires.</p> : <Button type="button" variant="destructive" size="sm" className="mt-2 w-full" disabled={stopping} onClick={onStop}>{stopping ? "Stopping trade" : "Stop trade now"}</Button>}
     </li>
   );
 }
@@ -167,6 +165,10 @@ function TradePage() {
   const [pendingBotId, setPendingBotId] = useState("momentum");
   const [botDuration, setBotDuration] = useState("60");
   const [botTradeCount, setBotTradeCount] = useState("5");
+  const [botTakeProfit, setBotTakeProfit] = useState("2");
+  const [botStopLoss, setBotStopLoss] = useState("1");
+  const botTakeProfitRef = useRef(2);
+  const botStopLossRef = useRef(1);
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
 
@@ -202,7 +204,7 @@ function TradePage() {
 
   const mutation = useMutation({
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
-      submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: effectiveTakeProfit, stopLossPercent: effectiveStopLoss } }),
+      submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: source === "auto" ? botTakeProfitRef.current : effectiveTakeProfit, stopLossPercent: source === "auto" ? botStopLossRef.current : effectiveStopLoss } }),
     onSuccess: (res, variables) => {
       toast.success(`${variables.source === "auto" ? "Automatic" : variables.source === "scanner" ? "Scanner Demo" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
       queryClient.invalidateQueries({ queryKey: ["account"] });
@@ -257,6 +259,8 @@ function TradePage() {
     setPendingBotId(bot.id);
     setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
     setBotTradeCount(String(Math.min(40, Math.max(5, bot.tradeLimit))));
+    setBotTakeProfit(takeProfit);
+    setBotStopLoss(stopLoss);
     setBotSetupOpen(true);
   }
 
@@ -265,6 +269,8 @@ function TradePage() {
     const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
+    const configuredTakeProfit = Math.min(50, Math.max(0.1, Number(botTakeProfit) || 0.1));
+    const configuredStopLoss = Math.min(50, Math.max(0.1, Number(botStopLoss) || 0.1));
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
@@ -273,6 +279,8 @@ function TradePage() {
       setAutoLimit(String(configuredTradeCount));
     }
     sessionStartedAt.current = Date.now();
+    botTakeProfitRef.current = configuredTakeProfit;
+    botStopLossRef.current = configuredStopLoss;
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
@@ -534,7 +542,7 @@ function TradePage() {
                     <Square className="size-4" /> Stop trading
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo results target an 80% practice win mix and still include losses."}</p>
+                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo outcomes vary within a 60 to 80 percent practice win range."}</p>
               </div>
             )}
 
@@ -584,6 +592,10 @@ function TradePage() {
               <Input id="botTradeCount" className="num mt-2 h-11" type="number" inputMode="numeric" min="5" max="40" step="1" value={botTradeCount} onChange={(event) => setBotTradeCount(event.target.value)} />
               <p className="mt-1.5 text-xs text-muted-foreground">Minimum 5 trades | Maximum 40 trades</p>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label htmlFor="botTakeProfit">Take Profit %</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
+              <div><Label htmlFor="botStopLoss">Stop Loss %</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
+            </div>
             <div className="rounded-md border border-primary/25 bg-primary/10 p-3 text-sm">
               <p className="font-semibold">Automatic market selection</p>
               <p className="mt-1 text-xs text-muted-foreground">The bot scans all available assets and picks a different eligible market for each open trade.</p>
@@ -591,7 +603,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 50 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > 50}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>

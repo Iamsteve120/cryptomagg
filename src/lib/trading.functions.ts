@@ -7,11 +7,11 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 20;
 const hits = new Map<string, number[]>();
 
-function rateLimit(userId: string, bucket: string) {
+function rateLimit(userId: string, bucket: string, maximum = RATE_MAX) {
   const key = userId + ":" + bucket;
   const now = Date.now();
   const recent = (hits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_MAX) throw new Error("Too many requests. Please slow down.");
+  if (recent.length >= maximum) throw new Error("Too many requests. Please slow down.");
   recent.push(now);
   hits.set(key, recent);
 }
@@ -184,7 +184,7 @@ export const placeTrade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => tradeSchema.parse(data))
   .handler(async ({ data, context }) => {
-    rateLimit(context.userId, "trade");
+    rateLimit(context.userId, "trade", data.source === "auto" ? 45 : RATE_MAX);
     if (data.accountMode === "live") {
       throw new Error("Real trading is not available.");
     }
