@@ -99,6 +99,20 @@
       "when": 1789531050745,
       "tag": "0013_demo_profit_ratio_of_stake",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789531746867,
+      "tag": "0014_widen_demo_tp_sl_percent_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789531882089,
+      "tag": "0015_clamp_demo_risk_levels_above_zero",
+      "breakpoints": true
     }
   ]
 }

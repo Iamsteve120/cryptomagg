@@ -225,7 +225,10 @@ export const placeTrade = createServerFn({ method: "POST" })
       p_stop_loss_percent: data.stopLossPercent,
     });
     const trade = rows?.[0];
-    if (error || !trade) throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
+    if (error || !trade) {
+      console.error("reserve_demo_trade_with_risk failed", JSON.stringify(error), JSON.stringify({ stake, entry, tp: data.takeProfitPercent, sl: data.stopLossPercent, duration: data.durationSeconds, source: data.source, symbol: data.symbol }));
+      throw new Error(error?.message.includes("Insufficient") ? "Not enough demo balance." : "Could not open the simulated trade.");
+    }
 
     return { trade, balance: Number(trade.balance_after_open) };
   });
@@ -240,7 +243,7 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: trade } = await db
       .from("trades")
-      .select("id, symbol, status, account_mode")
+      .select("id, symbol, status, account_mode, entry_price")
       .eq("id", data.tradeId)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -250,7 +253,8 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     }
 
     const { priceForSymbol } = await import("./market.server");
-    const exitPrice = await priceForSymbol(trade.symbol);
+    // Never let a price provider hiccup block closing: fall back to the entry price.
+    const exitPrice = await priceForSymbol(trade.symbol).catch(() => Number((trade as { entry_price?: number }).entry_price) || 0);
     const { data: rows, error } = await db.rpc("close_demo_trade_at_live_pnl", {
       p_user_id: context.userId,
       p_trade_id: trade.id,
@@ -268,7 +272,7 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: open } = await db
       .from("trades")
-      .select("id, symbol")
+      .select("id, symbol, entry_price")
       .eq("user_id", context.userId)
       .eq("account_mode", "demo")
       .eq("status", "open");
@@ -277,19 +281,32 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
     const { priceForSymbol } = await import("./market.server");
     const prices = new Map<string, number>();
     let closed = 0;
+    let failed = 0;
     for (const trade of open) {
-      let price = prices.get(trade.symbol);
-      if (price === undefined) {
-        price = await priceForSymbol(trade.symbol);
-        prices.set(trade.symbol, price);
+      try {
+        let price = prices.get(trade.symbol);
+        if (price === undefined) {
+          // A price provider hiccup must never block closing: fall back to the entry price.
+          price = await priceForSymbol(trade.symbol).catch(() => Number(trade.entry_price));
+          prices.set(trade.symbol, price);
+        }
+        const { error } = await db.rpc("close_demo_trade_at_live_pnl", {
+          p_user_id: context.userId,
+          p_trade_id: trade.id,
+          p_exit_price: price,
+        });
+        if (error) {
+          failed += 1;
+          console.error("Stop-all failed for trade", trade.id, error.message);
+        } else {
+          closed += 1;
+        }
+      } catch (stepError) {
+        failed += 1;
+        console.error("Stop-all failed for trade", trade.id, stepError);
       }
-      const { error } = await db.rpc("close_demo_trade_at_live_pnl", {
-        p_user_id: context.userId,
-        p_trade_id: trade.id,
-        p_exit_price: price,
-      });
-      if (!error) closed += 1;
     }
+    if (closed === 0 && failed > 0) throw new Error("Could not close the open trades. Please try again.");
     return { closed };
   });
 
