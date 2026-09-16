@@ -354,11 +354,10 @@ function TradePage() {
       return;
     }
     botDurationRef.current = configuredDuration;
+    activeBotPairsRef.current = bot?.pairs ?? [];
     if (bot) {
       setBotId(bot.id);
       setDuration(configuredDuration);
-      setMultiplier(bot.multiplier);
-      setAutoMinimum(String(bot.minConfidence));
       setAutoLimit(String(configuredTradeCount));
     }
     sessionStartedAt.current = Date.now();
