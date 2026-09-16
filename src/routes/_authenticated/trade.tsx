@@ -635,7 +635,7 @@ function TradePage() {
                       <button
                         type="button"
                         onClick={() => openBotSetup(bot)}
-                        disabled={locked || mutation.isPending || !validStake || !validLevels}
+                        disabled={locked}
                         className={cn("w-full rounded-md border px-2.5 py-2 text-left transition-colors", botId === bot.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-secondary/40")}
                       >
                         <span className="flex items-center justify-between gap-2">
