@@ -90,7 +90,11 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
     const id = window.setInterval(() => setLeft(Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000))), 1000);
     return () => window.clearInterval(id);
   }, [expiresAt]);
-  return <span className="num">{left > 0 ? left + "s" : "Settling"}</span>;
+  const hours = Math.floor(left / 3600);
+  const minutes = Math.floor((left % 3600) / 60);
+  const seconds = left % 60;
+  const display = hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  return <span className="num font-semibold text-foreground">{left > 0 ? display + " left" : "Settling"}</span>;
 }
 
 function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined; stopping: boolean; onStop: () => void }) {
@@ -148,7 +152,7 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
         <p className="mt-2 text-[11px] text-muted-foreground">This earlier trade can be stopped now or settled at expiry.</p>
       )}
 
-      {trade.trade_source === "auto" ? <p className="mt-2 rounded-md border border-border bg-card px-3 py-2 text-center text-[11px] text-muted-foreground">Bot trade closes only at Take Profit, Stop Loss, or when time expires.</p> : <Button type="button" variant="destructive" size="sm" className="mt-2 w-full" disabled={stopping} onClick={onStop}>{stopping ? "Stopping trade" : "Stop trade now"}</Button>}
+      <Button type="button" variant="destructive" size="sm" className="mt-2 w-full" disabled={stopping} onClick={onStop}>{stopping ? "Stopping trade" : "Stop trade now"}</Button>
     </li>
   );
 }
@@ -405,7 +409,7 @@ function TradePage() {
           {sessionBotTrades.length === 0 ? <div className="px-4 py-16 text-center"><Bot className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">Scanning all crypto markets</p><p className="mt-1 text-sm text-muted-foreground">The first eligible trade will appear here automatically.</p></div> : <div className="divide-y divide-border">{sessionBotTrades.map((trade) => {
             const currentPrice = quotes.find((item) => item.symbol === trade.symbol)?.price;
             const pnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
-            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{trade.duration_seconds}s | {formatMoney(Number(trade.stake))} USD</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">{trade.take_profit_percent}% / {trade.stop_loss_percent}%</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p></div></div>;
+            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(Number(trade.stake))} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">{trade.take_profit_percent}% / {trade.stop_loss_percent}%</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p>{trade.status === "open" ? <Button type="button" variant="destructive" size="sm" className="mt-2 h-7" disabled={stopMutation.isPending && stopMutation.variables === trade.id} onClick={() => stopMutation.mutate(trade.id)}><Square className="size-3" /> Stop</Button> : null}</div></div>;
           })}</div>}
         </section>
       ) : <div className="grid gap-2 lg:grid-cols-12">
@@ -634,7 +638,7 @@ function TradePage() {
                     <Square className="size-4" /> Stop trading
                   </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo outcomes vary within a 60 to 80 percent practice win range."}</p>
+                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo outcomes target a simulated 95 percent practice win rate and still include losses."}</p>
               </div>
             )}
 
