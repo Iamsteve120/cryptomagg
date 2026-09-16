@@ -631,7 +631,7 @@ function TradePage() {
                   </span>
                 </div>
 
-                <ul className="space-y-1.5">
+                <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
                   {TRADING_BOTS.map((bot) => (
                     <li key={bot.id}>
                       <button
