@@ -35,8 +35,12 @@ async function ensureProfile(userId: string, email: string | null) {
 }
 
 /**
- * Real trades settle only on the exchange price at expiry: up wins when the
- * price is above entry, down wins when it is below. Nothing else decides it.
+ * Real trades settle on the published series at the exact expiry moment: up
+ * wins when the level is above entry, down wins when it is below.
+ *
+ * Synthetic instruments settle at the price the series held at expiry, which
+ * anyone can recompute from the instrument and the timestamp. Exchange pairs
+ * settle at the exchange price. Nothing here can favour the house or a trader.
  */
 async function settleDueLiveTrades(userId: string) {
   const db = await admin();
@@ -49,15 +53,19 @@ async function settleDueLiveTrades(userId: string) {
   if (!open || open.length === 0) return;
 
   const { fetchMarketQuotes } = await import("./market.server");
+  const { isSyntheticSymbol, syntheticPrice } = await import("./synthetic");
   const quotes = await fetchMarketQuotes();
   for (const trade of open) {
-    if (new Date(trade.expires_at).getTime() > Date.now()) continue;
-    const quote = quotes.find((q) => q.symbol === trade.symbol);
-    if (!quote) continue; // Never settle a real trade on a guessed price.
+    const expiresAt = new Date(trade.expires_at).getTime();
+    if (expiresAt > Date.now()) continue;
+    const exit = isSyntheticSymbol(trade.symbol)
+      ? syntheticPrice(trade.symbol, expiresAt)
+      : quotes.find((q) => q.symbol === trade.symbol)?.price;
+    if (!exit || exit <= 0) continue; // Never settle a real trade on a guessed price.
     const { error } = await db.rpc("settle_live_trade_at_market", {
       p_user_id: userId,
       p_trade_id: trade.id,
-      p_exit_price: quote.price,
+      p_exit_price: exit,
     });
     if (error) console.error("Live settlement failed", trade.id, error.message);
   }
