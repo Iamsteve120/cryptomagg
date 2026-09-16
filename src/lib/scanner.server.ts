@@ -123,9 +123,7 @@ export async function analyzeMarketsWithAi(apiKey: string) {
       options,
     };
   } catch (error) {
-    if (!NoObjectGeneratedError.isInstance(error) && error instanceof Error && /unavailable market/.test(error.message) === false) {
-      // fall through to the local analysis below
-    }
+    void error;
     const fallback = localAnalysis(usableQuotes);
     const selected = usableQuotes.find((quote) => quote.symbol === fallback.symbol) ?? usableQuotes[0];
     return { ...fallback, price: selected?.price ?? 0, change24h: selected?.change24h ?? 0, scannedAt: new Date().toISOString(), marketsScanned: usableQuotes.length, options };
