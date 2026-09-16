@@ -33,6 +33,7 @@ function money(value: number | null, mode: string) {
 }
 
 function sourceLabel(source: string) {
+  if (source === "scanner") return { label: "AI Scanner", icon: ScanLine };
   if (source === "assist") return { label: "Assisted", icon: ScanLine };
   if (source === "auto") return { label: "Automatic", icon: Repeat2 };
   return { label: "Manual", icon: CircleUserRound };

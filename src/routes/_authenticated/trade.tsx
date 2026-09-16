@@ -20,7 +20,7 @@ import { MarketScanner } from "@/components/market-scanner";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
-type TradeSource = "manual" | "assist" | "auto";
+type TradeSource = "manual" | "assist" | "auto" | "scanner";
 
 export const Route = createFileRoute("/_authenticated/trade")({
   validateSearch: (search) => searchSchema.parse(search),
@@ -147,10 +147,11 @@ function TradePage() {
     mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
       submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source, takeProfitPercent: takeProfitValue, stopLossPercent: stopLossValue } }),
     onSuccess: (res, variables) => {
-      toast.success(`${variables.source === "auto" ? "Automatic" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
+      toast.success(`${variables.source === "auto" ? "Automatic" : variables.source === "scanner" ? "Scanner Demo" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
       queryClient.invalidateQueries({ queryKey: ["account"] });
       if (variables.source === "auto") setAutoPlaced((value) => value + 1);
       if (variables.source === "assist") toast.info("Assisted trade added to History with its opening balance.");
+      if (variables.source === "scanner") toast.info("Scanner Demo trades are configured to win at expiry for practice.");
     },
     onError: (error) => {
       setAutoEnabled(false);
@@ -261,7 +262,7 @@ function TradePage() {
           setStake(String(setup.stake));
           mutation.mutate({
             direction: setup.direction,
-            source: "assist",
+            source: "scanner",
             selectedSymbol: setup.symbol,
             selectedStake: setup.stake,
             selectedDuration: setup.durationSeconds,

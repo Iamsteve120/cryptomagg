@@ -29,6 +29,13 @@
       "when": 1789517048072,
       "tag": "0003_add_demo_trade_tp_sl",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789518578627,
+      "tag": "0004_add_scanner_demo_outcomes",
+      "breakpoints": true
     }
   ]
 }

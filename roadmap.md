@@ -19,3 +19,9 @@
 - [x] Show total PNL for the selected account filter
 - [x] Show combined TP target and SL risk amounts
 - [x] Verify History totals on desktop and mobile
+
+## Mobile scanner and simulated outcomes
+- [x] Keep the scanner above mobile navigation and fit it within the viewport
+- [x] Show every market with a simulated confidence score from 80% to 87%
+- [x] Record scanner entries separately and settle Scanner Demo trades as wins
+- [x] Verify scanner layout and trade settlement on desktop and mobile

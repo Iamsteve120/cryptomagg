@@ -163,7 +163,7 @@ const tradeSchema = z.object({
   direction: z.enum(["up", "down"]),
   stake: z.number().min(2).max(500),
   durationSeconds: z.number().int(),
-  source: z.enum(["manual", "assist", "auto"]).default("manual"),
+  source: z.enum(["manual", "assist", "auto", "scanner"]).default("manual"),
   takeProfitPercent: z.number().min(0.1).max(50),
   stopLossPercent: z.number().min(0.1).max(50),
 });

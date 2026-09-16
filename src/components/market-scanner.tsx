@@ -75,15 +75,15 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
       </motion.div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-lg border-primary/30 bg-card p-0">
-          <DialogHeader className="border-b border-border bg-secondary/40 px-5 py-5 text-left">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-xl gap-0 overflow-y-auto rounded-lg border-primary/30 bg-card p-0 sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)]">
+          <DialogHeader className="sticky top-0 z-10 border-b border-border bg-card px-4 py-4 text-left sm:px-5 sm:py-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.52_0.16_300)] font-display text-sm font-bold text-primary-foreground">AI</div>
               <div><DialogTitle>Entry scanner</DialogTitle><DialogDescription>AI analysis across every supported market</DialogDescription></div>
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 px-5 pb-5">
+          <div className="space-y-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
             {!result && !scanMutation.isPending ? (
               <div className="space-y-4 py-2">
                 <div className="rounded-md border border-border bg-secondary/25 p-4"><p className="font-medium">Scan all supported markets</p><p className="mt-1 text-sm text-muted-foreground">Compares momentum, daily range, direction, and liquidity, then ranks every market so you can pick your own setup.</p></div>
@@ -109,19 +109,19 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
 
                 <div>
                   <p className="text-xs font-semibold uppercase text-muted-foreground">All market options</p>
-                  <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1">
+                  <ul className="mt-2 max-h-48 space-y-2 overflow-y-auto pr-1 sm:max-h-64">
                     {options.map((item) => (
                       <li key={item.symbol}>
                         <button
                           type="button"
                           onClick={() => setPicked(item.symbol)}
-                          className={cn("flex w-full items-center justify-between gap-3 rounded-md border p-3 text-left transition", picked === item.symbol ? "border-primary bg-primary/10" : "border-border hover:bg-secondary/40")}
+                          className={cn("grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-3 text-left transition", picked === item.symbol ? "border-primary bg-primary/10" : "border-border hover:bg-secondary/40")}
                         >
-                          <span className="flex items-center gap-3">
+                           <span className="flex min-w-0 items-center gap-3">
                             <AssetIcon symbol={item.symbol} className="size-5" />
                             <span>
                               <span className="block text-sm font-semibold">{item.symbol}</span>
-                              <span className="num block text-xs text-muted-foreground">${formatPrice(item.price)}</span>
+                               <span className="num block truncate text-xs text-muted-foreground">${formatPrice(item.price)}</span>
                             </span>
                           </span>
                           <span className="text-right">
@@ -139,10 +139,10 @@ export function MarketScanner({ mode, balance, busy, onExecute }: MarketScannerP
                 <div className="rounded-md border border-border bg-secondary/25 p-3 text-sm text-muted-foreground"><ShieldCheck className="mr-2 inline size-4 text-primary" />{result.riskNote}</div>
 
                 <div><Label htmlFor="scannerStake">Demo stake</Label><Input id="scannerStake" className="mt-2" type="number" inputMode="decimal" min="2" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} /><p className="mt-1 text-xs text-muted-foreground">Minimum 2 USD | Maximum 500 USD | Available {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</p></div>
-                <div className="grid gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}><Radar className="size-4" /> Scan again</Button><Button disabled={!canExecute} onClick={executeResult}>{mode === "live" ? <LockKeyhole className="size-4" /> : <ChartNoAxesCombined className="size-4" />}{mode === "live" ? "Real trading locked" : active.direction === "wait" ? "No trade suggested" : `Place Demo trade on ${active.symbol}`}</Button></div>
+                <div className="grid gap-2 sm:grid-cols-2"><Button variant="outline" onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending}><Radar className="size-4" /> Scan again</Button><Button className="min-h-10 whitespace-normal" disabled={!canExecute} onClick={executeResult}>{mode === "live" ? <LockKeyhole className="size-4 shrink-0" /> : <ChartNoAxesCombined className="size-4 shrink-0" />}{mode === "live" ? "Real trading locked" : `Place winning Demo trade on ${active.symbol}`}</Button></div>
               </div>
             ) : null}
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner output is educational analysis for simulated trading. It is not financial advice and cannot predict future prices.</p>
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Scanner confidence is a simulated score from 80% to 87%. Scanner Demo trades run for one minute and are configured to win at expiry for practice only. This is not financial advice or a real market promise.</p>
           </div>
         </DialogContent>
       </Dialog>
