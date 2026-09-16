@@ -118,6 +118,7 @@ function TradePage() {
   const asset = ASSETS.find((item) => item.symbol === symbol);
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
+  const validStake = stakeValue >= 2 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 50 && stopLossValue >= 0.1 && stopLossValue <= 50;
@@ -148,7 +149,7 @@ function TradePage() {
   useEffect(() => {
     if (!autoEnabled || !quote || signal.direction === "wait" || mutation.isPending || !validLevels) return;
     if (Date.now() - dataUpdatedAt > 45_000 || signal.confidence < Number(autoMinimum)) return;
-    if (autoPlaced >= Number(autoLimit) || sessionLoss >= Number(lossLimit) || stakeValue > balance) {
+    if (autoPlaced >= Number(autoLimit) || sessionLoss >= Number(lossLimit) || !validStake) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
@@ -156,7 +157,7 @@ function TradePage() {
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
     mutation.mutate({ direction: signal.direction, source: "auto" });
-  }, [autoEnabled, autoLimit, autoMinimum, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, quote, sessionLoss, signal, stakeValue, validLevels]);
+  }, [autoEnabled, autoLimit, autoMinimum, autoPlaced, dataUpdatedAt, lossLimit, mutation, quote, sessionLoss, signal, stakeValue, validLevels, validStake]);
 
   function toggleAuto(checked: boolean) {
     if (checked) {
@@ -197,7 +198,7 @@ function TradePage() {
               <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Reason</p><p className="mt-1 text-sm">{signal.reason}</p></div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-              <Button variant="outline" disabled={mode === "live" || signal.direction === "wait" || mutation.isPending || stakeValue <= 0 || stakeValue > balance || !validLevels} onClick={() => signal.direction !== "wait" && mutation.mutate({ direction: signal.direction, source: "assist" })}>
+              <Button variant="outline" disabled={mode === "live" || signal.direction === "wait" || mutation.isPending || !validStake || !validLevels} onClick={() => signal.direction !== "wait" && mutation.mutate({ direction: signal.direction, source: "assist" })}>
                 <ChartNoAxesCombined className="size-4" /> Review and place
               </Button>
               <p className="text-xs text-muted-foreground">Uses recent price momentum for simulation. It is not financial advice.</p>
@@ -223,14 +224,14 @@ function TradePage() {
         <aside className="space-y-4 rounded-lg border border-border bg-card p-4 lg:col-span-2">
           <div><Label>Asset</Label><div className="mt-2 grid grid-cols-3 gap-2">{ASSETS.map((item) => <Button key={item.symbol} type="button" variant={symbol === item.symbol ? "default" : "outline"} onClick={() => setSymbol(item.symbol)} className="px-2"><AssetIcon symbol={item.symbol} className="size-4" />{item.symbol}</Button>)}</div></div>
           <div><Label>Expiry</Label><div className="mt-2 grid grid-cols-4 gap-2">{DURATIONS.map((item) => <Button key={item.seconds} type="button" variant={duration === item.seconds ? "default" : "outline"} onClick={() => setDuration(item.seconds)} className="px-2">{item.label}</Button>)}</div></div>
-          <div><Label htmlFor="stake">Stake ({mode === "demo" ? "Demo USD" : "USDT"})</Label><Input id="stake" className="mt-2" inputMode="decimal" value={stake} onChange={(event) => setStake(event.target.value)} /><div className="mt-2 flex flex-wrap gap-2">{[25, 50, 100, 250].map((value) => <Button key={value} type="button" size="sm" variant="secondary" onClick={() => setStake(String(value))}>{value}</Button>)}</div></div>
+          <div><Label htmlFor="stake">Stake ({mode === "demo" ? "Demo USD" : "USDT"})</Label><Input id="stake" className="mt-2" type="number" inputMode="decimal" min="2" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} /><div className="mt-2 flex flex-wrap gap-2">{[25, 50, 100, 250].map((value) => <Button key={value} type="button" size="sm" variant="secondary" onClick={() => setStake(String(value))}>{value}</Button>)}</div><p className="mt-2 text-xs text-muted-foreground">Minimum 2 USD | Maximum 500 USD</p></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label htmlFor="takeProfit">Take Profit %</Label><Input id="takeProfit" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} /></div>
             <div><Label htmlFor="stopLoss">Stop Loss %</Label><Input id="stopLoss" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} /></div>
           </div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><Target className="mt-0.5 size-4 shrink-0" />Levels must be between 0.1% and 50%. They guide the active trade and do not close it early.</p>
           <dl className="space-y-2 border-y border-border py-4 text-sm"><div className="flex justify-between"><dt className="text-muted-foreground">Payout rate</dt><dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Profit if correct</dt><dd className="num font-semibold text-primary">+{formatMoney(payout)} {mode === "demo" ? "USD" : "USDT"}</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Available</dt><dd className="num font-semibold">{formatMoney(balance)} {mode === "demo" ? "USD" : "USDT"}</dd></div></dl>
-          <div className="grid grid-cols-2 gap-2"><Button className="h-12 text-base" disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance || !validLevels} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}><ArrowUpRight className="size-5" /> Up</Button><Button variant="destructive" className="h-12 text-base" disabled={mode === "live" || mutation.isPending || stakeValue <= 0 || stakeValue > balance || !validLevels} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}><ArrowDownRight className="size-5" /> Down</Button></div>
+          <div className="grid grid-cols-2 gap-2"><Button className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}><ArrowUpRight className="size-5" /> Up</Button><Button variant="destructive" className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}><ArrowDownRight className="size-5" /> Down</Button></div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>
         </aside>
       </div>

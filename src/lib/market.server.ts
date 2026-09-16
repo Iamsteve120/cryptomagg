@@ -1,5 +1,7 @@
 import { ASSETS } from "./assets";
 
+let lastSuccessfulQuotes: MarketQuote[] | null = null;
+
 export type MarketQuote = {
   id: string;
   symbol: string;
@@ -32,6 +34,38 @@ function fallbackQuotes(): MarketQuote[] {
   }));
 }
 
+async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
+  const rows = await Promise.all(ASSETS.map(async (asset) => {
+    const pair = `${asset.symbol}USDT`;
+    const [tickerResponse, candlesResponse] = await Promise.all([
+      fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`, { headers: { accept: "application/json" } }),
+      fetch(`https://api.binance.com/api/v3/klines?symbol=${pair}&interval=5m&limit=60`, { headers: { accept: "application/json" } }),
+    ]);
+    if (!tickerResponse.ok || !candlesResponse.ok) return null;
+    const ticker = await tickerResponse.json() as Record<string, unknown>;
+    const candles = await candlesResponse.json() as unknown[][];
+    const sparkline = candles.map((candle) => Number(candle[4])).filter((price) => Number.isFinite(price) && price > 0);
+    const price = Number(ticker["lastPrice"]);
+    if (!Number.isFinite(price) || price <= 0 || sparkline.length < 6) return null;
+    return {
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      price,
+      change24h: Number(ticker["priceChangePercent"] ?? 0),
+      high24h: Number(ticker["highPrice"] ?? price),
+      low24h: Number(ticker["lowPrice"] ?? price),
+      volume24h: Number(ticker["quoteVolume"] ?? 0),
+      marketCap: 0,
+      sparkline,
+      payoutRate: asset.payoutRate,
+      live: true,
+    } satisfies MarketQuote;
+  }));
+  const available = rows.filter((row): row is MarketQuote => row !== null);
+  return available.length >= 3 ? available : null;
+}
+
 export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
   const ids = ASSETS.map((a) => a.id).join(",");
   const url =
@@ -41,9 +75,9 @@ export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
 
   try {
     const res = await fetch(url, { headers: { accept: "application/json" } });
-    if (!res.ok) return fallbackQuotes();
+    if (!res.ok) throw new Error("Primary market source unavailable");
     const rows = (await res.json()) as Array<Record<string, unknown>>;
-    if (!Array.isArray(rows) || rows.length === 0) return fallbackQuotes();
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error("Primary market source returned no prices");
 
     const quotes = ASSETS.map((a) => {
       const row = rows.find((r) => r["id"] === a.id);
@@ -66,9 +100,19 @@ export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
         live: true,
       } satisfies MarketQuote;
     });
+    lastSuccessfulQuotes = quotes;
     return quotes;
   } catch {
-    return fallbackQuotes();
+    try {
+      const backup = await fetchBinanceQuotes();
+      if (backup) {
+        lastSuccessfulQuotes = backup;
+        return backup;
+      }
+    } catch {
+      // The last successful snapshot keeps the simulator readable during provider interruptions.
+    }
+    return lastSuccessfulQuotes ?? fallbackQuotes();
   }
 }
 
