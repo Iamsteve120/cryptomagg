@@ -74,7 +74,8 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
 }
 
 export async function analyzeMarketsWithAi(apiKey: string) {
-  const quotes = await fetchMarketQuotes();
+  const allQuotes = await fetchMarketQuotes();
+  const quotes = allQuotes.filter((quote) => assetBySymbol(quote.symbol)?.tradable !== false);
   const liveQuotes = quotes.filter((quote) => quote.live && quote.sparkline.length >= 6);
   const usableQuotes = liveQuotes.length >= 3 ? liveQuotes : quotes.filter((quote) => quote.sparkline.length >= 6);
   const options = buildMarketOptions(quotes);
