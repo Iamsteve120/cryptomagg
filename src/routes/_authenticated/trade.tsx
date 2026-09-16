@@ -389,7 +389,7 @@ function TradePage() {
     botStakeRef.current = baseBotStakeRef.current;
     processedOutcomes.current.clear();
     lastAutoQuote.current = null;
-    toast.success("Bot session reset. Existing open trades continue to TP, SL, or expiry.");
+    
   }
 
   const sessionBotTrades = (account?.trades ?? []).filter((trade) => trade.trade_source === "auto" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current);
