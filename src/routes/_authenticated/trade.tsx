@@ -77,7 +77,7 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
         <p className="text-xs uppercase text-muted-foreground">Live PNL</p>
         <p className={cn("num text-xl font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(livePnl))} USD</p>
       </div>
-      <p className="text-right text-xs text-muted-foreground">{tpHit ? "Take Profit level reached" : slHit ? "Stop Loss level reached" : "Moving with the live price"}<br />Settles at expiry</p>
+      <p className="text-right text-xs text-muted-foreground">{tpHit ? "Closing at Take Profit" : slHit ? "Closing at Stop Loss" : "Moving with the live price"}<br />Stop any time</p>
     </div>
     <Button type="button" variant="destructive" className="mt-3 w-full" disabled={stopping} onClick={onStop}>
       {stopping ? "Stopping trade" : "Stop trade now"}
@@ -91,8 +91,8 @@ function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonN
         <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
         <div className={cn("absolute top-0 h-full transition-all", favorable ? "left-1/2 bg-primary" : "right-1/2 bg-destructive")} style={{ width: `${Math.abs(progress) / 2}%` }} />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price. This trade settles only at expiry.</p>
-    </> : <p className="mt-2 text-xs text-muted-foreground">This earlier trade settles at expiry without TP or SL levels.</p>}
+      <p className="mt-2 text-xs text-muted-foreground">TP and SL track the live price and close the trade when reached.</p>
+    </> : <p className="mt-2 text-xs text-muted-foreground">This earlier trade can be stopped now or settled at expiry.</p>}
   </li>;
 }
 
@@ -257,7 +257,7 @@ function TradePage() {
             <div><Label htmlFor="takeProfit">Take Profit %</Label><Input id="takeProfit" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} /></div>
             <div><Label htmlFor="stopLoss">Stop Loss %</Label><Input id="stopLoss" className="mt-2" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} /></div>
           </div>
-          <p className="flex items-start gap-2 text-xs text-muted-foreground"><Target className="mt-0.5 size-4 shrink-0" />Levels must be between 0.1% and 50%. They guide the active trade and do not close it early.</p>
+          <p className="flex items-start gap-2 text-xs text-muted-foreground"><Target className="mt-0.5 size-4 shrink-0" />Levels must be between 0.1% and 50%. Reaching either level closes the Demo trade.</p>
           <dl className="space-y-2 border-y border-border py-4 text-sm"><div className="flex justify-between"><dt className="text-muted-foreground">Payout rate</dt><dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Profit if correct</dt><dd className="num font-semibold text-primary">+{formatMoney(payout)} {mode === "demo" ? "USD" : "USDT"}</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">Available</dt><dd className="num font-semibold">{formatMoney(balance)} {mode === "demo" ? "USD" : "USDT"}</dd></div></dl>
           <div><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Trade now</p><div className="grid grid-cols-2 gap-2"><Button className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}><ArrowUpRight className="size-5" /> Up</Button><Button variant="destructive" className="h-12 text-base" disabled={mode === "live" || mutation.isPending || !validStake || !validLevels} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}><ArrowDownRight className="size-5" /> Down</Button></div></div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>

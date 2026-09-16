@@ -32,4 +32,4 @@
 - [x] Add Trade Now and Stop controls matching the mobile reference
 - [x] Show fluctuating live PNL on Trade, Dashboard, and History
 - [x] Emphasize the Profile Demo balance reset control
-- [ ] Verify Stop, TP or SL, reset, and responsive layouts
+- [x] Verify Stop, TP or SL, reset, and responsive layouts
