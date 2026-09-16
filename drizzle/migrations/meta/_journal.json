@@ -64,6 +64,13 @@
       "when": 1789526317311,
       "tag": "0008_set_demo_outcome_target_95_percent",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789526439700,
+      "tag": "0009_store_demo_tp_sl_dollar_amounts",
+      "breakpoints": true
     }
   ]
 }
