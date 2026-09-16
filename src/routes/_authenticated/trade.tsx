@@ -18,7 +18,6 @@ import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, for
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
-import { MarketScanner } from "@/components/market-scanner";
 import { useThemeMode } from "@/components/theme-mode";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
