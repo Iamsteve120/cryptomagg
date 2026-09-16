@@ -1,23 +1,5 @@
-# CryptoMagg account refresh
-
-- [x] Add separate USDT account balance and account mode to the database
-- [x] Add Demo and Real account switch with guarded Real actions
-- [x] Add M Pesa amount presets, manual entry, and KES estimate
-- [x] Add redesigned animated market cards to Dashboard and Markets
-- [x] Complete desktop and mobile verification
-
-# Trading experience upgrade
-
-- [x] Add atomic trade balance snapshots and source tracking
-- [x] Add real cryptocurrency icons and the refined asset card
-- [x] Add Trade Assist and controlled Demo auto trading
-- [x] Expand History with account filters and exact balance results
-- [x] Remove visible dash punctuation and refine interface copy
-- [x] Verify desktop, mobile, trading, and settlement behavior
-
-# Floating market scanner
-
-- [x] Add secure AI market analysis across supported assets
-- [x] Add floating scanner panel with explicit Demo execution
-- [x] Keep Real execution locked and preserve risk disclosure
-- [x] Verify live scan, trade history, desktop, and mobile behavior
+## Active
+- [ ] Add trader set TP and SL percentages to Demo trade placement
+- [ ] Persist TP and SL levels on each trade
+- [ ] Show live TP and SL progress for open Demo trades without early settlement
+- [ ] Verify expiry settlement and responsive layouts
