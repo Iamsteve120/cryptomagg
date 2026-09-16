@@ -36,6 +36,24 @@ function fallbackQuotes(): MarketQuote[] {
 
 async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
   const rows = await Promise.all(ASSETS.map(async (asset) => {
+    if (asset.tradable === false) {
+      // Stablecoins have no USDT pair; they are listed for reference only.
+      const pegged: MarketQuote = {
+        id: asset.id,
+        symbol: asset.symbol,
+        name: asset.name,
+        price: asset.fallbackPrice,
+        change24h: 0,
+        high24h: asset.fallbackPrice,
+        low24h: asset.fallbackPrice,
+        volume24h: 0,
+        marketCap: 0,
+        sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
+        payoutRate: asset.payoutRate,
+        live: false,
+      };
+      return pegged;
+    }
     const pair = `${asset.symbol}USDT`;
     const [tickerResponse, candlesResponse] = await Promise.all([
       fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`, { headers: { accept: "application/json" } }),
