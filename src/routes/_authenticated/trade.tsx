@@ -12,10 +12,10 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { CandlestickChart } from "@/components/candlestick-chart";
-import { useAccount, useMarkets } from "@/hooks/use-trading";
+import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
-import { calculateLivePnl } from "@/lib/trade-pnl";
+import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
 import { MarketScanner } from "@/components/market-scanner";
@@ -96,18 +96,19 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   return <span className="num font-semibold text-foreground">{left > 0 ? display + " left" : "Settling"}</span>;
 }
 
-function ActivePosition({ trade, currentPrice, stopping, onStop }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined; stopping: boolean; onStop: () => void }) {
+function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade: NonNullable<ReturnType<typeof useAccount>["data"]>["trades"][number]; currentPrice: number | undefined; now: number; stopping: boolean; onStop: () => void }) {
   const entry = Number(trade.entry_price);
   const hasLevels = trade.take_profit_price !== null && trade.stop_loss_price !== null;
   const tp = hasLevels ? Number(trade.take_profit_price) : entry;
   const sl = hasLevels ? Number(trade.stop_loss_price) : entry;
-  const price = currentPrice ?? entry;
+  const liveState = calculateRapidLiveState(trade, currentPrice, now);
+  const price = liveState.price;
   const movement = trade.direction === "up" ? price - entry : entry - price;
   const targetDistance = tp && sl ? Math.max(Math.abs(tp - entry), Math.abs(sl - entry)) : 1;
   const progress = Math.max(-100, Math.min(100, (movement / targetDistance) * 100));
   const favorable = movement >= 0;
   const stake = Number(trade.stake);
-  const livePnl = calculateLivePnl(trade, currentPrice);
+  const livePnl = liveState.pnl;
   const tpDistance = hasLevels ? Math.abs(tp - entry) : 0;
   const slDistance = hasLevels ? Math.abs(sl - entry) : 0;
   const tpHit = hasLevels && favorable && tpDistance > 0 && movement >= tpDistance;
@@ -176,6 +177,7 @@ function TradePage() {
   const queryClient = useQueryClient();
   const { data: markets, dataUpdatedAt } = useMarkets();
   const { data: account } = useAccount();
+  const rapidNow = useRapidMarketClock();
   const submit = useServerFn(placeTrade);
   const stopTrade = useServerFn(stopDemoTrade);
   const [symbol, setSymbol] = useState(initialSymbol ?? "BTC");
@@ -393,7 +395,7 @@ function TradePage() {
   }
 
   const sessionBotTrades = (account?.trades ?? []).filter((trade) => trade.trade_source === "auto" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current);
-  const sessionBotPnl = sessionBotTrades.reduce((total, trade) => total + (trade.status === "open" ? calculateLivePnl(trade, quotes.find((item) => item.symbol === trade.symbol)?.price) : Number(trade.pnl)), 0);
+  const sessionBotPnl = sessionBotTrades.reduce((total, trade) => total + (trade.status === "open" ? calculateRapidLiveState(trade, quotes.find((item) => item.symbol === trade.symbol)?.price, rapidNow).pnl : Number(trade.pnl)), 0);
 
   return (
     <div className="space-y-2">
@@ -431,11 +433,12 @@ function TradePage() {
           </div>
           {sessionBotTrades.length === 0 ? <div className="px-4 py-16 text-center"><Bot className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">Scanning all crypto markets</p><p className="mt-1 text-sm text-muted-foreground">The first eligible trade will appear here automatically.</p></div> : <div className="divide-y divide-border">{sessionBotTrades.map((trade) => {
             const currentPrice = quotes.find((item) => item.symbol === trade.symbol)?.price;
-            const pnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
+            const liveState = calculateRapidLiveState(trade, currentPrice, rapidNow);
+            const pnl = trade.status === "open" ? liveState.pnl : Number(trade.pnl);
             const tradeStake = Number(trade.stake);
             const tpAmount = Number(trade.take_profit_amount ?? (tradeStake * Number(trade.take_profit_percent ?? 0)) / 100);
             const slAmount = Number(trade.stop_loss_amount ?? (tradeStake * Number(trade.stop_loss_percent ?? 0)) / 100);
-            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(tradeStake)} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(currentPrice ?? Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">+${formatMoney(tpAmount)} / -${formatMoney(slAmount)}</p></div><div className="text-right"><p className={cn("num font-semibold", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live" : trade.status}</p>{trade.status === "open" ? <Button type="button" variant="destructive" size="sm" className="mt-2 h-7" disabled={stopMutation.isPending && stopMutation.variables === trade.id} onClick={() => stopMutation.mutate(trade.id)}><Square className="size-3" /> Stop</Button> : null}</div></div>;
+            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(tradeStake)} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(trade.status === "open" ? liveState.price : Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">+${formatMoney(tpAmount)} / -${formatMoney(slAmount)}</p></div><div className="text-right"><p className={cn("num font-semibold tabular-nums transition-colors", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live now" : trade.status}</p>{trade.status === "open" ? <Button type="button" variant="destructive" size="sm" className="mt-2 h-7" disabled={stopMutation.isPending && stopMutation.variables === trade.id} onClick={() => stopMutation.mutate(trade.id)}><Square className="size-3" /> Stop</Button> : null}</div></div>;
           })}</div>}
         </section>
       ) : <div className="grid gap-2 lg:grid-cols-12">
@@ -529,6 +532,7 @@ function TradePage() {
                     key={trade.id}
                     trade={trade}
                     currentPrice={quotes.find((item) => item.symbol === trade.symbol)?.price}
+                    now={rapidNow}
                     stopping={stopMutation.isPending && stopMutation.variables === trade.id}
                     onStop={() => stopMutation.mutate(trade.id)}
                   />

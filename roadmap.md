@@ -144,3 +144,9 @@
 - [x] New trades appear immediately in the list
 - [x] Popup messages removed
 - [x] Live PNL updates every second from fast tick prices with practice sensitivity
+
+## Immediate active PNL movement
+- [x] Start active PNL movement as soon as a trade opens
+- [x] Refresh displayed PNL four times per second between live market polls
+- [x] Keep rapid movement anchored to the latest live market price
+- [x] Verify positive and negative movement on Trade, Dashboard, and History

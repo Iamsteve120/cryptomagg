@@ -24,3 +24,33 @@ export function calculateLivePnl(trade: {
   const lossTarget = trade.stop_loss_amount != null ? Number(trade.stop_loss_amount) : Number(trade.stake);
   return favorable ? profitTarget * ratio : 0 - lossTarget * ratio;
 }
+
+type LiveTrade = Parameters<typeof calculateLivePnl>[0] & {
+  id?: string;
+};
+
+function phaseForTrade(id: string | undefined) {
+  if (!id) return 0;
+  return [...id].reduce((value, character) => value + character.charCodeAt(0), 0) % 360;
+}
+
+/**
+ * Adds a very small visual micro tick between exchange polls. The movement stays
+ * anchored to the latest market price and never changes server settlement.
+ */
+export function calculateRapidLiveState(trade: LiveTrade, currentPrice: number | undefined, now: number) {
+  const entry = Number(trade.entry_price);
+  const marketPrice = currentPrice ?? entry;
+  const tpDistance = trade.take_profit_price === null ? 0 : Math.abs(Number(trade.take_profit_price) - entry);
+  const slDistance = trade.stop_loss_price === null ? 0 : Math.abs(Number(trade.stop_loss_price) - entry);
+  const referenceDistance = Math.max(tpDistance, slDistance);
+  if (!Number.isFinite(referenceDistance) || referenceDistance <= 0) {
+    return { price: marketPrice, pnl: calculateLivePnl(trade, marketPrice) };
+  }
+
+  const phase = phaseForTrade(trade.id) * (Math.PI / 180);
+  const wave = Math.sin(now / 430 + phase) * 0.72 + Math.sin(now / 173 + phase * 0.6) * 0.28;
+  const microMove = (referenceDistance / LIVE_PNL_SENSITIVITY) * 0.08 * wave;
+  const price = Math.max(Number.EPSILON, marketPrice + microMove);
+  return { price, pnl: calculateLivePnl(trade, price) };
+}
