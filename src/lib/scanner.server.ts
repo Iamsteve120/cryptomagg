@@ -39,7 +39,7 @@ function localAnalysis(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>>) {
     symbol: quote.symbol as "BTC" | "ETH" | "SOL" | "BNB" | "XRP" | "ADA" | "DOGE" | "AVAX" | "LINK" | "DOT",
     direction: fallbackMove >= 0 ? "up" as const : "down" as const,
     confidence: scannerConfidence(Math.abs(fallbackMove), agreement),
-    durationSeconds: Math.abs(fallbackMove) > 0.4 ? 60 as const : 300 as const,
+    durationSeconds: 60 as const,
     marketCondition: agreement ? "Momentum follows the daily direction" : "Short term momentum differs from the daily direction",
     rationale: `${quote.symbol} has the clearest recent price movement among the available markets.`,
     riskNote: "Momentum can reverse before expiry. Keep the Demo stake within your limit.",
@@ -62,7 +62,7 @@ function buildMarketOptions(quotes: Awaited<ReturnType<typeof fetchMarketQuotes>
         momentumPercent: Number(move.toFixed(3)),
         direction,
         confidence: 80,
-        durationSeconds: strength > 0.4 ? 60 : 300,
+        durationSeconds: 60,
         score: Math.abs(directionalMove) + (agreement ? 0.25 : 0),
       };
     })
@@ -119,6 +119,7 @@ export async function analyzeMarketsWithAi(apiKey: string) {
       ...output,
       direction: output.direction === "wait" ? (selected.change24h >= 0 ? "up" as const : "down" as const) : output.direction,
       confidence: Math.max(80, Math.min(87, Math.round(output.confidence))),
+      durationSeconds: 60 as const,
       price: selected.price,
       change24h: selected.change24h,
       scannedAt: new Date().toISOString(),
