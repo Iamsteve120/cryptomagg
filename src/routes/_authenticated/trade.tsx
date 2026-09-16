@@ -295,9 +295,10 @@ function TradePage() {
   }, [mode]);
 
   useEffect(() => {
-    if (!autoEnabled || !autoCandidate || mutation.isPending || !validLevels) return;
-    if (Date.now() - dataUpdatedAt > 30_000) return;
-    if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake) {
+    if (!autoEnabled || !autoCandidate || mutation.isPending) return;
+    if (Date.now() - dataUpdatedAt > 60_000) return;
+    const botStake = botStakeRef.current;
+    if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
@@ -305,10 +306,10 @@ function TradePage() {
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
     const autoDirection = autoCandidate.signal.direction;
-    if (autoDirection === "wait") return;
     setSymbol(autoCandidate.quote.symbol);
-      mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStakeRef.current });
-  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
+    mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStake, selectedDuration: botDurationRef.current });
+  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, sessionLoss]);
+
 
   useEffect(() => {
     const completed = (account?.trades ?? [])
