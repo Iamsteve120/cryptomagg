@@ -53,4 +53,4 @@
 - [x] Remove locked Real services wording across visible pages
 - [x] Set Demo outcomes to an approximately 80 percent win mix with losses
 - [x] Improve automatic trading controls for stronger risk management
-- [ ] Verify desktop and mobile behavior
+- [x] Verify desktop and mobile behavior
