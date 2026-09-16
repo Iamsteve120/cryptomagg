@@ -200,7 +200,12 @@ function TradePage() {
   const stopMutation = useMutation({
     mutationFn: (tradeId: string) => stopTrade({ data: { tradeId } }),
     onSuccess: (res) => {
-      toast.success(`Trade stopped at ${res.trade.pnl >= 0 ? "+" : "minus "}${formatMoney(Math.abs(Number(res.trade.pnl)))} USD PNL.`);
+      if (!res.trade) {
+        toast.info("That trade had already closed at its take profit, stop loss, or expiry.");
+      } else {
+        const pnl = Number(res.trade.pnl);
+        toast.success(`Trade stopped at ${pnl >= 0 ? "+" : "minus "}${formatMoney(Math.abs(pnl))} USD PNL.`);
+      }
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not stop the Demo trade."),
