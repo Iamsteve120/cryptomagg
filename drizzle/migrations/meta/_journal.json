@@ -71,6 +71,13 @@
       "when": 1789526439700,
       "tag": "0009_store_demo_tp_sl_dollar_amounts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789528910576,
+      "tag": "0010_scale_live_pnl_sensitivity",
+      "breakpoints": true
     }
   ]
 }
