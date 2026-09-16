@@ -168,6 +168,21 @@
     56px 100%;
 }
 
+/* Deep green side bands so light mode is not a flat wash of pale green. */
+@utility app-shell {
+  background-image:
+    linear-gradient(90deg, oklch(0.27 0.045 160) 0%, oklch(0.27 0.045 160 / 55%) 2.2%, transparent 12%),
+    linear-gradient(270deg, oklch(0.27 0.045 160) 0%, oklch(0.27 0.045 160 / 55%) 2.2%, transparent 12%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.dark .app-shell {
+  background-image:
+    linear-gradient(90deg, oklch(0.12 0.02 160) 0%, transparent 10%),
+    linear-gradient(270deg, oklch(0.12 0.02 160) 0%, transparent 10%);
+}
+
 @utility num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
