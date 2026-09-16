@@ -86,11 +86,39 @@ export const Route = createFileRoute("/api/public/mpesa-callback")({
           return Response.json({ ResultCode: 0, ResultDesc: "Accepted" });
         }
 
-        const { error } = await supabaseAdmin.rpc("credit_confirmed_deposit", {
+        const { data: newBalance, error } = await supabaseAdmin.rpc("credit_confirmed_deposit", {
           p_intent_id: intent.id,
           p_receipt: receipt,
         });
-        if (error) console.error("Deposit crediting failed", intent.id, error.message);
+        if (error) {
+          console.error("Deposit crediting failed", intent.id, error.message);
+        } else {
+          // Confirmation email. Never allowed to affect the payment result.
+          try {
+            const { data: owner } = await supabaseAdmin
+              .from("deposit_intents")
+              .select("amount_usdt, amount_kes, profiles:user_id (email, full_name)")
+              .eq("id", intent.id)
+              .maybeSingle<{
+                amount_usdt: number;
+                amount_kes: number;
+                profiles: { email: string | null; full_name: string | null } | null;
+              }>();
+            if (owner?.profiles?.email) {
+              const { sendDepositReceipt } = await import("@/lib/email.server");
+              await sendDepositReceipt({
+                to: owner.profiles.email,
+                name: owner.profiles.full_name,
+                amountUsdt: Number(owner.amount_usdt),
+                amountKes: Number(owner.amount_kes),
+                receipt,
+                balanceUsdt: Number(newBalance ?? 0),
+              });
+            }
+          } catch (mailError) {
+            console.error("Deposit email failed", mailError);
+          }
+        }
 
         return Response.json({ ResultCode: 0, ResultDesc: "Accepted" });
       },
