@@ -698,7 +698,9 @@ function TradePage() {
       </div>}
 
       <p className="rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        Simulation mode | No real funds involved | Virtual balance for practice only
+        {mode === "demo"
+          ? "Simulation mode | No real funds involved | Virtual balance for practice only"
+          : `Real account | Live exchange prices | Win pays ${LIVE_PAYOUT_RATE} percent, a loss costs your full amount`}
       </p>
 
       <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>
