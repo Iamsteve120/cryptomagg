@@ -27,9 +27,9 @@
 - [x] Verify scanner layout and trade settlement on desktop and mobile
 
 ## Active trade controls and live PNL
-- [ ] Add atomic Demo Stop settlement using the current live price and visible PNL
-- [ ] Close Demo trades immediately at TP or SL while retaining expiry fallback
-- [ ] Add Trade Now and Stop controls matching the mobile reference
-- [ ] Show fluctuating live PNL on Trade, Dashboard, and History
-- [ ] Emphasize the Profile Demo balance reset control
+- [x] Add atomic Demo Stop settlement using the current live price and visible PNL
+- [x] Close Demo trades immediately at TP or SL while retaining expiry fallback
+- [x] Add Trade Now and Stop controls matching the mobile reference
+- [x] Show fluctuating live PNL on Trade, Dashboard, and History
+- [x] Emphasize the Profile Demo balance reset control
 - [ ] Verify Stop, TP or SL, reset, and responsive layouts

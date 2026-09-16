@@ -4,8 +4,9 @@ import { ArrowDownRight, ArrowUpRight, CircleUserRound, Repeat2, ScanLine } from
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetIcon } from "@/components/ui/asset-icon";
-import { useAccount } from "@/hooks/use-trading";
+import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
+import { calculateLivePnl } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
 import { useAccountMode, type AccountMode } from "@/components/account-mode";
 import { StatCard } from "@/components/market-widgets";
@@ -42,6 +43,7 @@ function sourceLabel(source: string) {
 function HistoryPage() {
   const { mode } = useAccountMode();
   const { data } = useAccount();
+  const { data: markets } = useMarkets();
   const [filter, setFilter] = useState<"all" | AccountMode>(mode);
   const trades = (data?.trades ?? []).filter((trade) => filter === "all" || trade.account_mode === filter);
   const transactions = (data?.transactions ?? []).filter((transaction) => filter === "all" || transaction.account_mode === filter);
@@ -74,11 +76,14 @@ function HistoryPage() {
             const source = sourceLabel(trade.trade_source);
             const SourceIcon = source.icon;
             const resultingBalance = trade.balance_after_settlement ?? trade.balance_after_open;
+            const currentPrice = markets?.quotes.find((quote) => quote.symbol === trade.symbol)?.price;
+            const livePnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : null;
             return <article key={trade.id} className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-full border border-border bg-secondary"><AssetIcon symbol={trade.symbol} /></div><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? <ArrowUpRight className="inline size-4" /> : <ArrowDownRight className="inline size-4" />} {trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-xs text-muted-foreground">{when(trade.created_at)}</p></div></div>
                 <div className="flex items-center gap-2"><span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium">{trade.account_mode === "demo" ? "Demo" : "Real"}</span><span className={cn("rounded-md px-2 py-1 text-xs font-semibold capitalize", trade.status === "won" ? "bg-primary/15 text-primary" : trade.status === "lost" ? "bg-destructive/15 text-destructive" : "bg-secondary text-muted-foreground")}>{trade.status}</span></div>
               </div>
+              {livePnl !== null ? <div className={cn("mt-3 flex items-center justify-between rounded-md border p-3", livePnl >= 0 ? "border-primary/30 bg-primary/10" : "border-destructive/30 bg-destructive/10")}><div><p className="text-xs uppercase text-muted-foreground">Live PNL</p><p className={cn("num mt-1 text-xl font-semibold tabular-nums", livePnl >= 0 ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(livePnl))} {trade.account_mode === "demo" ? "USD" : "USDT"}</p></div><div className="text-right text-xs text-muted-foreground"><p>Live ${formatPrice(currentPrice ?? Number(trade.entry_price))}</p><p>Updates until TP, SL, Stop, or expiry</p></div></div> : null}
               <div className="mt-4 grid gap-3 border-y border-border py-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
                 <div><p className="text-xs text-muted-foreground">Source</p><p className="mt-1 flex items-center gap-1.5 font-medium"><SourceIcon className="size-4" />{source.label}</p></div>
                 <div><p className="text-xs text-muted-foreground">Opening balance</p><p className="num mt-1 font-medium">{money(trade.balance_before, trade.account_mode)}</p></div>

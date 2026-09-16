@@ -5,6 +5,7 @@ import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { formatMoney, formatPrice } from "@/lib/assets";
 import { CryptoCard } from "@/components/ui/asset-card";
 import { useAccountMode } from "@/components/account-mode";
+import { calculateLivePnl } from "@/lib/trade-pnl";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -95,11 +96,9 @@ function Dashboard() {
                         {t.direction === "up" ? "▲ Up" : "▼ Down"}
                       </span>
                     </p>
-                    <p className="num text-xs text-muted-foreground">
-                      Entry ${formatPrice(Number(t.entry_price))} · {t.duration_seconds}s
-                    </p>
+                    <p className="num text-xs text-muted-foreground">Entry ${formatPrice(Number(t.entry_price))} | Live ${formatPrice(quotes.find((quote) => quote.symbol === t.symbol)?.price ?? Number(t.entry_price))} | {t.duration_seconds}s</p>
                   </div>
-                  <p className="num text-sm font-semibold">${formatMoney(Number(t.stake))}</p>
+                  {(() => { const pnl = calculateLivePnl(t, quotes.find((quote) => quote.symbol === t.symbol)?.price); return <div className="text-right"><p className="text-xs text-muted-foreground">Live PNL</p><p className={pnl >= 0 ? "num font-semibold text-primary" : "num font-semibold text-destructive"}>{pnl >= 0 ? "+" : "minus "}{formatMoney(Math.abs(pnl))} USD</p></div>; })()}
                 </li>
               ))}
             </ul>
