@@ -108,6 +108,7 @@ export const getAccount = createServerFn({ method: "GET" })
     const email = (context.claims as { email?: string } | null)?.email ?? null;
     await ensureProfile(context.userId, email);
     await settleDueTrades(context.userId);
+    await settleDueLiveTrades(context.userId);
 
     const db = await admin();
     const [profileRes, tradesRes, txRes] = await Promise.all([
@@ -216,15 +217,54 @@ export const placeTrade = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => tradeSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "trade", data.source === "auto" ? 45 : RATE_MAX);
-    if (data.accountMode === "live") {
-      throw new Error("Real trading is not available.");
-    }
 
     const asset = ASSETS.find((a) => a.symbol === data.symbol);
     if (!asset) throw new Error("Unsupported asset.");
     if (!DURATIONS.some((d) => d.seconds === data.durationSeconds)) {
       throw new Error("Unsupported duration.");
     }
+
+    if (data.accountMode === "live") {
+      const { realMoneyEnabled } = await import("./mpesa.server");
+      if (!realMoneyEnabled()) throw new Error("Real trading is not switched on yet.");
+      if (data.source !== "manual") throw new Error("Real trades must be placed by you, not by a bot.");
+
+      const { LIVE_MAX_STAKE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
+      const liveStake = Math.round(data.stake * 100) / 100;
+      if (liveStake < LIVE_MIN_STAKE || liveStake > LIVE_MAX_STAKE) {
+        throw new Error(`Real trades must be between ${LIVE_MIN_STAKE} and ${LIVE_MAX_STAKE} USDT.`);
+      }
+
+      await ensureProfile(context.userId, null);
+      const { priceForSymbol } = await import("./market.server");
+      const liveEntry = await priceForSymbol(asset.symbol);
+      if (!Number.isFinite(liveEntry) || liveEntry <= 0) {
+        throw new Error("The market price is unavailable. Please try again shortly.");
+      }
+
+      const liveDb = await admin();
+      const { data: liveRows, error: liveError } = await liveDb.rpc("reserve_live_trade", {
+        p_user_id: context.userId,
+        p_symbol: asset.symbol,
+        p_asset_name: asset.name,
+        p_direction: data.direction,
+        p_stake: liveStake,
+        p_payout_rate: LIVE_PAYOUT_RATE,
+        p_duration_seconds: data.durationSeconds,
+        p_entry_price: liveEntry,
+        p_expires_at: new Date(Date.now() + data.durationSeconds * 1000).toISOString(),
+      });
+      const liveTrade = liveRows?.[0];
+      if (liveError || !liveTrade) {
+        throw new Error(
+          liveError?.message.includes("Insufficient")
+            ? "That is more than your available balance."
+            : "Could not open the trade. Please try again.",
+        );
+      }
+      return { trade: liveTrade, balance: Number(liveTrade.balance_after_open) };
+    }
+
 
     const stake = Math.round(data.stake * 100) / 100;
     const minimumStake = data.source === "auto" ? 1 : 2;
