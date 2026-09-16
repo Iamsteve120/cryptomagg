@@ -131,3 +131,9 @@
 - [x] Show live PNL in the Result field while a trade is open
 - [x] Show final settled PNL after a trade closes
 - [x] Exclude open placeholders from settled PNL totals
+
+## Bot execution fix
+- [x] Bot always finds a market to trade even when momentum is flat
+- [x] Bot uses its own amount, duration, TP and SL instead of the manual panel values
+- [x] Bot buttons no longer blocked by manual panel validation
+- [x] Verified five bot trades open with live PNL on mobile
