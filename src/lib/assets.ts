@@ -56,12 +56,18 @@ export const DURATIONS = [
 /** Position multipliers. A higher multiplier reaches take profit or stop loss on a smaller price move. */
 export const MULTIPLIERS = [1, 5, 10, 25, 50, 100, 200, 300];
 
-/** Preset automated trading bots for the Auto tab. */
+/** Preset automated trading bots for the Auto tab. Each bot trades its own top five pairs. */
 export const TRADING_BOTS = [
-  { id: "momentum", name: "Momentum Bot", description: "Runs five short term trades across the strongest markets.", minConfidence: 82, durationSeconds: 60, multiplier: 50, tradeLimit: 5 },
-  { id: "scalper", name: "Scalper Bot", description: "Runs eight fast entries with tight targets.", minConfidence: 80, durationSeconds: 30, multiplier: 100, tradeLimit: 8 },
-  { id: "trend", name: "Trend Bot", description: "Runs four five minute trades that agree with the daily move.", minConfidence: 84, durationSeconds: 300, multiplier: 25, tradeLimit: 4 },
-  { id: "swing", name: "Swing Bot", description: "Runs three patient trades on high confidence setups only.", minConfidence: 86, durationSeconds: 900, multiplier: 10, tradeLimit: 3 },
+  { id: "momentum", name: "Momentum Bot", description: "Short term entries on the five largest markets.", minConfidence: 82, durationSeconds: 60, multiplier: 50, tradeLimit: 5, pairs: ["BTC", "ETH", "SOL", "BNB", "XRP"] },
+  { id: "scalper", name: "Scalper Bot", description: "Fast thirty second entries on high turnover pairs.", minConfidence: 80, durationSeconds: 30, multiplier: 100, tradeLimit: 8, pairs: ["BTC", "SOL", "DOGE", "XRP", "TRX"] },
+  { id: "trend", name: "Trend Bot", description: "Five minute trades that follow the daily direction.", minConfidence: 84, durationSeconds: 300, multiplier: 25, tradeLimit: 5, pairs: ["ETH", "BNB", "ADA", "LINK", "AVAX"] },
+  { id: "swing", name: "Swing Bot", description: "Patient fifteen minute setups on established coins.", minConfidence: 86, durationSeconds: 900, multiplier: 10, tradeLimit: 5, pairs: ["BTC", "ETH", "DOT", "LTC", "BCH"] },
+  { id: "layerone", name: "Layer One Bot", description: "Rotates through the leading smart contract chains.", minConfidence: 83, durationSeconds: 300, multiplier: 25, tradeLimit: 6, pairs: ["SOL", "AVAX", "NEAR", "APT", "SUI"] },
+  { id: "defi", name: "DeFi Bot", description: "Trades the top decentralised finance tokens.", minConfidence: 82, durationSeconds: 300, multiplier: 25, tradeLimit: 6, pairs: ["UNI", "AAVE", "LDO", "LINK", "INJ"] },
+  { id: "meme", name: "Meme Bot", description: "Quick entries on the busiest retail favourites.", minConfidence: 80, durationSeconds: 60, multiplier: 100, tradeLimit: 8, pairs: ["DOGE", "TRX", "XLM", "HBAR", "ARB"] },
+  { id: "volatility", name: "Volatility Bot", description: "Targets the fastest moving mid cap markets.", minConfidence: 81, durationSeconds: 60, multiplier: 200, tradeLimit: 8, pairs: ["SUI", "INJ", "RENDER", "OP", "ARB"] },
+  { id: "bluechip", name: "Blue Chip Bot", description: "Concentrates on the most liquid major pairs.", minConfidence: 85, durationSeconds: 900, multiplier: 10, tradeLimit: 5, pairs: ["BTC", "ETH", "BNB", "SOL", "LTC"] },
+  { id: "payments", name: "Payments Bot", description: "Follows the leading transfer and settlement coins.", minConfidence: 83, durationSeconds: 300, multiplier: 25, tradeLimit: 6, pairs: ["XRP", "XLM", "HBAR", "LTC", "BCH"] },
 ];
 
 export const DEPOSIT_METHODS = [
