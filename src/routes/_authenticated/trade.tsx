@@ -227,7 +227,17 @@ function TradePage() {
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
-  const asset = TRADABLE_ASSETS.find((item) => item.symbol === symbol);
+  /** Real accounts trade the generated crypto instruments, Demo trades the exchange pairs. */
+  const marketList = useMemo(
+    () => (mode === "live"
+      ? SYNTHETIC_INSTRUMENTS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))
+      : TRADABLE_ASSETS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))),
+    [mode],
+  );
+  useEffect(() => {
+    if (!marketList.some((item) => item.symbol === symbol)) setSymbol(marketList[0]!.symbol);
+  }, [marketList, symbol]);
+  const asset = marketList.find((item) => item.symbol === symbol);
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
