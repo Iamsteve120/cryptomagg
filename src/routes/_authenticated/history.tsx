@@ -118,7 +118,26 @@ function HistoryPage() {
           })}</div>}
         </TabsContent>
         <TabsContent value="transactions">
-          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <div className="grid gap-2 sm:hidden">
+            {trades.length === 0 ? <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-muted-foreground">No trade transactions match this account filter.</div> : trades.map((trade) => {
+              const source = sourceLabel(trade.trade_source);
+              const SourceIcon = source.icon;
+              const currentPrice = markets?.quotes.find((quote) => quote.symbol === trade.symbol)?.price;
+              const transactionPnl = trade.status === "open" ? calculateLivePnl(trade, currentPrice) : Number(trade.pnl);
+              return <article key={trade.id} className="rounded-lg border border-border bg-card p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="num text-[11px] text-muted-foreground">{when(trade.created_at)}</p></div></div>
+                  <span className={cn("rounded px-2 py-1 text-xs font-semibold capitalize", trade.status === "open" ? "bg-primary/15 text-primary" : trade.status === "lost" ? "bg-destructive/15 text-destructive" : "bg-secondary text-foreground")}>{trade.status === "open" ? "Live" : trade.status}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
+                  <div><p className="text-muted-foreground">Method</p><p className="mt-1 flex items-center gap-1 font-medium"><SourceIcon className="size-3.5" />{source.label}</p></div>
+                  <div><p className="text-muted-foreground">Stake</p><p className="num mt-1 font-medium">{formatMoney(Number(trade.stake))}</p></div>
+                  <div className="text-right"><p className="text-muted-foreground">{trade.status === "open" ? "Live PNL" : "PNL"}</p><p className={cn("num mt-1 font-semibold", transactionPnl >= 0 ? "text-primary" : "text-destructive")}>{transactionPnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(transactionPnl))}</p></div>
+                </div>
+              </article>;
+            })}
+          </div>
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
             <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-secondary/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-4 py-3">Time</th><th className="px-4 py-3">Market</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Position</th><th className="px-4 py-3 text-right">Stake</th><th className="px-4 py-3 text-right">PNL</th><th className="px-4 py-3 text-right">Status</th></tr></thead>
               <tbody>{trades.length === 0 ? <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No trade transactions match this account filter.</td></tr> : trades.map((trade) => {
