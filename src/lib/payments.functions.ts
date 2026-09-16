@@ -167,6 +167,26 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           : "Could not submit the withdrawal. Please try again.",
       );
     }
+    try {
+      const { data: profile } = await db
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", context.userId)
+        .maybeSingle();
+      if (profile?.email) {
+        const { sendWithdrawalReceipt } = await import("./email.server");
+        await sendWithdrawalReceipt({
+          to: profile.email,
+          name: profile.full_name,
+          amountUsdt,
+          phone,
+          status: "pending",
+        });
+      }
+    } catch (mailError) {
+      console.error("Withdrawal email failed", mailError);
+    }
+
     return { id: created.id, amountUsdt };
   });
 

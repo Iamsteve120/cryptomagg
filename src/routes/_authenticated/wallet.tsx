@@ -48,6 +48,30 @@ export const Route = createFileRoute("/_authenticated/wallet")({
 
 const PRESETS = [2, 4, 8, 10, 15, 20];
 
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Starting",
+  awaiting_user: "Waiting for your PIN",
+  completed: "Completed",
+  failed: "Failed",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+function StatusPill({ status }: { status: string }) {
+  const tone =
+    status === "completed" || status === "approved"
+      ? "bg-primary/15 text-primary"
+      : status === "failed" || status === "rejected"
+        ? "bg-destructive/15 text-destructive"
+        : "bg-secondary text-muted-foreground";
+  return (
+    <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
 function WalletPage() {
   const { mode } = useAccountMode();
   const { data } = useAccount();
@@ -185,12 +209,13 @@ function WalletPage() {
                   <Input
                     id="livePhone"
                     inputMode="tel"
-                    placeholder="0712345678"
+                    placeholder="2547XXXXXXXX"
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Smallest deposit is {LIVE_MIN_DEPOSIT} USDT.
+                    Use 2547XXXXXXXX, 07XXXXXXXX or 7XXXXXXXX. Smallest deposit is{" "}
+                    {LIVE_MIN_DEPOSIT} USDT.
                   </p>
                 </div>
               </div>
@@ -286,14 +311,14 @@ function WalletPage() {
                   <li key={row.id} className="flex items-center justify-between gap-3">
                     <span className="text-muted-foreground">Deposit</span>
                     <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
-                    <span className="text-xs capitalize text-muted-foreground">{row.status}</span>
+                    <StatusPill status={row.status} />
                   </li>
                 ))}
                 {(funding?.withdrawals ?? []).map((row) => (
                   <li key={row.id} className="flex items-center justify-between gap-3">
                     <span className="text-muted-foreground">Withdrawal</span>
                     <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
-                    <span className="text-xs capitalize text-muted-foreground">{row.status}</span>
+                    <StatusPill status={row.status} />
                   </li>
                 ))}
                 {(funding?.deposits.length ?? 0) === 0 && (funding?.withdrawals.length ?? 0) === 0 && (

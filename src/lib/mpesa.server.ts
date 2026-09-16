@@ -20,8 +20,14 @@ export function readDarajaConfig(): DarajaConfig | null {
   const consumerSecret = process.env["MPESA_CONSUMER_SECRET"];
   const shortcode = process.env["MPESA_SHORTCODE"];
   const passkey = process.env["MPESA_PASSKEY"];
-  const callbackUrl = process.env["MPESA_CALLBACK_URL"];
-  if (!consumerKey || !consumerSecret || !shortcode || !passkey || !callbackUrl) return null;
+  const callbackBase = process.env["MPESA_CALLBACK_URL"];
+  const callbackToken = process.env["MPESA_CALLBACK_TOKEN"];
+  if (!consumerKey || !consumerSecret || !shortcode || !passkey || !callbackBase || !callbackToken) {
+    return null;
+  }
+  // The confirmation URL carries its own secret token, since Safaricom does not
+  // sign callbacks. It is assembled here so the token is never stored in a URL.
+  const callbackUrl = `${callbackBase.split("?")[0]}?token=${encodeURIComponent(callbackToken)}`;
 
   const live = process.env["MPESA_ENV"] === "production";
   return {
