@@ -16,6 +16,7 @@ import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading
 import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { getLiveAccountStatus } from "@/lib/payments.functions";
 import { LIVE_PAYOUT_RATE } from "@/lib/live-trading";
+import { SYNTHETIC_INSTRUMENTS } from "@/lib/synthetic";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
