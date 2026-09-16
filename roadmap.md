@@ -14,3 +14,10 @@
 - [x] Expand History with account filters and exact balance results
 - [x] Remove visible dash punctuation and refine interface copy
 - [x] Verify desktop, mobile, trading, and settlement behavior
+
+# Floating market scanner
+
+- [x] Add secure AI market analysis across supported assets
+- [x] Add floating scanner panel with explicit Demo execution
+- [x] Keep Real execution locked and preserve risk disclosure
+- [x] Verify live scan, trade history, desktop, and mobile behavior

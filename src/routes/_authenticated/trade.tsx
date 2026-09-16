@@ -16,6 +16,7 @@ import { placeTrade } from "@/lib/trading.functions";
 import { ASSETS, DURATIONS, formatMoney, formatPrice } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 import { useAccountMode } from "@/components/account-mode";
+import { MarketScanner } from "@/components/market-scanner";
 
 const searchSchema = z.object({ symbol: z.string().optional() });
 type Direction = "up" | "down";
@@ -88,12 +89,13 @@ function TradePage() {
   const sessionLoss = sessionBalance.current === null ? 0 : Math.max(0, sessionBalance.current - balance);
 
   const mutation = useMutation({
-    mutationFn: ({ direction, source }: { direction: Direction; source: TradeSource }) =>
-      submit({ data: { accountMode: mode, symbol, direction, stake: stakeValue, durationSeconds: duration, source } }),
+    mutationFn: ({ direction, source, selectedSymbol = symbol, selectedStake = stakeValue, selectedDuration = duration }: { direction: Direction; source: TradeSource; selectedSymbol?: string; selectedStake?: number; selectedDuration?: number }) =>
+      submit({ data: { accountMode: mode, symbol: selectedSymbol, direction, stake: selectedStake, durationSeconds: selectedDuration, source } }),
     onSuccess: (res, variables) => {
       toast.success(`${variables.source === "auto" ? "Automatic" : "Demo"} ${res.trade.direction === "up" ? "Up" : "Down"} trade opened on ${res.trade.symbol}.`);
       queryClient.invalidateQueries({ queryKey: ["account"] });
       if (variables.source === "auto") setAutoPlaced((value) => value + 1);
+      if (variables.source === "assist") toast.info("Assisted trade added to History with its opening balance.");
     },
     onError: (error) => {
       setAutoEnabled(false);
@@ -189,6 +191,23 @@ function TradePage() {
           <p className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Real trading unlocks only after a regulated provider is connected."}</p>
         </aside>
       </div>
+      <MarketScanner
+        mode={mode}
+        balance={balance}
+        busy={mutation.isPending}
+        onExecute={(setup) => {
+          setSymbol(setup.symbol);
+          setDuration(setup.durationSeconds);
+          setStake(String(setup.stake));
+          mutation.mutate({
+            direction: setup.direction,
+            source: "assist",
+            selectedSymbol: setup.symbol,
+            selectedStake: setup.stake,
+            selectedDuration: setup.durationSeconds,
+          });
+        }}
+      />
     </div>
   );
 }
