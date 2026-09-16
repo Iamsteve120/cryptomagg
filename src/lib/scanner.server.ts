@@ -1,4 +1,4 @@
-import { Output, NoObjectGeneratedError, streamText } from "ai";
+import { Output, streamText } from "ai";
 import { z } from "zod";
 import { createScannerAi } from "./ai-gateway.server";
 import { fetchMarketQuotes } from "./market.server";
