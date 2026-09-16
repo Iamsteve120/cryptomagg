@@ -389,8 +389,11 @@ function TradePage() {
   }
 
   function stopAutoTrading() {
+    // Block any further bot entries straight away, then close every running
+    // Demo trade at its current live result, profit or loss.
     setAutoEnabled(false);
-    // Closing every open Demo trade immediately at its current live result.
+    setAutoPlaced(Math.min(20, Math.max(5, Number(autoLimit) || 5)));
+    lastAutoQuote.current = null;
     stopAllMutation.mutate();
   }
 
