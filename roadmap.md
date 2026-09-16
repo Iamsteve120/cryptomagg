@@ -126,3 +126,8 @@
 - [x] Show dollar targets in Trade and History
 - [x] Preserve readable values for earlier percentage based trades
 - [x] Verify manual and bot setup on desktop and mobile
+
+## History result accuracy
+- [x] Show live PNL in the Result field while a trade is open
+- [x] Show final settled PNL after a trade closes
+- [x] Exclude open placeholders from settled PNL totals
