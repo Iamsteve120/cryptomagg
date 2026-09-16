@@ -150,3 +150,14 @@
 - [x] Refresh displayed PNL four times per second between live market polls
 - [x] Keep rapid movement anchored to the latest live market price
 - [x] Verify positive and negative movement on Trade, Dashboard, and History
+
+## Real account (M Pesa) — blocked on provider and licence
+- [x] Real balance ledger, deposit requests, withdrawal requests, honest market settlement
+- [x] M Pesa STK push deposit flow and confirmation callback (credits only on Safaricom confirmation)
+- [x] Real trades settle on the exchange price at expiry; published 80 percent payout
+- [x] Withdrawal requests hold the amount and queue for review
+- [ ] Blocked: Daraja credentials (MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_SHORTCODE,
+      MPESA_PASSKEY, MPESA_CALLBACK_URL, MPESA_CALLBACK_TOKEN) — user has no paybill yet
+- [ ] Blocked: automatic B2C payouts need MPESA_INITIATOR_NAME and MPESA_SECURITY_CREDENTIAL
+- [ ] Blocked: REAL_MONEY_ENABLED stays unset until the CMA licence is in place
+- [ ] Lower the Demo win rate to realistic levels before real accounts open
