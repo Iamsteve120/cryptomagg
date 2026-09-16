@@ -8,8 +8,8 @@ export function useMarkets() {
   return useQuery({
     queryKey: ["markets"],
     queryFn: () => fetchMarkets(),
-    refetchInterval: 6_000,
-    staleTime: 3_000,
+    refetchInterval: 3_000,
+    staleTime: 1_500,
   });
 }
 
@@ -18,6 +18,6 @@ export function useAccount() {
   return useQuery({
     queryKey: ["account"],
     queryFn: () => fetchAccount(),
-    refetchInterval: 6_000,
+    refetchInterval: 3_000,
   });
 }

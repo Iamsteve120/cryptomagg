@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,18 +101,20 @@ function ProfilePage() {
       </div>
 
       <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
-        <div>
+        <div className="border-l-2 border-primary pl-3">
           <p className="font-semibold">Reset demo account</p>
           <p className="text-sm text-muted-foreground">
             Clears all simulated trades and wallet activity, and restores your $10,000 demo balance.
           </p>
         </div>
         <Button
-          variant="secondary"
+          variant="default"
+          className="w-full sm:w-auto"
           onClick={() => resetMutation.mutate()}
           disabled={resetMutation.isPending}
         >
-          Reset to $10,000
+          <RotateCcw className="size-4" />
+          {resetMutation.isPending ? "Resetting Demo balance" : "Reset Demo balance to $10,000"}
         </Button>
       </div>
 
