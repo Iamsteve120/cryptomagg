@@ -373,7 +373,7 @@ function TradePage() {
     setAutoEnabled(true);
     setBotSetupOpen(false);
     setShowBotTransactions(true);
-    toast.success(`${bot?.name ?? "Trading bot"} started. It will run several trades across the strongest markets.`);
+    
   }
 
   function stopAutoTrading() {
