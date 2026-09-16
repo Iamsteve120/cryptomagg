@@ -169,6 +169,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      close_demo_trade_at_live_pnl: {
+        Args: { p_exit_price: number; p_trade_id: string; p_user_id: string }
+        Returns: {
+          account_mode: string
+          asset_name: string
+          balance_after_open: number | null
+          balance_after_settlement: number | null
+          balance_before: number | null
+          created_at: string
+          direction: string
+          duration_seconds: number
+          entry_price: number
+          exit_price: number | null
+          expires_at: string
+          id: string
+          payout_rate: number
+          pnl: number
+          settled_at: string | null
+          stake: number
+          status: string
+          stop_loss_percent: number | null
+          stop_loss_price: number | null
+          symbol: string
+          take_profit_percent: number | null
+          take_profit_price: number | null
+          trade_source: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       reserve_demo_trade: {
         Args: {
           p_asset_name: string
