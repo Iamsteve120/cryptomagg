@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AssetIcon } from "@/components/ui/asset-icon";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets } from "@/hooks/use-trading";
 import { placeTrade, stopDemoTrade } from "@/lib/trading.functions";
@@ -162,6 +163,10 @@ function TradePage() {
   const [autoLimit, setAutoLimit] = useState("3");
   const [lossLimit, setLossLimit] = useState("150");
   const [autoPlaced, setAutoPlaced] = useState(0);
+  const [botSetupOpen, setBotSetupOpen] = useState(false);
+  const [pendingBotId, setPendingBotId] = useState("momentum");
+  const [botDuration, setBotDuration] = useState("60");
+  const [botTradeCount, setBotTradeCount] = useState("5");
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
 
@@ -234,7 +239,7 @@ function TradePage() {
   useEffect(() => {
     if (!autoEnabled || !autoCandidate || mutation.isPending || !validLevels) return;
     if (Date.now() - dataUpdatedAt > 30_000) return;
-    if (autoPlaced >= Math.min(10, Math.max(1, Number(autoLimit) || 1)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake) {
+    if (autoPlaced >= Math.min(40, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(0, Number(lossLimit) || 0) || !validStake) {
       setAutoEnabled(false);
       toast.info("Demo auto trading stopped at your session limit.");
       return;
@@ -247,19 +252,31 @@ function TradePage() {
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol });
   }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, dataUpdatedAt, lossLimit, mutation, openTrades, sessionLoss, validLevels, validStake]);
 
-  function startAutoTrading(bot = selectedBot) {
+  function openBotSetup(bot = selectedBot) {
+    if (!bot) return;
+    setPendingBotId(bot.id);
+    setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
+    setBotTradeCount(String(Math.min(40, Math.max(5, bot.tradeLimit))));
+    setBotSetupOpen(true);
+  }
+
+  function startAutoTrading() {
     if (mode !== "demo" || !validStake || !validLevels) return;
+    const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
+    const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
+    const configuredTradeCount = Math.min(40, Math.max(5, Number(botTradeCount) || 5));
     if (bot) {
       setBotId(bot.id);
-      setDuration(bot.durationSeconds);
+      setDuration(configuredDuration);
       setMultiplier(bot.multiplier);
       setAutoMinimum(String(bot.minConfidence));
-      setAutoLimit(String(bot.tradeLimit));
+      setAutoLimit(String(configuredTradeCount));
     }
     sessionStartedAt.current = Date.now();
     setAutoPlaced(0);
     lastAutoQuote.current = null;
     setAutoEnabled(true);
+    setBotSetupOpen(false);
     toast.success(`${bot?.name ?? "Trading bot"} started. It will run several trades across the strongest markets.`);
   }
 
@@ -489,7 +506,7 @@ function TradePage() {
                     <li key={bot.id}>
                       <button
                         type="button"
-                        onClick={() => startAutoTrading(bot)}
+                        onClick={() => openBotSetup(bot)}
                         disabled={locked || mutation.isPending || !validStake || !validLevels}
                         className={cn("w-full rounded-md border px-2.5 py-2 text-left transition-colors", botId === bot.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-secondary/40")}
                       >
@@ -505,12 +522,12 @@ function TradePage() {
 
                 <div className="grid grid-cols-3 gap-1.5">
                   <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
-                  <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="1" max="10" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
+                  <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="5" max="40" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
                   <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button className="h-10" onClick={() => startAutoTrading()} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                  <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
                     <Play className="size-4" /> Start trading
                   </Button>
                   <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
@@ -547,6 +564,39 @@ function TradePage() {
           });
         }}
       />
+
+      <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-lg bg-card p-0">
+          <DialogHeader className="border-b border-border px-5 py-4 text-left">
+            <DialogTitle>Set up trading bot</DialogTitle>
+            <DialogDescription>The bot automatically chooses the strongest crypto markets.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 px-5 py-4">
+            <div>
+              <Label htmlFor="botDuration">How long should each trade run?</Label>
+              <select id="botDuration" value={botDuration} onChange={(event) => setBotDuration(event.target.value)} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm">
+                {DURATIONS.filter((item) => item.seconds <= 3600).map((item) => <option key={item.seconds} value={item.seconds}>{item.label}</option>)}
+              </select>
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 30 seconds | Maximum 1 hour</p>
+            </div>
+            <div>
+              <Label htmlFor="botTradeCount">How many trades should the bot run?</Label>
+              <Input id="botTradeCount" className="num mt-2 h-11" type="number" inputMode="numeric" min="5" max="40" step="1" value={botTradeCount} onChange={(event) => setBotTradeCount(event.target.value)} />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 5 trades | Maximum 40 trades</p>
+            </div>
+            <div className="rounded-md border border-primary/25 bg-primary/10 p-3 text-sm">
+              <p className="font-semibold">Automatic market selection</p>
+              <p className="mt-1 text-xs text-muted-foreground">The bot scans all available assets and picks a different eligible market for each open trade.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
+            <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botTradeCount) < 5 || Number(botTradeCount) > 40 || Number(botDuration) < 30 || Number(botDuration) > 3600}>
+              <Play className="size-4" /> Start bot
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
