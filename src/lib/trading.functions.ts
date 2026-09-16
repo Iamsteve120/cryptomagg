@@ -161,7 +161,7 @@ const tradeSchema = z.object({
   accountMode: z.enum(["demo", "live"]).default("demo"),
   symbol: z.string().min(2).max(10),
   direction: z.enum(["up", "down"]),
-  stake: z.number().positive().max(1_000_000),
+  stake: z.number().min(2).max(500),
   durationSeconds: z.number().int(),
   source: z.enum(["manual", "assist", "auto"]).default("manual"),
   takeProfitPercent: z.number().min(0.1).max(50),
@@ -184,7 +184,7 @@ export const placeTrade = createServerFn({ method: "POST" })
     }
 
     const stake = Math.round(data.stake * 100) / 100;
-    if (stake < 1) throw new Error("Minimum stake is 1.00 demo USD.");
+    if (stake < 2 || stake > 500) throw new Error("Demo stake must be between 2.00 and 500.00 USD.");
 
     await ensureProfile(context.userId, null);
 

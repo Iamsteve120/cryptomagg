@@ -8,3 +8,9 @@
 - [x] Remove Demo deposit and withdrawal controls
 - [x] Block Demo wallet funding actions on the server
 - [x] Verify the Demo wallet on mobile
+
+## Scanner reliability and stake limits
+- [x] Add a backup live market source and last successful price fallback
+- [x] Return a cautious scanner result instead of a market data error
+- [x] Enforce Demo stakes from 2 to 500 USD on the server and every trade control
+- [x] Verify scanner and stake limits on mobile
