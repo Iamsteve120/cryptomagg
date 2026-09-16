@@ -241,7 +241,8 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!trade || trade.account_mode !== "demo" || trade.status !== "open") {
-      throw new Error("This Demo trade is no longer open.");
+      // The trade already closed at TP, SL, or expiry between the click and this call.
+      return { trade: null, balance: null, alreadyClosed: true as const };
     }
 
     const { priceForSymbol } = await import("./market.server");
