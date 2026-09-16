@@ -288,14 +288,24 @@ function TradePage() {
                 <span>H {sessionHigh ? formatPrice(sessionHigh) : "Unavailable"}</span>
                 <span>L {sessionLow ? formatPrice(sessionLow) : "Unavailable"}</span>
               </span>
-            }>Live chart</PanelTitle>
-            <div className="relative flex h-52 items-center justify-center px-2 lg:h-64">
-              {quote ? <Sparkline points={quote.sparkline} up={quote.change24h >= 0} /> : <p className="text-xs text-muted-foreground">Market data is loading</p>}
-              {quote ? (
-                <div className="pointer-events-none absolute inset-x-0 top-1/2 flex justify-end border-t border-dashed border-primary/40">
-                  <span className="num mr-3 rounded-sm bg-primary px-1 text-[10px] font-semibold text-primary-foreground">{formatPrice(quote.price)}</span>
-                </div>
-              ) : null}
+            }>Live candles</PanelTitle>
+            <div className="flex items-center gap-1 border-b border-border px-2 py-1">
+              {CANDLE_INTERVALS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setCandleInterval(item.value)}
+                  className={cn(
+                    "rounded-sm px-2 py-0.5 text-[10px] font-semibold",
+                    candleInterval === item.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="h-64 px-1 pb-1 lg:h-80">
+              <CandlestickChart symbol={symbol} interval={candleInterval} className="h-full w-full" />
             </div>
           </section>
 
