@@ -390,14 +390,37 @@ function TradePage() {
         {/* Order pad */}
         <aside className="order-2 flex flex-col rounded-lg border border-border bg-card lg:order-3 lg:col-span-3">
           <PanelTitle right={locked ? <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">Demo only</span> : null}>Order pad</PanelTitle>
+
+          <div className="grid grid-cols-2 gap-1 border-b border-border/70 p-2">
+            <Button type="button" size="sm" variant={tradeMode === "manual" ? "default" : "secondary"} onClick={() => setTradeMode("manual")}>
+              <ChartNoAxesCombined className="size-4" /> Manual
+            </Button>
+            <Button type="button" size="sm" variant={tradeMode === "auto" ? "default" : "secondary"} onClick={() => setTradeMode("auto")}>
+              <Bot className="size-4" /> Auto
+            </Button>
+          </div>
+
           <div className="space-y-4 p-3">
             <div>
-              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Expiry time</Label>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Trade time</Label>
+              <div className="mt-2 grid grid-cols-4 gap-1.5">
                 {DURATIONS.map((item) => (
-                  <Button key={item.seconds} type="button" size="sm" variant={duration === item.seconds ? "default" : "secondary"} onClick={() => setDuration(item.seconds)}>{item.label}</Button>
+                  <Button key={item.seconds} type="button" size="sm" variant={duration === item.seconds ? "default" : "secondary"} className="h-8 px-0 text-[11px]" onClick={() => setDuration(item.seconds)}>{item.label}</Button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Multiplier</Label>
+                <span className="num text-[10px] text-muted-foreground">x{multiplier}</span>
+              </div>
+              <div className="mt-2 grid grid-cols-4 gap-1.5">
+                {MULTIPLIERS.map((value) => (
+                  <Button key={value} type="button" size="sm" variant={multiplier === value ? "default" : "secondary"} className="h-8 px-0 text-[11px]" onClick={() => setMultiplier(value)}>x{value}</Button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">A higher multiplier reaches your target on a smaller price move.</p>
             </div>
 
             <div>
@@ -423,7 +446,7 @@ function TradePage() {
                 <Input id="stopLoss" className="num mt-1.5 h-9" type="number" inputMode="decimal" min="0.1" max="50" step="0.1" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} />
               </div>
             </div>
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><Target className="mt-0.5 size-3.5 shrink-0" />Levels stay between 0.1% and 50%. Reaching either level closes the Demo trade.</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><Target className="mt-0.5 size-3.5 shrink-0" />With x{multiplier} your trade closes at a {effectiveTakeProfit}% gain or {effectiveStopLoss}% loss in price.</p>
 
             <dl className="space-y-1.5 rounded-md border border-border/70 bg-secondary/20 px-3 py-2.5 text-xs">
               <div className="flex justify-between"><dt className="text-muted-foreground">Return rate</dt><dd className="num font-semibold text-primary">{asset?.payoutRate ?? 0}%</dd></div>
@@ -431,45 +454,67 @@ function TradePage() {
               <div className="flex justify-between"><dt className="text-muted-foreground">Available</dt><dd className="num font-semibold">{formatMoney(balance)} {unit}</dd></div>
             </dl>
 
-            <div className="grid gap-2">
-              <Button className="h-14 flex-col gap-0.5" disabled={disabled} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}>
-                <span className="flex items-center gap-1 text-base font-semibold"><ArrowUpRight className="size-5" /> Up</span>
-                <span className="num text-[10px] opacity-80">Above {quote ? formatPrice(quote.price) : "market"}</span>
-              </Button>
-              <Button variant="destructive" className="h-14 flex-col gap-0.5" disabled={disabled} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}>
-                <span className="flex items-center gap-1 text-base font-semibold"><ArrowDownRight className="size-5" /> Down</span>
-                <span className="num text-[10px] opacity-80">Below {quote ? formatPrice(quote.price) : "market"}</span>
-              </Button>
-            </div>
-
-            <div className="space-y-3 border-t border-border/70 pt-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Bot className="size-4" /></span>
-                  <div>
-                    <p className="text-xs font-semibold">AI Trading</p>
-                    <p className="text-[11px] text-muted-foreground">Scans every market and opens the strongest eligible Demo setup.</p>
+            {tradeMode === "manual" ? (
+              <div className="grid gap-2">
+                <Button className="h-14 flex-col gap-0.5" disabled={disabled} onClick={() => mutation.mutate({ direction: "up", source: "manual" })}>
+                  <span className="flex items-center gap-1 text-base font-semibold"><ArrowUpRight className="size-5" /> Up</span>
+                  <span className="num text-[10px] opacity-80">Above {quote ? formatPrice(quote.price) : "market"}</span>
+                </Button>
+                <Button variant="destructive" className="h-14 flex-col gap-0.5" disabled={disabled} onClick={() => mutation.mutate({ direction: "down", source: "manual" })}>
+                  <span className="flex items-center gap-1 text-base font-semibold"><ArrowDownRight className="size-5" /> Down</span>
+                  <span className="num text-[10px] opacity-80">Below {quote ? formatPrice(quote.price) : "market"}</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Bot className="size-4" /></span>
+                    <div>
+                      <p className="text-xs font-semibold">Trading bots</p>
+                      <p className="text-[11px] text-muted-foreground">Pick a bot, then start. It scans every market for you.</p>
+                    </div>
                   </div>
+                  <span className={cn("shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase", autoEnabled ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground")}>
+                    {autoEnabled ? "Running" : "Stopped"}
+                  </span>
                 </div>
-                <span className={cn("shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase", autoEnabled ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground")}>
-                  {autoEnabled ? "Running" : "Stopped"}
-                </span>
+
+                <ul className="space-y-1.5">
+                  {TRADING_BOTS.map((bot) => (
+                    <li key={bot.id}>
+                      <button
+                        type="button"
+                        onClick={() => setBotId(bot.id)}
+                        className={cn("w-full rounded-md border px-2.5 py-2 text-left transition-colors", botId === bot.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-secondary/40")}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold">{bot.name}</span>
+                          <span className="num text-[10px] text-muted-foreground">x{bot.multiplier} | {bot.durationSeconds < 60 ? `${bot.durationSeconds}s` : `${bot.durationSeconds / 60}m`}</span>
+                        </span>
+                        <span className="mt-0.5 block text-[11px] text-muted-foreground">{bot.description}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
+                  <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="1" max="10" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
+                  <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button className="h-10" onClick={startAutoTrading} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
+                    <Play className="size-4" /> Start trading
+                  </Button>
+                  <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
+                    <Square className="size-4" /> Stop trading
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <div><Label htmlFor="confidence" className="text-[10px] text-muted-foreground">Min conf.</Label><Input id="confidence" className="num mt-1 h-8 px-2 text-xs" type="number" min="80" max="87" inputMode="numeric" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
-                <div><Label htmlFor="tradeLimit" className="text-[10px] text-muted-foreground">Max trades</Label><Input id="tradeLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="1" max="10" inputMode="numeric" value={autoLimit} onChange={(event) => setAutoLimit(event.target.value)} /></div>
-                <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">Max loss</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button className="h-10" onClick={startAutoTrading} disabled={locked || autoEnabled || mutation.isPending || !validStake || !validLevels}>
-                  <Play className="size-4" /> Start trading
-                </Button>
-                <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={!autoEnabled}>
-                  <Square className="size-4" /> Stop trading
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${autoPlaced} of ${Number(autoLimit) || 0} trades placed. Session loss ${formatMoney(sessionLoss)} USD.` : "Off. Demo results target an 80% practice win mix and still include losses."}</p>
-            </div>
+            )}
 
             <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : "Trading tools are available in Demo mode."}</p>
           </div>
