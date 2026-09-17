@@ -88,7 +88,7 @@ function AuthPage() {
 
   return (
     <div className="min-h-screen">
-      <DemoBanner />
+      
       <div className="grid-glow flex min-h-[calc(100vh-2.5rem)] items-center justify-center px-4 py-12">
         <div className="w-full max-w-md rounded-2xl border border-border/70 bg-card/90 p-6 shadow-2xl backdrop-blur sm:p-8">
           <Link to="/" className="flex items-center justify-center">
