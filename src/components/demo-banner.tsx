@@ -21,10 +21,10 @@ export function DemoFooter() {
           <p className="font-semibold text-foreground">CryptoMagg | cryptomagg.site</p>
         </div>
         <p className="mt-3 max-w-2xl leading-relaxed">
-          Demo balances, trades, wins and losses use simulated money only. On a real account, trades
-          open and close on live exchange prices: a winning trade pays 80 percent of your amount and a
-          losing trade costs the full amount, so most short term traders lose money. Never stake money
-          you cannot afford to lose.
+          Demo balances, trades, wins and losses use simulated money only. Real accounts trade
+          CryptoMagg synthetic crypto instruments, which are generated price series and not real
+          coins: a winning trade pays 70 percent of your amount and a losing trade costs the full
+          amount, so most short term traders lose money. Never stake money you cannot afford to lose.
         </p>
       </div>
     </footer>
