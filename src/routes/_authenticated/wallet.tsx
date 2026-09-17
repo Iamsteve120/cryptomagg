@@ -18,12 +18,7 @@ import {
   requestMpesaWithdrawal,
   startMpesaDeposit,
 } from "@/lib/payments.functions";
-import {
-  LIVE_HOUSE_EDGE_PERCENT,
-  LIVE_MIN_DEPOSIT,
-  LIVE_MIN_WITHDRAWAL,
-  LIVE_PAYOUT_RATE,
-} from "@/lib/live-trading";
+import { LIVE_MIN_DEPOSIT, LIVE_MIN_WITHDRAWAL } from "@/lib/live-trading";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
@@ -243,26 +238,6 @@ function WalletPage() {
 
             <aside className="space-y-4 rounded-lg border border-border bg-card p-5">
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Payout on a win</p>
-                <p className="num mt-1 text-2xl font-semibold text-primary">{LIVE_PAYOUT_RATE}%</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  A winning trade returns your amount plus {LIVE_PAYOUT_RATE} percent of it. A losing
-                  trade costs the full amount. Over many trades that leaves about{" "}
-                  {LIVE_HOUSE_EDGE_PERCENT} percent of everything staked with CryptoMagg, which is how
-                  the platform earns.
-                </p>
-              </div>
-              <div className="border-t border-border pt-4">
-                <p className="text-sm font-semibold">Synthetic crypto instruments</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Real trades run on CryptoMagg synthetic instruments such as Crypto Volatility 100.
-                  These are generated price series, not real coins. The level depends only on the
-                  instrument and the clock, so every trader sees the same price at the same second
-                  and any past price or settlement can be recalculated and checked. CryptoMagg cannot
-                  change a price for one trader or one trade.
-                </p>
-              </div>
-              <div className="border-t border-border pt-4">
                 <p className="text-sm font-semibold">Trade carefully</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Short term trading loses money for most people. Never stake money you need.
