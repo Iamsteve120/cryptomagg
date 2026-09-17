@@ -109,6 +109,10 @@ function WalletPage() {
   const depositMutation = useMutation({
     mutationFn: () => deposit({ data: { amountUsdt: usdtAmount, phone } }),
     onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(`Check your phone. Enter your M Pesa PIN to send KSh ${formatMoney(result.amountKes, 0)}.`);
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
     },

@@ -3,8 +3,8 @@ import { z } from "zod";
 
 /**
  * Safaricom's payment confirmation. This is the only place a real balance is
- * ever credited. Safaricom does not sign its callbacks, so the URL carries a
- * secret token and only a matching, successful, unpaid request is credited.
+ * ever credited. Safaricom does not sign its callbacks, so each successful
+ * callback is confirmed through Daraja before funds are credited.
  */
 
 const callbackSchema = z.object({
@@ -30,18 +30,7 @@ const callbackSchema = z.object({
 export const Route = createFileRoute("/api/public/mpesa-callback")({
   server: {
     handlers: {
-      POST: async ({ request, params }) => {
-        // Safaricom rejects confirmation URLs with a query string, so the secret
-        // token arrives as the last path segment.
-        const expected = process.env["MPESA_CALLBACK_TOKEN"];
-        const provided =
-          (params as { token?: string }).token ?? new URL(request.url).searchParams.get("token");
-        const { callbackTokenDigest } = await import("@/lib/mpesa.server");
-        const expectedDigest = expected ? await callbackTokenDigest(expected) : null;
-        if (!expectedDigest || provided !== expectedDigest) {
-          return new Response("Unauthorized", { status: 401 });
-        }
-
+      POST: async ({ request }) => {
         let payload: z.infer<typeof callbackSchema>;
         try {
           payload = callbackSchema.parse(await request.json());
@@ -70,6 +59,12 @@ export const Route = createFileRoute("/api/public/mpesa-callback")({
             })
             .eq("id", intent.id)
             .eq("status", "awaiting_user");
+          return Response.json({ ResultCode: 0, ResultDesc: "Accepted" });
+        }
+
+        const { verifyStkPayment } = await import("@/lib/mpesa.server");
+        if (!(await verifyStkPayment(callback.CheckoutRequestID))) {
+          console.error("M Pesa callback could not be verified", callback.CheckoutRequestID);
           return Response.json({ ResultCode: 0, ResultDesc: "Accepted" });
         }
 

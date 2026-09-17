@@ -139,7 +139,7 @@ export const startMpesaDeposit = createServerFn({ method: "POST" })
           updated_at: new Date().toISOString(),
         })
         .eq("id", intent.id);
-      return { id: intent.id, amountUsdt, amountKes, phone };
+      return { ok: true as const, id: intent.id, amountUsdt, amountKes, phone };
     } catch (pushError) {
       console.error("STK push failed", pushError);
       await db
@@ -152,21 +152,24 @@ export const startMpesaDeposit = createServerFn({ method: "POST" })
         .eq("id", intent.id);
       const reason = pushError instanceof Error ? pushError.message : "";
       if (reason === "mpesa_auth_failed") {
-        throw new Error(
-          "M Pesa rejected the app login. Deposits are paused until the M Pesa keys are corrected.",
-        );
+        return {
+          ok: false as const,
+          error: "M Pesa rejected the app login. Deposits are paused until the M Pesa keys are corrected.",
+        };
       }
       if (reason === "mpesa_callback_rejected") {
-        throw new Error(
-          "M Pesa rejected the payment confirmation address. Please try again after the app update.",
-        );
+        return {
+          ok: false as const,
+          error: "M Pesa rejected the payment confirmation address. Please try again after the app update.",
+        };
       }
       if (reason === "mpesa_request_rejected") {
-        throw new Error(
-          "M Pesa rejected the deposit details. Please confirm the paybill and passkey are from the same production app.",
-        );
+        return {
+          ok: false as const,
+          error: "M Pesa rejected the deposit details. Please confirm the paybill and passkey are from the same production app.",
+        };
       }
-      throw new Error("M Pesa could not be reached. Please try again in a moment.");
+      return { ok: false as const, error: "M Pesa could not be reached. Please try again in a moment." };
     }
   });
 
