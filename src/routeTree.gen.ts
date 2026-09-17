@@ -19,7 +19,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTradeRouteImport } from './routes/_authenticated/trade'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as ApiPublicDarajaDiagRouteImport } from './routes/api/public/daraja-diag'
-import { Route as ApiPublicMpesaCallbackTokenRouteImport } from './routes/api/public/mpesa-callback.$token'
+import { Route as ApiPublicMpesaCallbackRouteImport } from './routes/api/public/mpesa-callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,12 +70,11 @@ const ApiPublicDarajaDiagRoute = ApiPublicDarajaDiagRouteImport.update({
   path: '/api/public/daraja-diag',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicMpesaCallbackTokenRoute =
-  ApiPublicMpesaCallbackTokenRouteImport.update({
-    id: '/api/public/mpesa-callback/$token',
-    path: '/api/public/mpesa-callback/$token',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiPublicMpesaCallbackRoute = ApiPublicMpesaCallbackRouteImport.update({
+  id: '/api/public/mpesa-callback',
+  path: '/api/public/mpesa-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,7 +86,7 @@ export interface FileRoutesByFullPath {
   '/trade': typeof AuthenticatedTradeRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
-  '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
+  '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,7 +98,7 @@ export interface FileRoutesByTo {
   '/trade': typeof AuthenticatedTradeRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
-  '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
+  '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,7 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/trade': typeof AuthenticatedTradeRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
-  '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
+  '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,7 +126,7 @@ export interface FileRouteTypes {
     | '/trade'
     | '/wallet'
     | '/api/public/daraja-diag'
-    | '/api/public/mpesa-callback/$token'
+    | '/api/public/mpesa-callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,7 +138,7 @@ export interface FileRouteTypes {
     | '/trade'
     | '/wallet'
     | '/api/public/daraja-diag'
-    | '/api/public/mpesa-callback/$token'
+    | '/api/public/mpesa-callback'
   id:
     | '__root__'
     | '/'
@@ -152,7 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/trade'
     | '/_authenticated/wallet'
     | '/api/public/daraja-diag'
-    | '/api/public/mpesa-callback/$token'
+    | '/api/public/mpesa-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -160,7 +159,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicDarajaDiagRoute: typeof ApiPublicDarajaDiagRoute
-  ApiPublicMpesaCallbackTokenRoute: typeof ApiPublicMpesaCallbackTokenRoute
+  ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,11 +234,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicDarajaDiagRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/mpesa-callback/$token': {
-      id: '/api/public/mpesa-callback/$token'
-      path: '/api/public/mpesa-callback/$token'
-      fullPath: '/api/public/mpesa-callback/$token'
-      preLoaderRoute: typeof ApiPublicMpesaCallbackTokenRouteImport
+    '/api/public/mpesa-callback': {
+      id: '/api/public/mpesa-callback'
+      path: '/api/public/mpesa-callback'
+      fullPath: '/api/public/mpesa-callback'
+      preLoaderRoute: typeof ApiPublicMpesaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -271,7 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicDarajaDiagRoute: ApiPublicDarajaDiagRoute,
-  ApiPublicMpesaCallbackTokenRoute: ApiPublicMpesaCallbackTokenRoute,
+  ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
