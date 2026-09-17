@@ -27,7 +27,7 @@ export function readDarajaConfig(): DarajaConfig | null {
   );
   const shortcode = process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
   const passkey = process.env["MPESA_PASSKEY"];
-  const callbackBase = process.env["MPESA_CALLBACK_URL"];
+  const callbackBase = clean(process.env["MPESA_CALLBACK_URL"]);
   const callbackToken = process.env["MPESA_CALLBACK_TOKEN"];
   if (!consumerKey || !consumerSecret || !shortcode || !passkey || !callbackBase || !callbackToken) {
     return null;
@@ -35,7 +35,18 @@ export function readDarajaConfig(): DarajaConfig | null {
   // Daraja accepts a plain HTTPS callback endpoint. Successful callbacks are
   // independently confirmed through Daraja before funds are credited.
   const callbackBasePath = (callbackBase.split("?")[0] ?? callbackBase).replace(/\/+$/, "");
-  const callbackUrl = callbackBasePath;
+  let callbackUrl: string;
+  try {
+    const parsedCallback = new URL(callbackBasePath);
+    if (parsedCallback.protocol !== "https:" || parsedCallback.username || parsedCallback.password) {
+      return null;
+    }
+    parsedCallback.hash = "";
+    parsedCallback.search = "";
+    callbackUrl = parsedCallback.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
 
   const live = process.env["MPESA_ENV"] === "production";
   return {
