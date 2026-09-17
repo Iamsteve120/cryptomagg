@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppNav } from "@/components/app-nav";
-import { DemoBanner, DemoFooter } from "@/components/demo-banner";
+import { DemoFooter } from "@/components/demo-banner";
 import { useAccount } from "@/hooks/use-trading";
 import { AccountModeProvider } from "@/components/account-mode";
 
@@ -23,7 +23,7 @@ function AuthenticatedLayout() {
   return (
     <AccountModeProvider>
       <div className="app-shell min-h-screen">
-        <DemoBanner />
+        
         <AppNav demoBalance={demoBalance} liveBalance={liveBalance} />
         <main className="mx-auto max-w-7xl px-4 py-6">
           <Outlet />
