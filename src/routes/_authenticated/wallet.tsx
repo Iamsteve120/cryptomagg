@@ -113,7 +113,7 @@ function WalletPage() {
         toast.error(result.error);
         return;
       }
-      toast.success(`Check your phone. Enter your M Pesa PIN to send KSh ${formatMoney(result.amountKes, 0)}.`);
+      toast.success("M Pesa prompt sent to your phone.");
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
     },
     onError: (error: Error) => toast.error(error.message),
