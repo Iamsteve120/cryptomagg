@@ -16,9 +16,9 @@ type DarajaConfig = {
 };
 
 export function readDarajaConfig(): DarajaConfig | null {
-  const consumerKey = process.env["MPESA_CONSUMER_KEY"];
-  const consumerSecret = process.env["MPESA_CONSUMER_SECRET"];
-  const shortcode = process.env["MPESA_SHORTCODE"];
+  const consumerKey = process.env["CONSUMER_KEY"] ?? process.env["MPESA_CONSUMER_KEY"];
+  const consumerSecret = process.env["CONSUMER_SECRET"] ?? process.env["MPESA_CONSUMER_SECRET"];
+  const shortcode = process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
   const passkey = process.env["MPESA_PASSKEY"];
   const callbackBase = process.env["MPESA_CALLBACK_URL"];
   const callbackToken = process.env["MPESA_CALLBACK_TOKEN"];
@@ -35,6 +35,7 @@ export function readDarajaConfig(): DarajaConfig | null {
     consumerSecret,
     shortcode,
     passkey,
+    partyB: process.env["PARTY_B"] ?? shortcode,
     callbackUrl,
     baseUrl: live ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke",
   };
