@@ -11,14 +11,15 @@ type DarajaConfig = {
   consumerSecret: string;
   shortcode: string;
   passkey: string;
+  partyB: string;
   baseUrl: string;
   callbackUrl: string;
 };
 
 export function readDarajaConfig(): DarajaConfig | null {
-  const consumerKey = process.env["MPESA_CONSUMER_KEY"];
-  const consumerSecret = process.env["MPESA_CONSUMER_SECRET"];
-  const shortcode = process.env["MPESA_SHORTCODE"];
+  const consumerKey = process.env["CONSUMER_KEY"] ?? process.env["MPESA_CONSUMER_KEY"];
+  const consumerSecret = process.env["CONSUMER_SECRET"] ?? process.env["MPESA_CONSUMER_SECRET"];
+  const shortcode = process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
   const passkey = process.env["MPESA_PASSKEY"];
   const callbackBase = process.env["MPESA_CALLBACK_URL"];
   const callbackToken = process.env["MPESA_CALLBACK_TOKEN"];
@@ -35,6 +36,7 @@ export function readDarajaConfig(): DarajaConfig | null {
     consumerSecret,
     shortcode,
     passkey,
+    partyB: process.env["PARTY_B"] ?? shortcode,
     callbackUrl,
     baseUrl: live ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke",
   };
@@ -107,7 +109,7 @@ export async function sendStkPush(input: {
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.max(1, Math.round(input.amountKes)),
       PartyA: input.phone,
-      PartyB: config.shortcode,
+      PartyB: config.partyB,
       PhoneNumber: input.phone,
       CallBackURL: config.callbackUrl,
       AccountReference: input.reference.slice(0, 12),
