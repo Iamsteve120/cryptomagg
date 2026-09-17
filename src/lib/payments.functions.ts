@@ -124,6 +124,12 @@ export const startMpesaDeposit = createServerFn({ method: "POST" })
           updated_at: new Date().toISOString(),
         })
         .eq("id", intent.id);
+      const reason = pushError instanceof Error ? pushError.message : "";
+      if (reason === "mpesa_auth_failed") {
+        throw new Error(
+          "M Pesa rejected the app login. Deposits are paused until the M Pesa keys are corrected.",
+        );
+      }
       throw new Error("M Pesa could not be reached. Please try again in a moment.");
     }
   });
