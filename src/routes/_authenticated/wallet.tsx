@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_authenticated/wallet")({
   component: WalletPage,
 });
 
-const PRESETS = [2, 4, 8, 10, 15, 20];
+const PRESETS = [5, 10, 15, 20, 25, 30, 50, 100];
 
 
 const STATUS_LABELS: Record<string, string> = {
