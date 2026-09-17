@@ -42,7 +42,9 @@ export function readDarajaConfig(): DarajaConfig | null {
 
 /** True only when real money is allowed to move. Absent env means off. */
 export function realMoneyEnabled(): boolean {
-  return process.env["REAL_MONEY_ENABLED"] === "true" && readDarajaConfig() !== null;
+  const flag = (process.env["REAL_MONEY_ENABLED"] ?? "").trim().toLowerCase();
+  const on = flag === "true" || flag === "1" || flag === "yes" || flag === "on";
+  return on && readDarajaConfig() !== null;
 }
 
 async function accessToken(config: DarajaConfig): Promise<string> {
