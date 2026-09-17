@@ -40,6 +40,14 @@ export function readDarajaConfig(): DarajaConfig | null {
   };
 }
 
+/**
+ * True while the app talks to the Safaricom test system. Nothing here charges a
+ * real phone: prompts come from the sandbox and use Safaricom test numbers.
+ */
+export function sandboxMode(): boolean {
+  return (process.env["MPESA_ENV"] ?? "sandbox").trim().toLowerCase() !== "production";
+}
+
 /** True only when real money is allowed to move. Absent env means off. */
 export function realMoneyEnabled(): boolean {
   const flag = (process.env["REAL_MONEY_ENABLED"] ?? "").trim().toLowerCase();

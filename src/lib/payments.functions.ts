@@ -41,10 +41,11 @@ async function usdKesRate(): Promise<number | null> {
 
 /** Tells the app whether real money can move yet, without leaking any credentials. */
 export const getLiveAccountStatus = createServerFn({ method: "GET" }).handler(async () => {
-  const { realMoneyEnabled, readDarajaConfig } = await import("./mpesa.server");
+  const { realMoneyEnabled, readDarajaConfig, sandboxMode } = await import("./mpesa.server");
   return {
     enabled: realMoneyEnabled(),
     providerConfigured: readDarajaConfig() !== null,
+    sandbox: sandboxMode(),
   };
 });
 
