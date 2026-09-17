@@ -33,8 +33,9 @@ export function readDarajaConfig(): DarajaConfig | null {
     return null;
   }
   // The confirmation URL carries its own secret token, since Safaricom does not
-  // sign callbacks. It is assembled here so the token is never stored in a URL.
-  const callbackUrl = `${callbackBase.split("?")[0]}?token=${encodeURIComponent(callbackToken)}`;
+  // sign callbacks. Daraja rejects URLs with a query string, so the token is a
+  // path segment. Assembled here so the token is never stored in a URL.
+  const callbackUrl = `${callbackBase.split("?")[0].replace(/\/+$/, "")}/${encodeURIComponent(callbackToken)}`;
 
   const live = process.env["MPESA_ENV"] === "production";
   return {
