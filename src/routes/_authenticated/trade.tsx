@@ -614,7 +614,7 @@ function TradePage() {
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="stake" className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount ({unit})</Label>
-                <span className="num text-[10px] text-muted-foreground">Min 2 | Max 500</span>
+                <span className="num text-[10px] text-muted-foreground">Min 5 | Max 500</span>
               </div>
               <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="2" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} />
               <div className="mt-1.5 grid grid-cols-5 gap-1">
