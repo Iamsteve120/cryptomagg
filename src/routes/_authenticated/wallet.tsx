@@ -18,12 +18,7 @@ import {
   requestMpesaWithdrawal,
   startMpesaDeposit,
 } from "@/lib/payments.functions";
-import {
-  LIVE_HOUSE_EDGE_PERCENT,
-  LIVE_MIN_DEPOSIT,
-  LIVE_MIN_WITHDRAWAL,
-  LIVE_PAYOUT_RATE,
-} from "@/lib/live-trading";
+import { LIVE_MIN_DEPOSIT, LIVE_MIN_WITHDRAWAL } from "@/lib/live-trading";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
