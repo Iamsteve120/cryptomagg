@@ -13,7 +13,7 @@ export const LIVE_MIN_STAKE = 1;
 export const LIVE_MAX_STAKE = 200;
 
 /** Minimum and maximum M Pesa deposit, in USDT. */
-export const LIVE_MIN_DEPOSIT = 2;
+export const LIVE_MIN_DEPOSIT = 5;
 export const LIVE_MAX_DEPOSIT = 500;
 
 /** Minimum withdrawal, in USDT. */
