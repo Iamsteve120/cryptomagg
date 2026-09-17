@@ -83,6 +83,22 @@ async function accessToken(config: DarajaConfig): Promise<string> {
   return body.access_token;
 }
 
+/**
+ * Probes the live Daraja OAuth login and returns a short status string for
+ * diagnostics. Never throws — used by the read-only account status endpoint.
+ * Does not move any money or send an STK push.
+ */
+export async function probeLiveAuth(config: DarajaConfig): Promise<string> {
+  try {
+    await accessToken(config);
+    return "auth_ok";
+  } catch (error) {
+    return error instanceof Error && error.message === "mpesa_auth_failed"
+      ? "auth_rejected"
+      : "auth_unreachable";
+  }
+}
+
 function timestamp(): string {
   const now = new Date();
   const pad = (value: number) => String(value).padStart(2, "0");
