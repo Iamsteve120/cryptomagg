@@ -109,7 +109,7 @@ export async function sendStkPush(input: {
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.max(1, Math.round(input.amountKes)),
       PartyA: input.phone,
-      PartyB: config.shortcode,
+      PartyB: config.partyB,
       PhoneNumber: input.phone,
       CallBackURL: config.callbackUrl,
       AccountReference: input.reference.slice(0, 12),
