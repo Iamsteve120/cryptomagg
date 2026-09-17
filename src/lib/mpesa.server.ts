@@ -16,6 +16,16 @@ type DarajaConfig = {
   callbackUrl: string;
 };
 
+/**
+ * Daraja is strict about callback URL characters and length. A fixed SHA-256
+ * digest keeps the callback path URL-safe without exposing the stored token.
+ */
+export async function callbackTokenDigest(token: string): Promise<string> {
+  const bytes = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export function readDarajaConfig(): DarajaConfig | null {
   // Credentials are often pasted with stray spaces or lookalike letters from a
   // rich text editor; keep only the plain characters Daraja keys are made of.
@@ -36,7 +46,10 @@ export function readDarajaConfig(): DarajaConfig | null {
   // sign callbacks. Daraja rejects URLs with a query string, so the token is a
   // path segment. Assembled here so the token is never stored in a URL.
   const callbackBasePath = (callbackBase.split("?")[0] ?? callbackBase).replace(/\/+$/, "");
-  const callbackUrl = `${callbackBasePath}/${encodeURIComponent(callbackToken)}`;
+  // The final path segment is added in sendStkPush after hashing the secret.
+  // Keeping it out of this synchronous config reader also avoids punctuation
+  // or excessive token length making Daraja reject an otherwise valid URL.
+  const callbackUrl = callbackBasePath;
 
   const live = process.env["MPESA_ENV"] === "production";
   return {
@@ -128,6 +141,9 @@ export async function sendStkPush(input: {
   const token = await accessToken(config);
   const stamp = timestamp();
   const password = Buffer.from(config.shortcode + config.passkey + stamp).toString("base64");
+  const callbackToken = process.env["MPESA_CALLBACK_TOKEN"];
+  if (!callbackToken) throw new Error("mpesa_not_configured");
+  const callbackUrl = `${config.callbackUrl}/${await callbackTokenDigest(callbackToken)}`;
 
   const response = await fetch(`${config.baseUrl}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
@@ -141,7 +157,7 @@ export async function sendStkPush(input: {
       PartyA: input.phone,
       PartyB: config.partyB,
       PhoneNumber: input.phone,
-      CallBackURL: config.callbackUrl,
+      CallBackURL: callbackUrl,
       AccountReference: input.reference.slice(0, 12),
       TransactionDesc: input.description.slice(0, 20),
     }),
@@ -149,12 +165,16 @@ export async function sendStkPush(input: {
 
   const body = (await response.json()) as {
     CheckoutRequestID?: string;
+    errorCode?: string;
     errorMessage?: string;
     ResponseCode?: string;
   };
   if (!response.ok || !body.CheckoutRequestID || body.ResponseCode !== "0") {
     console.error("STK push rejected", body.errorMessage ?? body.ResponseCode ?? response.status);
-    throw new Error("mpesa_push_failed");
+    if (body.errorMessage?.toLowerCase().includes("callbackurl")) {
+      throw new Error("mpesa_callback_rejected");
+    }
+    throw new Error(body.errorCode === "400.002.02" ? "mpesa_request_rejected" : "mpesa_push_failed");
   }
   return { checkoutRequestId: body.CheckoutRequestID };
 }

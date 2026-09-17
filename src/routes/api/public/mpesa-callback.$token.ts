@@ -36,7 +36,9 @@ export const Route = createFileRoute("/api/public/mpesa-callback/$token")({
         const expected = process.env["MPESA_CALLBACK_TOKEN"];
         const provided =
           (params as { token?: string }).token ?? new URL(request.url).searchParams.get("token");
-        if (!expected || provided !== expected) {
+        const { callbackTokenDigest } = await import("@/lib/mpesa.server");
+        const expectedDigest = expected ? await callbackTokenDigest(expected) : null;
+        if (!expectedDigest || provided !== expectedDigest) {
           return new Response("Unauthorized", { status: 401 });
         }
 
