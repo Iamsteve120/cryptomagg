@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppNav } from "@/components/app-nav";
-import { DemoBanner, DemoFooter } from "@/components/demo-banner";
+import { DemoFooter } from "@/components/demo-banner";
 import { useAccount } from "@/hooks/use-trading";
 import { AccountModeProvider } from "@/components/account-mode";
 
