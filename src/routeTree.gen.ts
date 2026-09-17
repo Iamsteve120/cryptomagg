@@ -18,6 +18,7 @@ import { Route as AuthenticatedMarketsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedTradeRouteImport } from './routes/_authenticated/trade'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as ApiPublicDarajaDiagRouteImport } from './routes/api/public/daraja-diag'
 import { Route as ApiPublicMpesaCallbackTokenRouteImport } from './routes/api/public/mpesa-callback.$token'
 
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +65,11 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicDarajaDiagRoute = ApiPublicDarajaDiagRouteImport.update({
+  id: '/api/public/daraja-diag',
+  path: '/api/public/daraja-diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMpesaCallbackTokenRoute =
   ApiPublicMpesaCallbackTokenRouteImport.update({
     id: '/api/public/mpesa-callback/$token',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/trade': typeof AuthenticatedTradeRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
 }
 export interface FileRoutesByTo {
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/trade': typeof AuthenticatedTradeRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
 }
 export interface FileRoutesById {
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/trade': typeof AuthenticatedTradeRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback/$token': typeof ApiPublicMpesaCallbackTokenRoute
 }
 export interface FileRouteTypes {
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/trade'
     | '/wallet'
+    | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/trade'
     | '/wallet'
+    | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback/$token'
   id:
     | '__root__'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/trade'
     | '/_authenticated/wallet'
+    | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback/$token'
   fileRoutesById: FileRoutesById
 }
@@ -147,6 +159,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicDarajaDiagRoute: typeof ApiPublicDarajaDiagRoute
   ApiPublicMpesaCallbackTokenRoute: typeof ApiPublicMpesaCallbackTokenRoute
 }
 
@@ -215,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/daraja-diag': {
+      id: '/api/public/daraja-diag'
+      path: '/api/public/daraja-diag'
+      fullPath: '/api/public/daraja-diag'
+      preLoaderRoute: typeof ApiPublicDarajaDiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mpesa-callback/$token': {
       id: '/api/public/mpesa-callback/$token'
       path: '/api/public/mpesa-callback/$token'
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicDarajaDiagRoute: ApiPublicDarajaDiagRoute,
   ApiPublicMpesaCallbackTokenRoute: ApiPublicMpesaCallbackTokenRoute,
 }
 export const routeTree = rootRouteImport
