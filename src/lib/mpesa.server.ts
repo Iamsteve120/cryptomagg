@@ -63,7 +63,13 @@ async function accessToken(config: DarajaConfig): Promise<string> {
     `${config.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
     { headers: { Authorization: `Basic ${basic}` } },
   );
-  if (!response.ok) throw new Error("mpesa_auth_failed");
+  if (!response.ok) {
+    // Daraja rejects the app credentials themselves here (wrong key/secret, or an
+    // app that is not live). Log the status so the cause is visible in the logs.
+    const detail = await response.text().catch(() => "");
+    console.error("M Pesa auth rejected", response.status, detail.slice(0, 200));
+    throw new Error("mpesa_auth_failed");
+  }
   const body = (await response.json()) as { access_token?: string };
   if (!body.access_token) throw new Error("mpesa_auth_failed");
   return body.access_token;
