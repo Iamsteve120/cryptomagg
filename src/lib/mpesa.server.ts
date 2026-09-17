@@ -17,8 +17,14 @@ type DarajaConfig = {
 };
 
 export function readDarajaConfig(): DarajaConfig | null {
-  const consumerKey = process.env["CONSUMER_KEY"] ?? process.env["MPESA_CONSUMER_KEY"];
-  const consumerSecret = process.env["CONSUMER_SECRET"] ?? process.env["MPESA_CONSUMER_SECRET"];
+  // Credentials are often pasted with stray spaces or lookalike letters from a
+  // rich text editor; keep only the plain characters Daraja keys are made of.
+  const clean = (value: string | undefined) =>
+    value ? value.trim().replace(/[^\x21-\x7e]/g, "") : value;
+  const consumerKey = clean(process.env["CONSUMER_KEY"] ?? process.env["MPESA_CONSUMER_KEY"]);
+  const consumerSecret = clean(
+    process.env["CONSUMER_SECRET"] ?? process.env["MPESA_CONSUMER_SECRET"],
+  );
   const shortcode = process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
   const passkey = process.env["MPESA_PASSKEY"];
   const callbackBase = process.env["MPESA_CALLBACK_URL"];
