@@ -41,11 +41,37 @@ async function usdKesRate(): Promise<number | null> {
 
 /** Tells the app whether real money can move yet, without leaking any credentials. */
 export const getLiveAccountStatus = createServerFn({ method: "GET" }).handler(async () => {
-  const { realMoneyEnabled, readDarajaConfig, sandboxMode } = await import("./mpesa.server");
+  const { realMoneyEnabled, readDarajaConfig, sandboxMode, probeLiveAuth } = await import(
+    "./mpesa.server"
+  );
+  const config = readDarajaConfig();
+  const diagnostics = config
+    ? {
+        consumerKeyLength: config.consumerKey.length,
+        consumerSecretLength: config.consumerSecret.length,
+        passkeyLength: config.passkey.length,
+        shortcode: config.shortcode,
+        partyB: config.partyB,
+        callbackUrlHost: config.callbackUrl.split("/")[2] ?? config.callbackUrl,
+        authProbe: await probeLiveAuth(config),
+      }
+    : {
+        consumerKeyLength: (process.env["CONSUMER_KEY"] ?? process.env["MPESA_CONSUMER_KEY"] ?? "")
+          .length,
+        consumerSecretLength: (
+          process.env["CONSUMER_SECRET"] ?? process.env["MPESA_CONSUMER_SECRET"] ?? ""
+        ).length,
+        passkeyLength: (process.env["MPESA_PASSKEY"] ?? "").length,
+        shortcode: process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"] ?? "",
+        partyB: process.env["PARTY_B"] ?? "",
+        callbackUrlHost: "",
+        authProbe: "missing_config" as const,
+      };
   return {
     enabled: realMoneyEnabled(),
-    providerConfigured: readDarajaConfig() !== null,
+    providerConfigured: config !== null,
     sandbox: sandboxMode(),
+    diagnostics,
   };
 });
 
