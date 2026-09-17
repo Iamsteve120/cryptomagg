@@ -11,6 +11,7 @@ type DarajaConfig = {
   consumerSecret: string;
   shortcode: string;
   passkey: string;
+  partyB: string;
   baseUrl: string;
   callbackUrl: string;
 };
