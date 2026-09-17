@@ -30,9 +30,12 @@ const callbackSchema = z.object({
 export const Route = createFileRoute("/api/public/mpesa-callback/$token")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request, params }) => {
+        // Safaricom rejects confirmation URLs with a query string, so the secret
+        // token arrives as the last path segment.
         const expected = process.env["MPESA_CALLBACK_TOKEN"];
-        const provided = new URL(request.url).searchParams.get("token");
+        const provided =
+          (params as { token?: string }).token ?? new URL(request.url).searchParams.get("token");
         if (!expected || provided !== expected) {
           return new Response("Unauthorized", { status: 401 });
         }
