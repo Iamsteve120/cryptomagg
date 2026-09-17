@@ -27,7 +27,7 @@ const callbackSchema = z.object({
   }),
 });
 
-export const Route = createFileRoute("/api/public/mpesa-callback/$token")({
+export const Route = createFileRoute("/api/public/mpesa-callback")({
   server: {
     handlers: {
       POST: async ({ request, params }) => {
