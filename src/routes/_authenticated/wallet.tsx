@@ -159,6 +159,14 @@ function WalletPage() {
             </p>
           )}
 
+          {enabled && liveStatus?.sandbox === true && (
+            <p className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground">
+              Test mode. Deposits and withdrawals run on the Safaricom test system, so no real money
+              moves and no real phone is charged. Use a Safaricom test number and test PIN to try the
+              full flow. Balances credited here are for testing only.
+            </p>
+          )}
+
           <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-5 rounded-lg border border-border bg-card p-5">
               <div className="flex items-start gap-3">
