@@ -243,7 +243,7 @@ function TradePage() {
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
-  const validStake = stakeValue >= 2 && stakeValue <= 500 && stakeValue <= balance;
+  const validStake = stakeValue >= 1 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 2000 && stopLossValue >= 0.1 && stopLossValue <= stakeValue;
@@ -614,9 +614,9 @@ function TradePage() {
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="stake" className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount ({unit})</Label>
-                <span className="num text-[10px] text-muted-foreground">Min 5 | Max 500</span>
+                <span className="num text-[10px] text-muted-foreground">Min 1 | Max 500</span>
               </div>
-              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="5" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} />
+              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="1" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} />
               <div className="mt-1.5 grid grid-cols-5 gap-1">
                 {[10, 50, 100, 250, 500].map((value) => (
                   <Button key={value} type="button" size="sm" variant="secondary" className="h-7 px-0 text-[10px]" onClick={() => setStake(String(value))}>{value}</Button>

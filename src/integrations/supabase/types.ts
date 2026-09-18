@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      crypto_deposits: {
+        Row: {
+          address: string
+          amount_usdt: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          network: string
+          status: string
+          tx_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          amount_usdt: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          network?: string
+          status?: string
+          tx_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          amount_usdt?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          network?: string
+          status?: string
+          tx_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deposit_intents: {
         Row: {
           amount_kes: number
@@ -304,6 +343,16 @@ export type Database = {
       }
       credit_confirmed_deposit: {
         Args: { p_intent_id: string; p_receipt: string }
+        Returns: number
+      }
+      credit_crypto_deposit: {
+        Args: {
+          p_address: string
+          p_amount: number
+          p_network: string
+          p_tx_hash: string
+          p_user_id: string
+        }
         Returns: number
       }
       hold_withdrawal_amount: {

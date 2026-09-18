@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, ShieldCheck, Smartphone } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, Copy, ShieldCheck, Smartphone, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,13 @@ import {
   requestMpesaWithdrawal,
   startMpesaDeposit,
 } from "@/lib/payments.functions";
-import { LIVE_MIN_DEPOSIT, LIVE_MIN_WITHDRAWAL } from "@/lib/live-trading";
+import {
+  LIVE_MIN_DEPOSIT,
+  LIVE_MIN_WITHDRAWAL,
+  USDT_DEPOSIT_ADDRESSES,
+  USDT_MIN_DEPOSIT,
+} from "@/lib/live-trading";
+import { confirmUsdtDeposit, getUsdtDeposits } from "@/lib/crypto-deposits.functions";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
@@ -64,6 +71,127 @@ function StatusPill({ status }: { status: string }) {
     <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
       {STATUS_LABELS[status] ?? status}
     </span>
+  );
+}
+
+function UsdtDepositPanel() {
+  const queryClient = useQueryClient();
+  const confirmDeposit = useServerFn(confirmUsdtDeposit);
+  const fetchDeposits = useServerFn(getUsdtDeposits);
+
+  const [txHash, setTxHash] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const { data: history } = useQuery({
+    queryKey: ["usdt-deposits"],
+    queryFn: () => fetchDeposits(),
+    refetchInterval: 20_000,
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: () => confirmDeposit({ data: { txHash: txHash.trim() } }),
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${formatMoney(result.amountUsdt)} USDT added to your balance.`);
+      setTxHash("");
+      void queryClient.invalidateQueries({ queryKey: ["usdt-deposits"] });
+      void queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  async function copyAddress(address: string) {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(address);
+      toast.success("Address copied.");
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast.error("Could not copy. Please select the address and copy it manually.");
+    }
+  }
+
+  return (
+    <section className="space-y-5 rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Wallet className="size-5" />
+        </div>
+        <div>
+          <h2 className="font-display text-lg font-semibold">Deposit USDT</h2>
+          <p className="text-sm text-muted-foreground">
+            Send USDT on the Tron network only. Smallest deposit is {USDT_MIN_DEPOSIT} USDT.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {USDT_DEPOSIT_ADDRESSES.map((wallet) => (
+          <div key={wallet.address} className="space-y-3 rounded-md border border-border bg-background p-4">
+            <div>
+              <p className="text-sm font-semibold">{wallet.label}</p>
+              <p className="text-xs text-muted-foreground">{wallet.network}</p>
+            </div>
+            <div className="flex justify-center rounded-md bg-white p-3">
+              <QRCodeSVG value={wallet.address} size={148} level="M" />
+            </div>
+            <p className="num break-all rounded-md bg-secondary px-3 py-2 text-xs">{wallet.address}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => void copyAddress(wallet.address)}
+            >
+              {copied === wallet.address ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {copied === wallet.address ? "Copied" : "Copy address"}
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="txHash">Transaction ID from your wallet</Label>
+        <Input
+          id="txHash"
+          placeholder="Paste the transaction ID (hash)"
+          value={txHash}
+          onChange={(event) => setTxHash(event.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          After sending, paste the transaction ID here. We check it on the Tron network and add the
+          exact amount to your balance. New transfers can take a few minutes to confirm.
+        </p>
+      </div>
+      <Button
+        className="w-full"
+        disabled={confirmMutation.isPending || txHash.trim().length < 60}
+        onClick={() => confirmMutation.mutate()}
+      >
+        <ArrowDownToLine className="size-4" />
+        {confirmMutation.isPending ? "Checking the network" : "Confirm my deposit"}
+      </Button>
+
+      <div>
+        <p className="text-sm font-semibold">USDT deposits</p>
+        <ul className="mt-2 space-y-2 text-sm">
+          {(history?.deposits ?? []).map((row) => (
+            <li key={row.id} className="flex items-center justify-between gap-3">
+              <span className="num truncate text-xs text-muted-foreground">
+                {row.tx_hash.slice(0, 10)}…
+              </span>
+              <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
+              <StatusPill status={row.status} />
+            </li>
+          ))}
+          {(history?.deposits.length ?? 0) === 0 && (
+            <li className="text-muted-foreground">Nothing yet.</li>
+          )}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -249,6 +377,8 @@ function WalletPage() {
               </div>
             </aside>
           </section>
+
+          <UsdtDepositPanel />
 
           <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4 rounded-lg border border-border bg-card p-5">

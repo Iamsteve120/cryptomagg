@@ -175,7 +175,7 @@ export const moveFunds = createServerFn({ method: "POST" })
     if (!method) throw new Error("Unsupported method.");
 
     const amount = Math.round(data.amount * 100) / 100;
-    if (amount < 5) throw new Error("Minimum amount is 5.00 demo USD.");
+    if (amount < 1) throw new Error("Minimum amount is 1.00 USD.");
 
     const profile = await ensureProfile(context.userId, null);
     const balance = Number(profile.demo_balance);
