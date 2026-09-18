@@ -17,6 +17,7 @@ import {
   getFundingActivity,
   getLiveAccountStatus,
   requestMpesaWithdrawal,
+  requestWithdrawalCode,
   startMpesaDeposit,
 } from "@/lib/payments.functions";
 import {
@@ -207,6 +208,7 @@ function WalletPage() {
   const fetchFunding = useServerFn(getFundingActivity);
   const deposit = useServerFn(startMpesaDeposit);
   const withdraw = useServerFn(requestMpesaWithdrawal);
+  const requestCode = useServerFn(requestWithdrawalCode);
 
   const { data: exchange } = useQuery({
     queryKey: ["usd-kes-rate"],
@@ -229,6 +231,15 @@ function WalletPage() {
   const [phone, setPhone] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawCode, setWithdrawCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [codeSecondsLeft, setCodeSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (codeSecondsLeft <= 0) return;
+    const timer = window.setInterval(() => setCodeSecondsLeft((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [codeSecondsLeft]);
 
   const balance = data?.profile
     ? Number(mode === "demo" ? data.profile.demo_balance : data.profile.live_balance)
@@ -250,9 +261,20 @@ function WalletPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const codeMutation = useMutation({
+    mutationFn: () => requestCode({ data: { amountUsdt: Number(withdrawAmount) || 0, phone: withdrawPhone } }),
+    onSuccess: (result) => {
+      setCodeSent(true);
+      setWithdrawCode("");
+      setCodeSecondsLeft(result.expiresInSeconds);
+      toast.success(`Confirmation code sent to ${result.sentTo}. It expires in 1 minute.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const withdrawMutation = useMutation({
     mutationFn: () => withdraw({
-      data: { amountUsdt: Number(withdrawAmount) || 0, phone: withdrawPhone },
+      data: { amountUsdt: Number(withdrawAmount) || 0, phone: withdrawPhone, code: withdrawCode },
     }),
     onSuccess: (result) => {
       if (!result.ok) {
@@ -261,6 +283,9 @@ function WalletPage() {
       }
       toast.success("Withdrawal accepted. Waiting for M Pesa to confirm the payout.");
       setWithdrawAmount("");
+      setWithdrawCode("");
+      setCodeSent(false);
+      setCodeSecondsLeft(0);
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
       void queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -442,20 +467,55 @@ function WalletPage() {
                   <p className="text-sm text-muted-foreground">Enter the phone that should receive the payout.</p>
                 </div>
               </div>
-              <Button
-                className="w-full"
-                variant="outline"
-                disabled={
-                  !enabled ||
-                  withdrawMutation.isPending ||
-                  (Number(withdrawAmount) || 0) < LIVE_MIN_WITHDRAWAL ||
-                  (Number(withdrawAmount) || 0) > balance + 0.001 ||
-                  withdrawPhone.replace(/\D/g, "").length < 9
-                }
-                onClick={() => withdrawMutation.mutate()}
-              >
-                {withdrawMutation.isPending ? "Submitting" : "Request withdrawal"}
-              </Button>
+              {codeSent ? (
+                <div className="space-y-2">
+                  <Label htmlFor="withdrawCode">Email confirmation code</Label>
+                  <Input
+                    id="withdrawCode"
+                    autoComplete="one-time-code"
+                    placeholder="Enter the 6 character code"
+                    value={withdrawCode}
+                    onChange={(event) => setWithdrawCode(event.target.value.toUpperCase())}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {codeSecondsLeft > 0
+                      ? `Code sent to your email. Expires in ${codeSecondsLeft}s. Three tries allowed.`
+                      : "That code has expired. Send a new one."}
+                  </p>
+                </div>
+              ) : null}
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={
+                    !enabled ||
+                    codeMutation.isPending ||
+                    (Number(withdrawAmount) || 0) < LIVE_MIN_WITHDRAWAL ||
+                    (Number(withdrawAmount) || 0) > balance + 0.001 ||
+                    withdrawPhone.replace(/\D/g, "").length < 9
+                  }
+                  onClick={() => codeMutation.mutate()}
+                >
+                  {codeMutation.isPending ? "Sending code" : codeSent ? "Send a new code" : "Email me a code"}
+                </Button>
+                <Button
+                  className="w-full"
+                  disabled={
+                    !enabled ||
+                    !codeSent ||
+                    codeSecondsLeft <= 0 ||
+                    withdrawMutation.isPending ||
+                    withdrawCode.trim().length < 4 ||
+                    (Number(withdrawAmount) || 0) < LIVE_MIN_WITHDRAWAL ||
+                    (Number(withdrawAmount) || 0) > balance + 0.001
+                  }
+                  onClick={() => withdrawMutation.mutate()}
+                >
+                  {withdrawMutation.isPending ? "Submitting" : "Confirm withdrawal"}
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5">
