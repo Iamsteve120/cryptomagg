@@ -311,6 +311,9 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
       throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
     }
 
+    // No money moves until the emailed one time code checks out.
+    await consumeWithdrawalCode(context.userId, data.code, amountUsdt, phone);
+
     const db = await admin();
     const { data: rows, error } = await db.rpc("hold_withdrawal_amount", {
       p_user_id: context.userId,
