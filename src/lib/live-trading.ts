@@ -4,7 +4,7 @@
  */
 
 /** A winning real trade pays this percentage of the stake. A loss costs the full stake. */
-export const LIVE_PAYOUT_RATE = 70;
+export const LIVE_PAYOUT_RATE = 15;
 
 /** House edge on an evenly balanced market, shown to traders for honesty. */
 export const LIVE_HOUSE_EDGE_PERCENT = Math.round((100 - LIVE_PAYOUT_RATE) / 2);
