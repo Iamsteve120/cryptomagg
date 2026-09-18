@@ -55,14 +55,16 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Starting",
   awaiting_user: "Waiting for your PIN",
   completed: "Completed",
+  paid: "Completed",
   failed: "Failed",
   approved: "Approved",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "completed" || status === "approved"
+    status === "completed" || status === "paid" || status === "approved"
       ? "bg-primary/15 text-primary"
       : status === "failed" || status === "rejected"
         ? "bg-destructive/15 text-destructive"

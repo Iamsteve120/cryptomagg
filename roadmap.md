@@ -161,3 +161,9 @@
 - [ ] Blocked: automatic B2C payouts need MPESA_INITIATOR_NAME and MPESA_SECURITY_CREDENTIAL
 - [ ] Blocked: REAL_MONEY_ENABLED stays unset until the CMA licence is in place
 - [ ] Lower the Demo win rate to realistic levels before real accounts open
+
+## Reliable M-Pesa withdrawals
+- [x] Show available balance in the withdrawal panel
+- [x] Keep accepted payouts pending until M-Pesa confirms delivery
+- [x] Return held funds automatically when a payout cannot start or fails
+- [x] Restore withdrawals that were deducted without a payout attempt
