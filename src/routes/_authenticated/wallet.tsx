@@ -397,9 +397,23 @@ function WalletPage() {
                 <div>
                   <h2 className="font-display text-lg font-semibold">Withdraw to M Pesa</h2>
                   <p className="text-sm text-muted-foreground">
-                    Requests are reviewed before the money is sent.
+                    M Pesa confirms the payout before it is marked completed.
                   </p>
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Available balance</p>
+                  <p className="num text-xl font-semibold text-foreground">{formatMoney(balance)} USDT</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={balance < LIVE_MIN_WITHDRAWAL}
+                  onClick={() => setWithdrawAmount(String(Math.floor(balance * 100) / 100))}
+                >
+                  Use available
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="withdrawAmount">Amount in USDT</Label>
@@ -411,7 +425,7 @@ function WalletPage() {
                   onChange={(event) => setWithdrawAmount(event.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT. Available: {formatMoney(balance)} USDT.
+                  Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT.
                 </p>
               </div>
               <Button
@@ -421,6 +435,7 @@ function WalletPage() {
                   !enabled ||
                   withdrawMutation.isPending ||
                   (Number(withdrawAmount) || 0) <= 0 ||
+                  (Number(withdrawAmount) || 0) > balance ||
                   phone.length < 9
                 }
                 onClick={() => withdrawMutation.mutate()}
