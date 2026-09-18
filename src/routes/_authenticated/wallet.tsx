@@ -228,6 +228,7 @@ function WalletPage() {
   const [amount, setAmount] = useState("10");
   const [phone, setPhone] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawPhone, setWithdrawPhone] = useState("");
 
   const balance = data?.profile
     ? Number(mode === "demo" ? data.profile.demo_balance : data.profile.live_balance)
@@ -250,7 +251,9 @@ function WalletPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: () => withdraw({ data: { amountUsdt: Number(withdrawAmount) || 0, phone } }),
+    mutationFn: () => withdraw({
+      data: { amountUsdt: Number(withdrawAmount) || 0, phone: withdrawPhone },
+    }),
     onSuccess: (result) => {
       if (!result.ok) {
         toast.error(result.error);
@@ -413,18 +416,31 @@ function WalletPage() {
                   Use available
                 </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="withdrawAmount">Amount in USDT</Label>
-                <Input
-                  id="withdrawAmount"
-                  inputMode="decimal"
-                  placeholder={String(LIVE_MIN_WITHDRAWAL)}
-                  value={withdrawAmount}
-                  onChange={(event) => setWithdrawAmount(event.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT.
-                </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="withdrawAmount">Amount in USDT</Label>
+                  <Input
+                    id="withdrawAmount"
+                    inputMode="decimal"
+                    placeholder={String(LIVE_MIN_WITHDRAWAL)}
+                    value={withdrawAmount}
+                    onChange={(event) => setWithdrawAmount(event.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="withdrawPhone">M Pesa number</Label>
+                  <Input
+                    id="withdrawPhone"
+                    inputMode="tel"
+                    placeholder="2547XXXXXXXX"
+                    value={withdrawPhone}
+                    onChange={(event) => setWithdrawPhone(event.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">Enter the phone that should receive the payout.</p>
+                </div>
               </div>
               <Button
                 className="w-full"
@@ -432,9 +448,9 @@ function WalletPage() {
                 disabled={
                   !enabled ||
                   withdrawMutation.isPending ||
-                  (Number(withdrawAmount) || 0) <= 0 ||
-                  (Number(withdrawAmount) || 0) > balance ||
-                  phone.length < 9
+                  (Number(withdrawAmount) || 0) < LIVE_MIN_WITHDRAWAL ||
+                  (Number(withdrawAmount) || 0) > balance + 0.001 ||
+                  withdrawPhone.replace(/\D/g, "").length < 9
                 }
                 onClick={() => withdrawMutation.mutate()}
               >
