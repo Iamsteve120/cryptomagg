@@ -146,7 +146,7 @@ function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade:
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Live PNL</p>
           <p className={cn("num text-lg font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(livePnl))} USD</p>
         </div>
-        <p className="num text-right text-[11px] text-muted-foreground">Entry ${formatPrice(entry)}<br />Live ${formatPrice(price)}</p>
+        <p className="num text-right text-[11px] text-muted-foreground">Live ${formatPrice(price)}</p>
       </div>
 
       {hasLevels ? (
