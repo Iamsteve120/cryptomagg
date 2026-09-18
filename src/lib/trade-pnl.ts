@@ -16,7 +16,12 @@ export function calculateLivePnl(trade: {
   const movement = trade.direction === "up" ? price - entry : entry - price;
   const favorable = movement >= 0;
   const targetPrice = favorable ? trade.take_profit_price : trade.stop_loss_price;
-  const targetDistance = targetPrice === null ? 0 : Math.abs(Number(targetPrice) - entry);
+  let targetDistance = targetPrice === null ? 0 : Math.abs(Number(targetPrice) - entry);
+  // Trades without TP/SL (real-account market trades) still need a scale so the
+  // live PNL moves with price instead of staying pinned at 0.00.
+  if (targetDistance === 0 && Number.isFinite(entry) && entry > 0) {
+    targetDistance = entry * 0.002;
+  }
   if (targetDistance === 0) return 0;
   // Practice sensitivity: small real price moves translate into a visibly moving simulated result.
   const ratio = Math.min(1, (Math.abs(movement) / targetDistance) * LIVE_PNL_SENSITIVITY);
@@ -43,7 +48,10 @@ export function calculateRapidLiveState(trade: LiveTrade, currentPrice: number |
   const marketPrice = currentPrice ?? entry;
   const tpDistance = trade.take_profit_price === null ? 0 : Math.abs(Number(trade.take_profit_price) - entry);
   const slDistance = trade.stop_loss_price === null ? 0 : Math.abs(Number(trade.stop_loss_price) - entry);
-  const referenceDistance = Math.max(tpDistance, slDistance);
+  let referenceDistance = Math.max(tpDistance, slDistance);
+  if (referenceDistance <= 0 && Number.isFinite(entry) && entry > 0) {
+    referenceDistance = entry * 0.002;
+  }
   if (!Number.isFinite(referenceDistance) || referenceDistance <= 0) {
     return { price: marketPrice, pnl: calculateLivePnl(trade, marketPrice) };
   }
