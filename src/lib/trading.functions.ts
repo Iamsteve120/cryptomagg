@@ -293,6 +293,11 @@ export const placeTrade = createServerFn({ method: "POST" })
             : "Could not open the trade. Please try again.",
         );
       }
+      if (data.source !== "manual") {
+        // Keep bot-opened real trades tagged so the bot session view and stop control see them.
+        await liveDb.from("trades").update({ trade_source: data.source }).eq("id", liveTrade.id);
+        liveTrade.trade_source = data.source;
+      }
       return { trade: liveTrade, balance: Number(liveTrade.balance_after_open) };
     }
 
