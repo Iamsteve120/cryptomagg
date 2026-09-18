@@ -55,14 +55,16 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Starting",
   awaiting_user: "Waiting for your PIN",
   completed: "Completed",
+  paid: "Completed",
   failed: "Failed",
   approved: "Approved",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "completed" || status === "approved"
+    status === "completed" || status === "paid" || status === "approved"
       ? "bg-primary/15 text-primary"
       : status === "failed" || status === "rejected"
         ? "bg-destructive/15 text-destructive"
@@ -254,11 +256,7 @@ function WalletPage() {
         toast.error(result.error);
         return;
       }
-      toast.success(
-        result.status === "completed"
-          ? "Withdrawal sent to your M Pesa."
-          : "Withdrawal requested. You will receive the money once it is approved.",
-      );
+      toast.success("Withdrawal accepted. Waiting for M Pesa to confirm the payout.");
       setWithdrawAmount("");
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
       void queryClient.invalidateQueries({ queryKey: ["account"] });
@@ -397,9 +395,23 @@ function WalletPage() {
                 <div>
                   <h2 className="font-display text-lg font-semibold">Withdraw to M Pesa</h2>
                   <p className="text-sm text-muted-foreground">
-                    Requests are reviewed before the money is sent.
+                    M Pesa confirms the payout before it is marked completed.
                   </p>
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Available balance</p>
+                  <p className="num text-xl font-semibold text-foreground">{formatMoney(balance)} USDT</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={balance < LIVE_MIN_WITHDRAWAL}
+                  onClick={() => setWithdrawAmount(String(Math.floor(balance * 100) / 100))}
+                >
+                  Use available
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="withdrawAmount">Amount in USDT</Label>
@@ -411,7 +423,7 @@ function WalletPage() {
                   onChange={(event) => setWithdrawAmount(event.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT. Available: {formatMoney(balance)} USDT.
+                  Smallest withdrawal is {LIVE_MIN_WITHDRAWAL} USDT.
                 </p>
               </div>
               <Button
@@ -421,6 +433,7 @@ function WalletPage() {
                   !enabled ||
                   withdrawMutation.isPending ||
                   (Number(withdrawAmount) || 0) <= 0 ||
+                  (Number(withdrawAmount) || 0) > balance ||
                   phone.length < 9
                 }
                 onClick={() => withdrawMutation.mutate()}

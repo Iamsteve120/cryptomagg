@@ -134,6 +134,20 @@
       "when": 1789696680928,
       "tag": "0018_usdt_crypto_deposits",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789743726850,
+      "tag": "0019_reliable_mpesa_withdrawal_settlement",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789743865685,
+      "tag": "0020_align_mpesa_withdrawal_statuses",
+      "breakpoints": true
     }
   ]
 }

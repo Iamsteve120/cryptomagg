@@ -268,8 +268,12 @@ export async function sendB2cPayout(input: {
     }),
   });
 
-  const body = (await response.json()) as { ConversationID?: string; errorMessage?: string };
-  if (!response.ok || !body.ConversationID) {
+  const body = (await response.json()) as {
+    ConversationID?: string;
+    ResponseCode?: string;
+    errorMessage?: string;
+  };
+  if (!response.ok || body.ResponseCode !== "0" || !body.ConversationID) {
     console.error("B2C payout rejected", body.errorMessage ?? response.status);
     throw new Error("mpesa_payout_failed");
   }
