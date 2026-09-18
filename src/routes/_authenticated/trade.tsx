@@ -153,7 +153,7 @@ function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade:
         <>
           <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
             <div className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5"><span className="text-muted-foreground">Take Profit</span><p className="num font-semibold text-primary">+${formatMoney(Number(trade.take_profit_amount ?? (stake * Number(trade.take_profit_percent ?? 0)) / 100))}</p></div>
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">-${formatMoney(Number(trade.stop_loss_amount ?? (stake * Number(trade.stop_loss_percent ?? 0)) / 100))}</p></div>
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">-${formatMoney(slAmount)}</p></div>
           </div>
           <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-secondary" aria-label={`Position progress ${Math.round(progress)} percent`}>
             <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
