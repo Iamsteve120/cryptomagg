@@ -33,7 +33,7 @@ export const USDT_DEPOSIT_ADDRESSES: readonly { label: string; network: string; 
 ];
 
 /** Broker risk caps on real accounts. */
-export const LIVE_MAX_OPEN_TRADES_PER_TRADER = 5;
+export const LIVE_MAX_OPEN_TRADES_PER_TRADER = 50;
 export const LIVE_MAX_TOTAL_EXPOSURE = 2000;
 
 /** Normalises a Kenyan number to the 2547XXXXXXXX form M Pesa expects. */
