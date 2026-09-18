@@ -84,7 +84,9 @@ export const confirmUsdtDeposit = createServerFn({ method: "POST" })
           to: profile.email,
           name: profile.full_name,
           amountUsdt: result.amountUsdt,
+          amountKes: 0,
           receipt: data.txHash.trim(),
+          balanceUsdt: Number(balance),
         });
       }
     } catch (mailError) {

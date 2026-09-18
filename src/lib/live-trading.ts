@@ -19,6 +19,18 @@ export const LIVE_MAX_DEPOSIT = 500;
 /** Minimum withdrawal, in USDT. */
 export const LIVE_MIN_WITHDRAWAL = 5;
 
+/** Smallest USDT crypto transfer we credit. */
+export const USDT_MIN_DEPOSIT = 10;
+
+/** Receiving addresses for USDT crypto deposits. */
+export const USDT_DEPOSIT_ADDRESSES: readonly { label: string; network: string; address: string }[] = [
+  {
+    label: "USDT wallet 1",
+    network: "Tron (TRC 20)",
+    address: "TBWg9bx8uDr6Y9bQVqDXUZEbsrESWCyv2z",
+  },
+];
+
 /** Broker risk caps on real accounts. */
 export const LIVE_MAX_OPEN_TRADES_PER_TRADER = 5;
 export const LIVE_MAX_TOTAL_EXPOSURE = 2000;
