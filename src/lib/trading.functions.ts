@@ -242,10 +242,30 @@ export const placeTrade = createServerFn({ method: "POST" })
       if (data.source !== "manual") throw new Error("Real trades must be placed by you, not by a bot.");
       if (!synthetic) throw new Error("Real accounts trade the synthetic crypto instruments only.");
 
-      const { LIVE_MAX_STAKE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
+      const { LIVE_MAX_OPEN_TRADES_PER_TRADER, LIVE_MAX_STAKE, LIVE_MAX_TOTAL_EXPOSURE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
       const liveStake = Math.round(data.stake * 100) / 100;
       if (liveStake < LIVE_MIN_STAKE || liveStake > LIVE_MAX_STAKE) {
         throw new Error(`Real trades must be between ${LIVE_MIN_STAKE} and ${LIVE_MAX_STAKE} USDT.`);
+      }
+
+      const liveDb = await admin();
+      const { data: myOpen } = await liveDb
+        .from("trades")
+        .select("id")
+        .eq("user_id", context.userId)
+        .eq("account_mode", "live")
+        .eq("status", "open");
+      if ((myOpen?.length ?? 0) >= LIVE_MAX_OPEN_TRADES_PER_TRADER) {
+        throw new Error(`You can have at most ${LIVE_MAX_OPEN_TRADES_PER_TRADER} open real trades. Wait for one to settle.`);
+      }
+      const { data: allOpen } = await liveDb
+        .from("trades")
+        .select("stake")
+        .eq("account_mode", "live")
+        .eq("status", "open");
+      const exposure = (allOpen ?? []).reduce((sum, t) => sum + Number(t.stake), 0);
+      if (exposure + liveStake > LIVE_MAX_TOTAL_EXPOSURE) {
+        throw new Error("The market is at its trading limit right now. Please try a smaller amount or wait.");
       }
 
       await ensureProfile(context.userId, null);
@@ -255,7 +275,6 @@ export const placeTrade = createServerFn({ method: "POST" })
         throw new Error("The market price is unavailable. Please try again shortly.");
       }
 
-      const liveDb = await admin();
       const { data: liveRows, error: liveError } = await liveDb.rpc("reserve_live_trade", {
         p_user_id: context.userId,
         p_symbol: asset.symbol,
