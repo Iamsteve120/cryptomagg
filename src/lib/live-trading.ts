@@ -19,6 +19,10 @@ export const LIVE_MAX_DEPOSIT = 500;
 /** Minimum withdrawal, in USDT. */
 export const LIVE_MIN_WITHDRAWAL = 5;
 
+/** Broker risk caps on real accounts. */
+export const LIVE_MAX_OPEN_TRADES_PER_TRADER = 5;
+export const LIVE_MAX_TOTAL_EXPOSURE = 2000;
+
 /** Normalises a Kenyan number to the 2547XXXXXXXX form M Pesa expects. */
 export function normaliseKenyanPhone(input: string): string | null {
   const digits = input.replace(/\D/g, "");
