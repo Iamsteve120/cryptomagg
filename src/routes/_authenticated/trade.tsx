@@ -381,7 +381,7 @@ function TradePage() {
     const maxBotStake = mode === "demo" ? 2000 : 200;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(20, Math.max(5, Number(botTradeCount) || 5));
-    const configuredStake = Math.min(maxBotStake, Math.max(1, Number(botStake) || 1));
+    const configuredStake = Math.min(maxBotStake, Math.max(0.35, Number(botStake) || 0.35));
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
@@ -747,7 +747,7 @@ function TradePage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="botTakeProfit">Take Profit (USD)</Label><Input id="botTakeProfit" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botTakeProfit} onChange={(event) => setBotTakeProfit(event.target.value)} /></div>
-              <div><Label htmlFor="botStopLoss">Stop Loss (USD)</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max={Number(botStake) || 1} step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
+              <div><Label htmlFor="botStopLoss">Stop Loss (USD)</Label><Input id="botStopLoss" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.1" max="2000" step="0.1" value={botStopLoss} onChange={(event) => setBotStopLoss(event.target.value)} /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label htmlFor="botConfidence" className="text-xs">Min conf.</Label><Input id="botConfidence" className="num mt-2 h-11 px-2" type="number" inputMode="numeric" min="80" max="87" value={autoMinimum} onChange={(event) => setAutoMinimum(event.target.value)} /></div>
@@ -774,7 +774,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 0.35 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 0.35 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
