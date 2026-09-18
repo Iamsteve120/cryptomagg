@@ -255,9 +255,11 @@ function TradePage() {
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
   const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
   const autoCandidate = useMemo(() => {
+    const tradable = new Set(marketList.map((item) => item.symbol));
+    const universe = quotes.filter((item) => tradable.has(item.symbol));
     const allowed = activeBotPairsRef.current;
-    const pool = allowed.length > 0 ? quotes.filter((item) => allowed.includes(item.symbol)) : quotes;
-    const available = (pool.length > 0 ? pool : quotes)
+    const pool = allowed.length > 0 ? universe.filter((item) => allowed.includes(item.symbol)) : universe;
+    const available = (pool.length > 0 ? pool : universe)
       .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
       .filter((item) => !openAutoSymbols.has(item.quote.symbol));
     const ranked = available
@@ -274,7 +276,7 @@ function TradePage() {
         reason: "Strongest daily move available",
       },
     };
-  }, [autoMinimum, openAutoSymbols, quotes]);
+  }, [autoMinimum, marketList, openAutoSymbols, quotes]);
   const sessionLoss = (account?.trades ?? [])
     .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
     .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
@@ -282,7 +284,7 @@ function TradePage() {
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
   const sessionOpen = sparkline.length > 0 ? sparkline[0] : null;
-  // Real trading opens only once M Pesa funding is switched on; bots stay Demo only.
+  // Real trading, manual or bot, opens only once funding is switched on.
   const locked = mode === "live" && !liveStatus?.enabled;
 
   const mutation = useMutation({
@@ -327,11 +329,13 @@ function TradePage() {
   const disabled = locked || mutation.isPending || !validStake || !validLevels;
 
   useEffect(() => {
-    if (mode !== "demo") setAutoEnabled(false);
+    // Switching account stops any running bot session so it never carries over between balances.
+    setAutoEnabled(false);
   }, [mode]);
 
   useEffect(() => {
-    if (!autoEnabled || !autoCandidate || mutation.isPending) return;
+    if (!autoEnabled || !autoCandidate || mutation.isPending || locked) return;
+
     if (Date.now() - dataUpdatedAt > 60_000) return;
     const botStake = botStakeRef.current;
     if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
@@ -373,16 +377,16 @@ function TradePage() {
   }
 
   function startAutoTrading() {
-    if (mode !== "demo") return;
     const bot = TRADING_BOTS.find((item) => item.id === pendingBotId) ?? selectedBot;
+    const maxBotStake = mode === "demo" ? 2000 : 200;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(20, Math.max(5, Number(botTradeCount) || 5));
-    const configuredStake = Math.min(2000, Math.max(1, Number(botStake) || 1));
+    const configuredStake = Math.min(maxBotStake, Math.max(1, Number(botStake) || 1));
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (configuredStake > balance) {
-      toast.error("Bot amount is higher than your Demo balance.");
+      toast.error(mode === "demo" ? "Bot amount is higher than your Demo balance." : "Bot amount is higher than your available balance.");
       return;
     }
     botDurationRef.current = configuredDuration;

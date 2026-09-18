@@ -239,7 +239,6 @@ export const placeTrade = createServerFn({ method: "POST" })
     if (data.accountMode === "live") {
       const { realMoneyEnabled } = await import("./mpesa.server");
       if (!realMoneyEnabled()) throw new Error("Real trading is not switched on yet.");
-      if (data.source !== "manual") throw new Error("Real trades must be placed by you, not by a bot.");
       if (!synthetic) throw new Error("Real accounts trade the synthetic crypto instruments only.");
 
       const { LIVE_MAX_OPEN_TRADES_PER_TRADER, LIVE_MAX_STAKE, LIVE_MAX_TOTAL_EXPOSURE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
@@ -293,6 +292,11 @@ export const placeTrade = createServerFn({ method: "POST" })
             ? "That is more than your available balance."
             : "Could not open the trade. Please try again.",
         );
+      }
+      if (data.source !== "manual") {
+        // Keep bot-opened real trades tagged so the bot session view and stop control see them.
+        await liveDb.from("trades").update({ trade_source: data.source }).eq("id", liveTrade.id);
+        liveTrade.trade_source = data.source;
       }
       return { trade: liveTrade, balance: Number(liveTrade.balance_after_open) };
     }
@@ -348,7 +352,7 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
       .eq("id", data.tradeId)
       .eq("user_id", context.userId)
       .maybeSingle();
-    if (!trade || trade.account_mode !== "demo" || trade.status !== "open") {
+    if (!trade || trade.status !== "open") {
       // The trade already closed at TP, SL, or expiry between the click and this call.
       return { trade: null, balance: null, alreadyClosed: true as const };
     }
@@ -356,13 +360,16 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     const { priceForSymbol } = await import("./market.server");
     // Never let a price provider hiccup block closing: fall back to the entry price.
     const exitPrice = await priceForSymbol(trade.symbol).catch(() => Number((trade as { entry_price?: number }).entry_price) || 0);
-    const { data: rows, error } = await db.rpc("close_demo_trade_at_live_pnl", {
-      p_user_id: context.userId,
-      p_trade_id: trade.id,
-      p_exit_price: exitPrice,
-    });
+    const { data: rows, error } = await db.rpc(
+      trade.account_mode === "live" ? "settle_live_trade_at_market" : "close_demo_trade_at_live_pnl",
+      {
+        p_user_id: context.userId,
+        p_trade_id: trade.id,
+        p_exit_price: exitPrice,
+      },
+    );
     const closed = rows?.[0];
-    if (error || !closed) throw new Error("Could not stop the Demo trade.");
+    if (error || !closed) throw new Error("Could not stop the trade.");
     return { trade: closed, balance: Number(closed.balance_after_settlement) };
   });
 
@@ -373,9 +380,8 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: open } = await db
       .from("trades")
-      .select("id, symbol, entry_price")
+      .select("id, symbol, entry_price, account_mode")
       .eq("user_id", context.userId)
-      .eq("account_mode", "demo")
       .eq("status", "open");
     if (!open || open.length === 0) return { closed: 0 };
 
@@ -391,11 +397,14 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
           price = await priceForSymbol(trade.symbol).catch(() => Number(trade.entry_price));
           prices.set(trade.symbol, price);
         }
-        const { error } = await db.rpc("close_demo_trade_at_live_pnl", {
-          p_user_id: context.userId,
-          p_trade_id: trade.id,
-          p_exit_price: price,
-        });
+        const { error } = await db.rpc(
+          trade.account_mode === "live" ? "settle_live_trade_at_market" : "close_demo_trade_at_live_pnl",
+          {
+            p_user_id: context.userId,
+            p_trade_id: trade.id,
+            p_exit_price: price,
+          },
+        );
         if (error) {
           failed += 1;
           console.error("Stop-all failed for trade", trade.id, error.message);
