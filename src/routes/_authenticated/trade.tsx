@@ -243,7 +243,7 @@ function TradePage() {
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
-  const validStake = stakeValue >= 1 && stakeValue <= 500 && stakeValue <= balance;
+  const validStake = stakeValue >= 0.35 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 2000 && stopLossValue >= 0.1 && stopLossValue <= stakeValue;
@@ -370,7 +370,7 @@ function TradePage() {
     setPendingBotId(bot.id);
     setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
     setBotTradeCount(String(Math.min(20, Math.max(5, bot.tradeLimit))));
-    setBotStake(stakeValue >= 1 && stakeValue <= 2000 ? stake : "10");
+    setBotStake(stakeValue >= 0.35 && stakeValue <= 2000 ? stake : "10");
     setBotTakeProfit(takeProfit);
     setBotStopLoss(stopLoss);
     setBotSetupOpen(true);
@@ -620,7 +620,7 @@ function TradePage() {
                 <Label htmlFor="stake" className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount ({unit})</Label>
                 <span className="num text-[10px] text-muted-foreground">Min 1 | Max 500</span>
               </div>
-              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="1" max="500" step="1" value={stake} onChange={(event) => setStake(event.target.value)} />
+              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="0.35" max="500" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} />
               <div className="mt-1.5 grid grid-cols-5 gap-1">
                 {[10, 50, 100, 250, 500].map((value) => (
                   <Button key={value} type="button" size="sm" variant="secondary" className="h-7 px-0 text-[10px]" onClick={() => setStake(String(value))}>{value}</Button>
@@ -730,7 +730,7 @@ function TradePage() {
           <div className="space-y-5 px-5 py-4">
             <div>
               <Label htmlFor="botStake">Amount per trade (USD)</Label>
-              <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="1" max="2000" step="1" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
+              <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.35" max="2000" step="0.01" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
               <p className="mt-1.5 text-xs text-muted-foreground">Minimum 1 USD | Maximum 2,000 USD</p>
             </div>
             <div>
@@ -774,7 +774,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 0.35 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || Number(botStopLoss) > Number(botStake) || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
