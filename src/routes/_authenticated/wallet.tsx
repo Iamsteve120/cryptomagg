@@ -249,8 +249,16 @@ function WalletPage() {
 
   const withdrawMutation = useMutation({
     mutationFn: () => withdraw({ data: { amountUsdt: Number(withdrawAmount) || 0, phone } }),
-    onSuccess: () => {
-      toast.success("Withdrawal requested. You will receive the money once it is approved.");
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        result.status === "completed"
+          ? "Withdrawal sent to your M Pesa."
+          : "Withdrawal requested. You will receive the money once it is approved.",
+      );
       setWithdrawAmount("");
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
       void queryClient.invalidateQueries({ queryKey: ["account"] });
