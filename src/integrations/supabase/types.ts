@@ -264,10 +264,12 @@ export type Database = {
           failure_reason: string | null
           id: string
           phone: string
+          provider_conversation_id: string | null
           provider_receipt: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
           user_id: string
         }
@@ -277,10 +279,12 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           phone: string
+          provider_conversation_id?: string | null
           provider_receipt?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -290,20 +294,34 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           phone?: string
+          provider_conversation_id?: string | null
           provider_receipt?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_mpesa_withdrawal: {
+        Args: { p_conversation_id: string; p_request_id: string }
+        Returns: boolean
+      }
       close_demo_trade_at_live_pnl: {
         Args: { p_exit_price: number; p_trade_id: string; p_user_id: string }
         Returns: {
@@ -355,6 +373,21 @@ export type Database = {
         }
         Returns: number
       }
+      finalize_mpesa_withdrawal: {
+        Args: {
+          p_conversation_id: string
+          p_failure_reason?: string
+          p_receipt?: string
+          p_success: boolean
+        }
+        Returns: {
+          amount_usdt: number
+          final_status: string
+          phone: string
+          request_id: string
+          user_id: string
+        }[]
+      }
       hold_withdrawal_amount: {
         Args: { p_amount: number; p_phone: string; p_user_id: string }
         Returns: {
@@ -363,10 +396,12 @@ export type Database = {
           failure_reason: string | null
           id: string
           phone: string
+          provider_conversation_id: string | null
           provider_receipt: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
           user_id: string
         }[]
@@ -376,6 +411,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      refund_pending_withdrawal: {
+        Args: { p_failure_reason: string; p_request_id: string }
+        Returns: boolean
       }
       reserve_demo_trade: {
         Args: {
