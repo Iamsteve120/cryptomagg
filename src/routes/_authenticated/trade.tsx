@@ -276,7 +276,7 @@ function TradePage() {
         reason: "Strongest daily move available",
       },
     };
-  }, [autoMinimum, openAutoSymbols, quotes]);
+  }, [autoMinimum, marketList, openAutoSymbols, quotes]);
   const sessionLoss = (account?.trades ?? [])
     .filter((trade) => trade.trade_source === "auto" && trade.status !== "open" && sessionStartedAt.current !== null && new Date(trade.created_at).getTime() >= sessionStartedAt.current)
     .reduce((total, trade) => total + Math.max(0, 0 - Number(trade.pnl ?? 0)), 0);
