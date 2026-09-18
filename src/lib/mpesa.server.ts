@@ -201,29 +201,65 @@ export async function verifyStkPayment(checkoutRequestId: string): Promise<boole
   }
 }
 
-/** Pays a trader out to M Pesa. Requires the B2C initiator credentials. */
+/** True only when the B2C payout credentials are all present. */
+export function b2cConfigured(): boolean {
+  return Boolean(
+    process.env["MPESA_INITIATOR_NAME"] &&
+      process.env["MPESA_SECURITY_CREDENTIAL"] &&
+      (process.env["MPESA_B2C_CONSUMER_KEY"] ?? process.env["CONSUMER_KEY"]) &&
+      (process.env["MPESA_B2C_CONSUMER_SECRET"] ?? process.env["CONSUMER_SECRET"]) &&
+      (process.env["MPESA_B2C_SHORTCODE"] ?? process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"]),
+  );
+}
+
+/**
+ * Pays a trader out to M Pesa. Uses the B2C app's own credentials and
+ * shortcode, which are separate from the deposit (STK push) app.
+ */
 export async function sendB2cPayout(input: {
   phone: string;
   amountKes: number;
   remarks: string;
   resultUrl: string;
 }): Promise<{ conversationId: string }> {
-  const config = readDarajaConfig();
-  const initiator = process.env["MPESA_INITIATOR_NAME"];
-  const securityCredential = process.env["MPESA_SECURITY_CREDENTIAL"];
-  if (!config || !initiator || !securityCredential) throw new Error("mpesa_payout_not_configured");
+  const clean = (value: string | undefined) =>
+    value ? value.trim().replace(/[^\x21-\x7e]/g, "") : value;
+  const consumerKey = clean(process.env["MPESA_B2C_CONSUMER_KEY"] ?? process.env["CONSUMER_KEY"]);
+  const consumerSecret = clean(
+    process.env["MPESA_B2C_CONSUMER_SECRET"] ?? process.env["CONSUMER_SECRET"],
+  );
+  const shortcode =
+    process.env["MPESA_B2C_SHORTCODE"] ?? process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
+  const initiator = clean(process.env["MPESA_INITIATOR_NAME"]);
+  const securityCredential = clean(process.env["MPESA_SECURITY_CREDENTIAL"]);
+  if (!consumerKey || !consumerSecret || !shortcode || !initiator || !securityCredential) {
+    throw new Error("mpesa_payout_not_configured");
+  }
 
-  const token = await accessToken(config);
-  const response = await fetch(`${config.baseUrl}/mpesa/b2c/v3/paymentrequest`, {
+  const live = process.env["MPESA_ENV"] === "production";
+  const baseUrl = live ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
+  const basic = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+  const authResponse = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+    headers: { Authorization: `Basic ${basic}` },
+  });
+  if (!authResponse.ok) {
+    const detail = await authResponse.text().catch(() => "");
+    console.error("B2C auth rejected", authResponse.status, detail.slice(0, 200));
+    throw new Error("mpesa_payout_auth_failed");
+  }
+  const authBody = (await authResponse.json()) as { access_token?: string };
+  if (!authBody.access_token) throw new Error("mpesa_payout_auth_failed");
+
+  const response = await fetch(`${baseUrl}/mpesa/b2c/v3/paymentrequest`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${authBody.access_token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       OriginatorConversationID: crypto.randomUUID(),
       InitiatorName: initiator,
       SecurityCredential: securityCredential,
       CommandID: "BusinessPayment",
       Amount: Math.max(1, Math.round(input.amountKes)),
-      PartyA: config.shortcode,
+      PartyA: shortcode,
       PartyB: input.phone,
       Remarks: input.remarks.slice(0, 100),
       QueueTimeOutURL: input.resultUrl,
