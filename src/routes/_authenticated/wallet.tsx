@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, ShieldCheck, Smartphone } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, Copy, ShieldCheck, Smartphone, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,13 @@ import {
   requestMpesaWithdrawal,
   startMpesaDeposit,
 } from "@/lib/payments.functions";
-import { LIVE_MIN_DEPOSIT, LIVE_MIN_WITHDRAWAL } from "@/lib/live-trading";
+import {
+  LIVE_MIN_DEPOSIT,
+  LIVE_MIN_WITHDRAWAL,
+  USDT_DEPOSIT_ADDRESSES,
+  USDT_MIN_DEPOSIT,
+} from "@/lib/live-trading";
+import { confirmUsdtDeposit, getUsdtDeposits } from "@/lib/crypto-deposits.functions";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({

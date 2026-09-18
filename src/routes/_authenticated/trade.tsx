@@ -243,7 +243,7 @@ function TradePage() {
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
-  const validStake = stakeValue >= 2 && stakeValue <= 500 && stakeValue <= balance;
+  const validStake = stakeValue >= 1 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 2000 && stopLossValue >= 0.1 && stopLossValue <= stakeValue;
