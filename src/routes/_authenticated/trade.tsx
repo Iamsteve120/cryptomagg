@@ -327,7 +327,8 @@ function TradePage() {
   const disabled = locked || mutation.isPending || !validStake || !validLevels;
 
   useEffect(() => {
-    if (mode !== "demo") setAutoEnabled(false);
+    // Switching account stops any running bot session so it never carries over between balances.
+    setAutoEnabled(false);
   }, [mode]);
 
   useEffect(() => {
