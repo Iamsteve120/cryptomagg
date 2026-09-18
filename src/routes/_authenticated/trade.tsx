@@ -284,7 +284,7 @@ function TradePage() {
   const sessionHigh = sparkline.length > 0 ? Math.max(...sparkline) : null;
   const sessionLow = sparkline.length > 0 ? Math.min(...sparkline) : null;
   const sessionOpen = sparkline.length > 0 ? sparkline[0] : null;
-  // Real trading opens only once M Pesa funding is switched on; bots stay Demo only.
+  // Real trading, manual or bot, opens only once funding is switched on.
   const locked = mode === "live" && !liveStatus?.enabled;
 
   const mutation = useMutation({
