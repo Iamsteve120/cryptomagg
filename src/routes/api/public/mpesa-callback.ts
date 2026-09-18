@@ -54,8 +54,8 @@ export const Route = createFileRoute("/api/public/mpesa-callback")({
           const { data: settled, error } = await supabaseAdmin.rpc("finalize_mpesa_withdrawal", {
             p_conversation_id: result.ConversationID,
             p_success: result.ResultCode === 0,
-            p_receipt: result.TransactionID ?? null,
-            p_failure_reason: result.ResultDesc ?? null,
+            p_receipt: result.TransactionID,
+            p_failure_reason: result.ResultDesc,
           });
           if (error) {
             console.error("Withdrawal finalization failed", error.message);

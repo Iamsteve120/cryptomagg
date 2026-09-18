@@ -254,11 +254,7 @@ function WalletPage() {
         toast.error(result.error);
         return;
       }
-      toast.success(
-        result.status === "completed"
-          ? "Withdrawal sent to your M Pesa."
-          : "Withdrawal requested. You will receive the money once it is approved.",
-      );
+      toast.success("Withdrawal accepted. Waiting for M Pesa to confirm the payout.");
       setWithdrawAmount("");
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
       void queryClient.invalidateQueries({ queryKey: ["account"] });
