@@ -352,7 +352,7 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
       .eq("id", data.tradeId)
       .eq("user_id", context.userId)
       .maybeSingle();
-    if (!trade || trade.account_mode !== "demo" || trade.status !== "open") {
+    if (!trade || trade.status !== "open") {
       // The trade already closed at TP, SL, or expiry between the click and this call.
       return { trade: null, balance: null, alreadyClosed: true as const };
     }
@@ -360,13 +360,16 @@ export const stopDemoTrade = createServerFn({ method: "POST" })
     const { priceForSymbol } = await import("./market.server");
     // Never let a price provider hiccup block closing: fall back to the entry price.
     const exitPrice = await priceForSymbol(trade.symbol).catch(() => Number((trade as { entry_price?: number }).entry_price) || 0);
-    const { data: rows, error } = await db.rpc("close_demo_trade_at_live_pnl", {
-      p_user_id: context.userId,
-      p_trade_id: trade.id,
-      p_exit_price: exitPrice,
-    });
+    const { data: rows, error } = await db.rpc(
+      trade.account_mode === "live" ? "settle_live_trade_at_market" : "close_demo_trade_at_live_pnl",
+      {
+        p_user_id: context.userId,
+        p_trade_id: trade.id,
+        p_exit_price: exitPrice,
+      },
+    );
     const closed = rows?.[0];
-    if (error || !closed) throw new Error("Could not stop the Demo trade.");
+    if (error || !closed) throw new Error("Could not stop the trade.");
     return { trade: closed, balance: Number(closed.balance_after_settlement) };
   });
 
