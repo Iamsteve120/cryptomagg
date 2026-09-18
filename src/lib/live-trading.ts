@@ -9,7 +9,7 @@ export const LIVE_PAYOUT_RATE = 15;
 /** House edge on an evenly balanced market, shown to traders for honesty. */
 export const LIVE_HOUSE_EDGE_PERCENT = Math.round((100 - LIVE_PAYOUT_RATE) / 2);
 
-export const LIVE_MIN_STAKE = 1;
+export const LIVE_MIN_STAKE = 0.35;
 export const LIVE_MAX_STAKE = 200;
 
 /** Minimum and maximum M Pesa deposit, in USDT. */
