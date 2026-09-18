@@ -334,7 +334,7 @@ function TradePage() {
   }, [mode]);
 
   useEffect(() => {
-    if (!autoEnabled || !autoCandidate || mutation.isPending) return;
+    if (!autoEnabled || !autoCandidate || mutation.isPending || locked) return;
     if (Date.now() - dataUpdatedAt > 60_000) return;
     const botStake = botStakeRef.current;
     if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
