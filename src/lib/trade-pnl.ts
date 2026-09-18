@@ -50,7 +50,7 @@ export function calculateRapidLiveState(trade: LiveTrade, currentPrice: number |
 
   const phase = phaseForTrade(trade.id) * (Math.PI / 180);
   const wave = Math.sin(now / 430 + phase) * 0.72 + Math.sin(now / 173 + phase * 0.6) * 0.28;
-  const microMove = (referenceDistance / LIVE_PNL_SENSITIVITY) * 0.08 * wave;
+  const microMove = (referenceDistance / LIVE_PNL_SENSITIVITY) * 0.45 * wave;
   const price = Math.max(Number.EPSILON, marketPrice + microMove);
   return { price, pnl: calculateLivePnl(trade, price) };
 }
