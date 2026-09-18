@@ -51,12 +51,21 @@ export const Route = createFileRoute("/api/public/mpesa-callback")({
         if (b2cPayload.success) {
           const result = b2cPayload.data.Result;
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data: settled, error } = await supabaseAdmin.rpc("finalize_mpesa_withdrawal", {
+          const settlementInput: {
+            p_conversation_id: string;
+            p_success: boolean;
+            p_receipt?: string;
+            p_failure_reason?: string;
+          } = {
             p_conversation_id: result.ConversationID,
             p_success: result.ResultCode === 0,
-            p_receipt: result.TransactionID,
-            p_failure_reason: result.ResultDesc,
-          });
+          };
+          if (result.TransactionID) settlementInput.p_receipt = result.TransactionID;
+          if (result.ResultDesc) settlementInput.p_failure_reason = result.ResultDesc;
+          const { data: settled, error } = await supabaseAdmin.rpc(
+            "finalize_mpesa_withdrawal",
+            settlementInput,
+          );
           if (error) {
             console.error("Withdrawal finalization failed", error.message);
           } else {
