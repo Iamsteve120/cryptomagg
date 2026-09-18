@@ -220,20 +220,25 @@ export async function sendWithdrawalReceipt(input: {
   name?: string | null;
   amountUsdt: number;
   phone: string;
-  status: "pending" | "completed";
+  status: "pending" | "completed" | "failed";
 }): Promise<void> {
   const pending = input.status === "pending";
+  const failed = input.status === "failed";
   await sendEmail({
     to: input.to,
-    subject: pending
-      ? `Withdrawal request received: ${money(input.amountUsdt)} USDT`
-      : `Withdrawal sent: ${money(input.amountUsdt)} USDT`,
+    subject: failed
+      ? `Withdrawal could not be sent: ${money(input.amountUsdt)} USDT`
+      : pending
+        ? `Withdrawal request received: ${money(input.amountUsdt)} USDT`
+        : `Withdrawal sent: ${money(input.amountUsdt)} USDT`,
     text: [
       `Hello ${input.name?.split(" ")[0] ?? "there"},`,
       "",
-      pending
-        ? `We have received your withdrawal request for ${money(input.amountUsdt)} USDT to ${input.phone}. The amount has been held from your balance and will be paid out to M Pesa once it clears review.`
-        : `Your withdrawal of ${money(input.amountUsdt)} USDT has been sent to ${input.phone} via M Pesa.`,
+      failed
+        ? `Your withdrawal of ${money(input.amountUsdt)} USDT to ${input.phone} could not be sent, and the full amount has been returned to your balance. Please try again.`
+        : pending
+          ? `We have received your withdrawal request for ${money(input.amountUsdt)} USDT to ${input.phone}. The amount has been held from your balance and will be paid out to M Pesa once it clears review.`
+          : `Your withdrawal of ${money(input.amountUsdt)} USDT has been sent to ${input.phone} via M Pesa.`,
       "",
       "If you did not request this, reply to this email immediately.",
       "",
