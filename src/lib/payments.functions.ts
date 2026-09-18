@@ -176,7 +176,119 @@ export const startMpesaDeposit = createServerFn({ method: "POST" })
 const withdrawalSchema = z.object({
   amountUsdt: z.number().positive().max(100_000),
   phone: z.string().trim().min(9).max(20),
+  code: z.string().trim().min(4).max(12),
 });
+
+const OTP_TTL_MS = 60_000;
+const OTP_MAX_ATTEMPTS = 3;
+
+async function hashCode(code: string) {
+  const { createHash } = await import("crypto");
+  return createHash("sha256").update(code.trim().toUpperCase()).digest("hex");
+}
+
+const otpRequestSchema = z.object({
+  amountUsdt: z.number().positive().max(100_000),
+  phone: z.string().trim().min(9).max(20),
+});
+
+/** Emails a one time code that must be entered before a payout is submitted. */
+export const requestWithdrawalCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => otpRequestSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    rateLimit(context.userId, "withdrawal-code", 5);
+
+    const phone = normaliseKenyanPhone(data.phone);
+    if (!phone) throw new Error("Enter a valid Safaricom number, for example 0712345678.");
+    const amountUsdt = Math.round(data.amountUsdt * 100) / 100;
+    if (amountUsdt < LIVE_MIN_WITHDRAWAL) {
+      throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
+    }
+
+    const db = await admin();
+    const { data: profile } = await db
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const email = profile?.email ?? (context.claims as { email?: string } | null)?.email ?? null;
+    if (!email) throw new Error("No email is saved on your account, so a code cannot be sent.");
+
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    const code = [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
+
+    // Only the newest code can be used.
+    await db
+      .from("withdrawal_otps")
+      .update({ consumed_at: new Date().toISOString() })
+      .eq("user_id", context.userId)
+      .is("consumed_at", null);
+
+    const { error } = await db.from("withdrawal_otps").insert({
+      user_id: context.userId,
+      code_hash: await hashCode(code),
+      amount_usdt: amountUsdt,
+      phone,
+      expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+    });
+    if (error) throw new Error("Could not start the withdrawal check. Please try again.");
+
+    const { sendEmail } = await import("./email.server");
+    const sent = await sendEmail({
+      to: email,
+      subject: "Your CryptoMagg withdrawal code",
+      text: [
+        `Hello${profile?.full_name ? " " + profile.full_name : ""},`,
+        "",
+        `Your withdrawal confirmation code is: ${code}`,
+        "",
+        `It confirms a withdrawal of ${amountUsdt.toFixed(2)} USDT to ${phone}.`,
+        "The code expires in 1 minute and can be entered 3 times.",
+        "",
+        "If you did not request this, ignore this email and no money will leave your account.",
+        "",
+        "CryptoMagg",
+      ].join("\n"),
+    });
+    if (!sent) throw new Error("We could not email your code right now. Please try again shortly.");
+
+    const masked = email.replace(/^(.).*(@.*)$/, (_m, first: string, rest: string) => `${first}***${rest}`);
+    return { sentTo: masked, expiresInSeconds: OTP_TTL_MS / 1000 };
+  });
+
+async function consumeWithdrawalCode(userId: string, code: string, amountUsdt: number, phone: string) {
+  const db = await admin();
+  const { data: otp } = await db
+    .from("withdrawal_otps")
+    .select("*")
+    .eq("user_id", userId)
+    .is("consumed_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!otp) throw new Error("Request a new confirmation code to continue.");
+  if (new Date(otp.expires_at).getTime() <= Date.now()) {
+    await db.from("withdrawal_otps").update({ consumed_at: new Date().toISOString() }).eq("id", otp.id);
+    throw new Error("That code has expired. Request a new one.");
+  }
+  if (Number(otp.attempts) >= OTP_MAX_ATTEMPTS) {
+    await db.from("withdrawal_otps").update({ consumed_at: new Date().toISOString() }).eq("id", otp.id);
+    throw new Error("Too many wrong codes. Request a new one.");
+  }
+  if (otp.code_hash !== (await hashCode(code))) {
+    await db.from("withdrawal_otps").update({ attempts: Number(otp.attempts) + 1 }).eq("id", otp.id);
+    const left = OTP_MAX_ATTEMPTS - (Number(otp.attempts) + 1);
+    throw new Error(left > 0 ? `That code is not correct. ${left} attempt${left === 1 ? "" : "s"} left.` : "Too many wrong codes. Request a new one.");
+  }
+  if (Math.abs(Number(otp.amount_usdt) - amountUsdt) > 0.001 || otp.phone !== phone) {
+    throw new Error("The amount or number changed. Request a new confirmation code.");
+  }
+  await db.from("withdrawal_otps").update({ consumed_at: new Date().toISOString() }).eq("id", otp.id);
+}
 
 /**
  * Requests a payout. The amount leaves the balance immediately so it cannot be
@@ -198,6 +310,9 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
     if (amountUsdt < LIVE_MIN_WITHDRAWAL) {
       throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
     }
+
+    // No money moves until the emailed one time code checks out.
+    await consumeWithdrawalCode(context.userId, data.code, amountUsdt, phone);
 
     const db = await admin();
     const { data: rows, error } = await db.rpc("hold_withdrawal_amount", {
