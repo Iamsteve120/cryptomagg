@@ -213,12 +213,82 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           : "Could not submit the withdrawal. Please try again.",
       );
     }
+
+    const { data: profile } = await db
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const { sendB2cPayout, b2cConfigured } = await import("./mpesa.server");
+    let status: "pending" | "completed" | "failed" = "pending";
+
+    if (b2cConfigured()) {
+      const rate = await usdKesRate();
+      if (rate === null) {
+        status = "pending";
+      } else {
+        try {
+          const payout = await sendB2cPayout({
+            phone,
+            amountKes: Math.round(amountUsdt * rate),
+            remarks: "CryptoMagg withdrawal",
+            resultUrl:
+              (process.env["MPESA_CALLBACK_URL"] ?? "").split("?")[0] ??
+              "https://cryptomagg.site/api/public/mpesa-callback",
+          });
+          status = "completed";
+          await db
+            .from("withdrawal_requests")
+            .update({
+              status: "completed",
+              provider_receipt: payout.conversationId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", created.id);
+          await db
+            .from("transactions")
+            .update({ status: "completed" })
+            .eq("user_id", context.userId)
+            .eq("kind", "withdrawal")
+            .eq("status", "pending")
+            .eq("amount", amountUsdt);
+        } catch (payoutError) {
+          console.error("B2C payout failed", payoutError);
+          status = "failed";
+          // Return the held amount to the trader's balance.
+          const { data: balanceRow } = await db
+            .from("profiles")
+            .select("live_balance")
+            .eq("id", context.userId)
+            .single();
+          await db
+            .from("profiles")
+            .update({
+              live_balance: Number(balanceRow?.live_balance ?? 0) + amountUsdt,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", context.userId);
+          await db
+            .from("withdrawal_requests")
+            .update({
+              status: "failed",
+              failure_reason: "provider_error",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", created.id);
+          await db
+            .from("transactions")
+            .update({ status: "failed" })
+            .eq("user_id", context.userId)
+            .eq("kind", "withdrawal")
+            .eq("status", "pending")
+            .eq("amount", amountUsdt);
+        }
+      }
+    }
+
     try {
-      const { data: profile } = await db
-        .from("profiles")
-        .select("email, full_name")
-        .eq("id", context.userId)
-        .maybeSingle();
       if (profile?.email) {
         const { sendWithdrawalReceipt } = await import("./email.server");
         await sendWithdrawalReceipt({
@@ -226,14 +296,21 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           name: profile.full_name,
           amountUsdt,
           phone,
-          status: "pending",
+          status,
         });
       }
     } catch (mailError) {
       console.error("Withdrawal email failed", mailError);
     }
 
-    return { id: created.id, amountUsdt };
+    if (status === "failed") {
+      return {
+        ok: false as const,
+        error:
+          "M Pesa could not send the payout, so the amount was returned to your balance. Please try again.",
+      };
+    }
+    return { ok: true as const, id: created.id, amountUsdt, status };
   });
 
 /** The trader's own funding history for the real account. */
