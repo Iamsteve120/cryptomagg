@@ -240,7 +240,6 @@ export const placeTrade = createServerFn({ method: "POST" })
       const { realMoneyEnabled } = await import("./mpesa.server");
       if (!realMoneyEnabled()) throw new Error("Real trading is not switched on yet.");
       if (!synthetic) throw new Error("Real accounts trade the synthetic crypto instruments only.");
-      if (!synthetic) throw new Error("Real accounts trade the synthetic crypto instruments only.");
 
       const { LIVE_MAX_OPEN_TRADES_PER_TRADER, LIVE_MAX_STAKE, LIVE_MAX_TOTAL_EXPOSURE, LIVE_MIN_STAKE, LIVE_PAYOUT_RATE } = await import("./live-trading");
       const liveStake = Math.round(data.stake * 100) / 100;
