@@ -18,7 +18,7 @@ export const LIVE_MIN_DEPOSIT = 0.39;
 export const LIVE_MAX_DEPOSIT = 500;
 
 /** Minimum withdrawal, in USDT. */
-export const LIVE_MIN_WITHDRAWAL = 5;
+export const LIVE_MIN_WITHDRAWAL = 0.39;
 
 /** Smallest USDT crypto transfer we credit. */
 export const USDT_MIN_DEPOSIT = 10;
