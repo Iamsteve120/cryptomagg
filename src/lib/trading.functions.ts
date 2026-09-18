@@ -380,9 +380,8 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: open } = await db
       .from("trades")
-      .select("id, symbol, entry_price")
+      .select("id, symbol, entry_price, account_mode")
       .eq("user_id", context.userId)
-      .eq("account_mode", "demo")
       .eq("status", "open");
     if (!open || open.length === 0) return { closed: 0 };
 
@@ -398,11 +397,14 @@ export const stopAllDemoTrades = createServerFn({ method: "POST" })
           price = await priceForSymbol(trade.symbol).catch(() => Number(trade.entry_price));
           prices.set(trade.symbol, price);
         }
-        const { error } = await db.rpc("close_demo_trade_at_live_pnl", {
-          p_user_id: context.userId,
-          p_trade_id: trade.id,
-          p_exit_price: price,
-        });
+        const { error } = await db.rpc(
+          trade.account_mode === "live" ? "settle_live_trade_at_market" : "close_demo_trade_at_live_pnl",
+          {
+            p_user_id: context.userId,
+            p_trade_id: trade.id,
+            p_exit_price: price,
+          },
+        );
         if (error) {
           failed += 1;
           console.error("Stop-all failed for trade", trade.id, error.message);
