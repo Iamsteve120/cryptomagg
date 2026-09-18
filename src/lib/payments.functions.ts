@@ -238,6 +238,7 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           p_failure_reason: "exchange_rate_unavailable",
         });
       } else {
+        let providerAccepted = false;
         try {
           const payout = await sendB2cPayout({
             phone,
@@ -247,6 +248,7 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
               (process.env["MPESA_CALLBACK_URL"] ?? "").split("?")[0] ??
               "https://cryptomagg.site/api/public/mpesa-callback",
           });
+          providerAccepted = true;
           const { data: accepted, error: acceptError } = await db.rpc("accept_mpesa_withdrawal", {
             p_request_id: created.id,
             p_conversation_id: payout.conversationId,
@@ -257,11 +259,17 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           status = "pending";
         } catch (payoutError) {
           console.error("B2C payout failed", payoutError);
-          status = "failed";
-          await db.rpc("refund_pending_withdrawal", {
-            p_request_id: created.id,
-            p_failure_reason: "provider_error",
-          });
+          if (providerAccepted) {
+            // Never refund after Daraja accepted the payout: it may still reach
+            // the phone, and refunding here could pay the same withdrawal twice.
+            status = "pending";
+          } else {
+            status = "failed";
+            await db.rpc("refund_pending_withdrawal", {
+              p_request_id: created.id,
+              p_failure_reason: "provider_error",
+            });
+          }
         }
       }
     }
