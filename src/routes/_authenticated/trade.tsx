@@ -115,7 +115,17 @@ function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade:
   const tpDistance = hasLevels ? Math.abs(tp - entry) : 0;
   const slDistance = hasLevels ? Math.abs(sl - entry) : 0;
   const tpHit = hasLevels && favorable && tpDistance > 0 && movement >= tpDistance;
-  const slHit = hasLevels && !favorable && slDistance > 0 && Math.abs(movement) >= slDistance;
+  const slAmount = Number(trade.stop_loss_amount ?? (stake * Number(trade.stop_loss_percent ?? 0)) / 100);
+  const slHit = hasLevels && !favorable && ((slDistance > 0 && Math.abs(movement) >= slDistance) || (slAmount > 0 && livePnl <= -slAmount));
+
+  // Reaching Stop Loss must close the position right away, not wait for expiry.
+  const autoStopped = useRef(false);
+  useEffect(() => {
+    if (!slHit || stopping || autoStopped.current) return;
+    autoStopped.current = true;
+    onStop();
+  }, [slHit, stopping, onStop]);
+
 
   return (
     <li className="rounded-md border border-border/70 bg-secondary/20 p-3">
