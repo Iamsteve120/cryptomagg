@@ -255,9 +255,11 @@ function TradePage() {
   const signal = useMemo(() => signalFor(quote?.sparkline ?? [], quote?.change24h ?? 0), [quote]);
   const openAutoSymbols = useMemo(() => new Set(openTrades.filter((trade) => trade.trade_source === "auto").map((trade) => trade.symbol)), [openTrades]);
   const autoCandidate = useMemo(() => {
+    const tradable = new Set(marketList.map((item) => item.symbol));
+    const universe = quotes.filter((item) => tradable.has(item.symbol));
     const allowed = activeBotPairsRef.current;
-    const pool = allowed.length > 0 ? quotes.filter((item) => allowed.includes(item.symbol)) : quotes;
-    const available = (pool.length > 0 ? pool : quotes)
+    const pool = allowed.length > 0 ? universe.filter((item) => allowed.includes(item.symbol)) : universe;
+    const available = (pool.length > 0 ? pool : universe)
       .map((item) => ({ quote: item, signal: signalFor(item.sparkline, item.change24h) }))
       .filter((item) => !openAutoSymbols.has(item.quote.symbol));
     const ranked = available
