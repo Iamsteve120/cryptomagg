@@ -115,7 +115,17 @@ function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade:
   const tpDistance = hasLevels ? Math.abs(tp - entry) : 0;
   const slDistance = hasLevels ? Math.abs(sl - entry) : 0;
   const tpHit = hasLevels && favorable && tpDistance > 0 && movement >= tpDistance;
-  const slHit = hasLevels && !favorable && slDistance > 0 && Math.abs(movement) >= slDistance;
+  const slAmount = Number(trade.stop_loss_amount ?? (stake * Number(trade.stop_loss_percent ?? 0)) / 100);
+  const slHit = hasLevels && !favorable && ((slDistance > 0 && Math.abs(movement) >= slDistance) || (slAmount > 0 && livePnl <= -slAmount));
+
+  // Reaching Stop Loss must close the position right away, not wait for expiry.
+  const autoStopped = useRef(false);
+  useEffect(() => {
+    if (!slHit || stopping || autoStopped.current) return;
+    autoStopped.current = true;
+    onStop();
+  }, [slHit, stopping, onStop]);
+
 
   return (
     <li className="rounded-md border border-border/70 bg-secondary/20 p-3">
@@ -136,14 +146,14 @@ function ActivePosition({ trade, currentPrice, now, stopping, onStop }: { trade:
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Live PNL</p>
           <p className={cn("num text-lg font-semibold tabular-nums", favorable ? "text-primary" : "text-destructive")}>{livePnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(livePnl))} USD</p>
         </div>
-        <p className="num text-right text-[11px] text-muted-foreground">Entry ${formatPrice(entry)}<br />Live ${formatPrice(price)}</p>
+        <p className="num text-right text-[11px] text-muted-foreground">Live ${formatPrice(price)}</p>
       </div>
 
       {hasLevels ? (
         <>
           <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
             <div className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5"><span className="text-muted-foreground">Take Profit</span><p className="num font-semibold text-primary">+${formatMoney(Number(trade.take_profit_amount ?? (stake * Number(trade.take_profit_percent ?? 0)) / 100))}</p></div>
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">-${formatMoney(Number(trade.stop_loss_amount ?? (stake * Number(trade.stop_loss_percent ?? 0)) / 100))}</p></div>
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5"><span className="text-muted-foreground">Stop Loss</span><p className="num font-semibold text-destructive">-${formatMoney(slAmount)}</p></div>
           </div>
           <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-secondary" aria-label={`Position progress ${Math.round(progress)} percent`}>
             <div className="absolute left-1/2 top-0 h-full w-px bg-foreground/40" />
@@ -475,7 +485,7 @@ function TradePage() {
             const tradeStake = Number(trade.stake);
             const tpAmount = Number(trade.take_profit_amount ?? (tradeStake * Number(trade.take_profit_percent ?? 0)) / 100);
             const slAmount = Number(trade.stop_loss_amount ?? (tradeStake * Number(trade.stop_loss_percent ?? 0)) / 100);
-            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(tradeStake)} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Entry / Live</p><p className="num mt-1">{formatPrice(Number(trade.entry_price))} / {formatPrice(trade.status === "open" ? liveState.price : Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">+${formatMoney(tpAmount)} / -${formatMoney(slAmount)}</p></div><div className="text-right"><p className={cn("num font-semibold tabular-nums transition-colors", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live now" : trade.status}</p></div></div>;
+            return <div key={trade.id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center"><div className="flex items-center gap-2"><AssetIcon symbol={trade.symbol} className="size-7" /><div><p className="font-semibold">{trade.symbol} <span className={trade.direction === "up" ? "text-primary" : "text-destructive"}>{trade.direction === "up" ? "Up" : "Down"}</span></p><p className="text-[11px] text-muted-foreground">{formatMoney(tradeStake)} USD | {trade.status === "open" ? <Countdown expiresAt={trade.expires_at} /> : `${trade.duration_seconds}s`}</p></div></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">Live price</p><p className="num mt-1">{formatPrice(trade.status === "open" ? liveState.price : Number(trade.exit_price ?? trade.entry_price))}</p></div><div className="hidden text-xs sm:block"><p className="text-muted-foreground">TP / SL</p><p className="num mt-1">+${formatMoney(tpAmount)} / -${formatMoney(slAmount)}</p></div><div className="text-right"><p className={cn("num font-semibold tabular-nums transition-colors", pnl >= 0 ? "text-primary" : "text-destructive")}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))}</p><p className="mt-1 text-[11px] capitalize text-muted-foreground">{trade.status === "open" ? "Live now" : trade.status}</p></div></div>;
           })}</div>}
         </section>
       ) : <div className="grid gap-2 lg:grid-cols-12">
