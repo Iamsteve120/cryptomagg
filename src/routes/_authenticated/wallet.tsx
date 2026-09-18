@@ -257,6 +257,8 @@ function WalletPage() {
             </aside>
           </section>
 
+          <UsdtDepositPanel />
+
           <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4 rounded-lg border border-border bg-card p-5">
               <div className="flex items-start gap-3">
