@@ -618,7 +618,7 @@ function TradePage() {
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="stake" className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount ({unit})</Label>
-                <span className="num text-[10px] text-muted-foreground">Min 1 | Max 500</span>
+                <span className="num text-[10px] text-muted-foreground">Min 0.35 | Max 500</span>
               </div>
               <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="0.35" max="500" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} />
               <div className="mt-1.5 grid grid-cols-5 gap-1">
@@ -731,7 +731,7 @@ function TradePage() {
             <div>
               <Label htmlFor="botStake">Amount per trade (USD)</Label>
               <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.35" max="2000" step="0.01" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
-              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 1 USD | Maximum 2,000 USD</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 0.35 USD | Maximum 2,000 USD</p>
             </div>
             <div>
               <Label htmlFor="botDuration">How long should each trade run?</Label>
