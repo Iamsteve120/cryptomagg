@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
 import { ThemeToggle } from "@/components/theme-mode";
+import { LanguagePicker, useLanguage } from "@/components/language-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
