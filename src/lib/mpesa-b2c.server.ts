@@ -7,6 +7,14 @@
  * with Safaricom's production certificate; nothing is cached or compared.
  */
 
+import {
+  constants,
+  createPublicKey,
+  publicEncrypt,
+  X509Certificate,
+  type KeyObject,
+} from "node:crypto";
+
 const PRODUCTION_BASE_URL = "https://api.safaricom.co.ke";
 
 /** Callback URLs always use the custom domain, never a preview host. */
