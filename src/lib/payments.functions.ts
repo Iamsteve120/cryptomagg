@@ -421,7 +421,7 @@ export const getFundingActivity = createServerFn({ method: "GET" })
         .limit(20),
       db
         .from("withdrawal_requests")
-        .select("id, amount_usdt, status, created_at")
+        .select("id, amount_usdt, status, created_at, provider_receipt, failure_reason")
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
         .limit(20),
