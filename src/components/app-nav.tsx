@@ -52,7 +52,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex">
-          {links.map((l) => (
+          {navLinks.map((l) => (
             <Link
               key={l.to}
               to={l.to}
@@ -82,13 +82,13 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         </div>
       </div>
 
-      <nav className="grid grid-cols-6 gap-1 border-t border-border bg-background px-2 py-2 lg:hidden">
-        {links.map((l) => (
+      <nav className="flex gap-1 overflow-x-auto border-t border-border bg-background px-2 py-2 lg:hidden">
+        {navLinks.map((l) => (
           <Link
             key={l.to}
             to={l.to}
             activeProps={{ className: "bg-accent text-accent-foreground" }}
-            className="flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted-foreground"
+            className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted-foreground"
           >
             <l.icon className="size-4" />
             {l.label}
