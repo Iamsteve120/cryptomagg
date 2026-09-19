@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      b2c_callback_events: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          originator_conversation_id: string | null
+          result_code: number | null
+          result_desc: string | null
+          transaction_receipt: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          originator_conversation_id?: string | null
+          result_code?: number | null
+          result_desc?: string | null
+          transaction_receipt?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          originator_conversation_id?: string | null
+          result_code?: number | null
+          result_desc?: string | null
+          transaction_receipt?: string | null
+        }
+        Relationships: []
+      }
       crypto_deposits: {
         Row: {
           address: string
@@ -119,6 +152,30 @@ export type Database = {
           id?: string
           kind?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_flags: {
+        Row: {
+          code: string | null
+          detail: string | null
+          enabled: boolean
+          flag: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          detail?: string | null
+          enabled?: boolean
+          flag: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          detail?: string | null
+          enabled?: boolean
+          flag?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -386,9 +443,12 @@ export type Database = {
           created_at: string
           failure_reason: string | null
           id: string
+          originator_conversation_id: string | null
           phone: string
           provider_conversation_id: string | null
           provider_receipt: string | null
+          receiver_name: string | null
+          result_code: number | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -401,9 +461,12 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
+          originator_conversation_id?: string | null
           phone: string
           provider_conversation_id?: string | null
           provider_receipt?: string | null
+          receiver_name?: string | null
+          result_code?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -416,9 +479,12 @@ export type Database = {
           created_at?: string
           failure_reason?: string | null
           id?: string
+          originator_conversation_id?: string | null
           phone?: string
           provider_conversation_id?: string | null
           provider_receipt?: string | null
+          receiver_name?: string | null
+          result_code?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -496,6 +562,24 @@ export type Database = {
         }
         Returns: number
       }
+      finalize_b2c_withdrawal: {
+        Args: {
+          p_conversation_id: string
+          p_originator_conversation_id: string
+          p_receipt?: string
+          p_receiver_name?: string
+          p_result_code?: number
+          p_result_desc?: string
+          p_success: boolean
+        }
+        Returns: {
+          amount_usdt: number
+          final_status: string
+          phone: string
+          request_id: string
+          user_id: string
+        }[]
+      }
       finalize_mpesa_withdrawal: {
         Args: {
           p_conversation_id: string
@@ -525,9 +609,44 @@ export type Database = {
           created_at: string
           failure_reason: string | null
           id: string
+          originator_conversation_id: string | null
           phone: string
           provider_conversation_id: string | null
           provider_receipt: string | null
+          receiver_name: string | null
+          result_code: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "withdrawal_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      hold_withdrawal_for_payout: {
+        Args: {
+          p_amount: number
+          p_originator_conversation_id: string
+          p_phone: string
+          p_user_id: string
+        }
+        Returns: {
+          amount_usdt: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          originator_conversation_id: string | null
+          phone: string
+          provider_conversation_id: string | null
+          provider_receipt: string | null
+          receiver_name: string | null
+          result_code: number | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string

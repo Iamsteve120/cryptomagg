@@ -19,6 +19,11 @@ import {
   adminPortalLogout,
   adminPortalStatus,
 } from "@/lib/admin-portal.functions";
+import {
+  checkB2cCredential,
+  getB2cDiagnostics,
+  unblockB2cPayouts,
+} from "@/lib/admin-b2c.functions";
 
 export const Route = createFileRoute("/ops-console")({
   head: () => ({
