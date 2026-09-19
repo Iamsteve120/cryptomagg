@@ -235,6 +235,10 @@ export async function sendB2cPayout(input: {
   if (!consumerKey || !consumerSecret || !shortcode || !initiator || !securityCredential) {
     throw new Error("mpesa_payout_not_configured");
   }
+  // Safaricom rejects a plain password; encrypt it with their production
+  // certificate when the stored value is not already an encrypted credential.
+  const { buildSecurityCredential } = await import("./mpesa-credential.server");
+  const encryptedCredential = buildSecurityCredential(securityCredential);
 
   const live = process.env["MPESA_ENV"] === "production";
   const baseUrl = live ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
@@ -256,7 +260,7 @@ export async function sendB2cPayout(input: {
     body: JSON.stringify({
       OriginatorConversationID: crypto.randomUUID(),
       InitiatorName: initiator,
-      SecurityCredential: securityCredential,
+      SecurityCredential: encryptedCredential,
       CommandID: "BusinessPayment",
       Amount: Math.max(1, Math.round(input.amountKes)),
       PartyA: shortcode,
