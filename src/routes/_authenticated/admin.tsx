@@ -223,7 +223,7 @@ function AdminPage() {
             <>
               <dl className="grid grid-cols-2 gap-2 text-xs">
                 {[
-                  ["Full name", detail.data.profile.full_name ?? [detail.data.profile.first_name, detail.data.profile.last_name].filter(Boolean).join(" ") || "—"],
+                  ["Full name", detail.data.profile.full_name ?? ([detail.data.profile.first_name, detail.data.profile.last_name].filter(Boolean).join(" ") || "—")],
                   ["Country", detail.data.profile.country ?? "—"],
                   ["Phone", detail.data.profile.phone ?? "—"],
                   ["Verification", detail.data.profile.kyc_status],
