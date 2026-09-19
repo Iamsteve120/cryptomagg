@@ -1,11 +1,4 @@
 import { ASSETS } from "./assets";
-import {
-  SYNTHETIC_INSTRUMENTS,
-  isSyntheticSymbol,
-  syntheticCandles,
-  syntheticChange24h,
-  syntheticPrice,
-} from "./synthetic";
 
 let lastSuccessfulQuotes: MarketQuote[] | null = null;
 
@@ -22,8 +15,6 @@ export type MarketQuote = {
   sparkline: number[];
   payoutRate: number;
   live: boolean;
-  /** True for generated instruments that are not real coins. */
-  synthetic?: boolean;
 };
 
 function fallbackQuotes(): MarketQuote[] {
