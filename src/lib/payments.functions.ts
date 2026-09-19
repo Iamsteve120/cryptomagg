@@ -291,8 +291,9 @@ async function consumeWithdrawalCode(userId: string, code: string, amountUsdt: n
 }
 
 /**
- * Requests a payout. The amount leaves the balance immediately so it cannot be
- * traded or withdrawn twice, then waits for review before M Pesa pays out.
+ * Requests a payout. The amount is reserved from the balance in one database
+ * transaction, then queued with M Pesa. A queued payout is NOT paid: only the
+ * Safaricom result callback marks it complete or refunds it.
  */
 export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -303,6 +304,11 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
     const { realMoneyEnabled } = await import("./mpesa.server");
     if (!realMoneyEnabled()) throw new Error("Withdrawals are not switched on yet.");
 
+    const b2c = await import("./mpesa-b2c.server");
+    if (!b2c.b2cConfigured()) throw new Error("Withdrawals are temporarily unavailable.");
+    const block = await b2c.readB2cBlock();
+    if (block.blocked) throw new Error("Withdrawals are temporarily unavailable.");
+
     const phone = normaliseKenyanPhone(data.phone);
     if (!phone) throw new Error("Enter a valid Safaricom number, for example 0712345678.");
 
@@ -311,85 +317,79 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
       throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
     }
 
+    const rate = await usdKesRate();
+    if (rate === null) throw new Error("The shilling rate is unavailable. Please try again shortly.");
+    const amountKes = Math.max(1, Math.round(amountUsdt * rate));
+
     // No money moves until the emailed one time code checks out.
     await consumeWithdrawalCode(context.userId, data.code, amountUsdt, phone);
 
     const db = await admin();
-    const { data: rows, error } = await db.rpc("hold_withdrawal_amount", {
+    const originatorConversationId = crypto.randomUUID();
+    const { data: rows, error } = await db.rpc("hold_withdrawal_for_payout", {
       p_user_id: context.userId,
       p_amount: amountUsdt,
       p_phone: phone,
+      p_originator_conversation_id: originatorConversationId,
     });
     const created = rows?.[0];
     if (error || !created) {
+      const message = error?.message ?? "";
+      if (message.includes("Pending withdrawal")) {
+        throw new Error("You already have a withdrawal being processed. Please wait for it to finish.");
+      }
       throw new Error(
-        error?.message.includes("Insufficient")
+        message.includes("Insufficient")
           ? "That is more than your available balance."
           : "Could not submit the withdrawal. Please try again.",
       );
     }
 
-    const { data: profile } = await db
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", context.userId)
-      .maybeSingle();
-
-    const { sendB2cPayout, b2cConfigured } = await import("./mpesa.server");
-    let status: "pending" | "completed" | "failed" = "pending";
-
-    if (!b2cConfigured()) {
-      status = "failed";
-      await db.rpc("refund_pending_withdrawal", {
-        p_request_id: created.id,
-        p_failure_reason: "payout_not_configured",
+    let queued = false;
+    try {
+      const submission = await b2c.submitB2cPayout({
+        phone,
+        amountKes,
+        originatorConversationId,
+        remarks: "Withdrawal",
       });
-    } else {
-      const rate = await usdKesRate();
-      if (rate === null) {
-        status = "failed";
+      if (submission.queued) {
+        queued = true;
+        await db
+          .from("withdrawal_requests")
+          .update({
+            provider_conversation_id: submission.conversationId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", created.id);
+      } else {
         await db.rpc("refund_pending_withdrawal", {
           p_request_id: created.id,
-          p_failure_reason: "exchange_rate_unavailable",
+          p_failure_reason: submission.description.slice(0, 200),
         });
-      } else {
-        let providerAccepted = false;
-        try {
-          const payout = await sendB2cPayout({
-            phone,
-            amountKes: Math.round(amountUsdt * rate),
-            remarks: "CryptoMagg withdrawal",
-            resultUrl:
-              (process.env["MPESA_CALLBACK_URL"] ?? "").split("?")[0] ??
-              "https://cryptomagg.site/api/public/mpesa-callback",
-          });
-          providerAccepted = true;
-          const { data: accepted, error: acceptError } = await db.rpc("accept_mpesa_withdrawal", {
-            p_request_id: created.id,
-            p_conversation_id: payout.conversationId,
-          });
-          if (acceptError || !accepted) throw new Error("payout_tracking_failed");
-          // Daraja has accepted the request, but it is not complete until its
-          // result callback confirms that money reached the phone.
-          status = "pending";
-        } catch (payoutError) {
-          console.error("B2C payout failed", payoutError);
-          if (providerAccepted) {
-            // Never refund after Daraja accepted the payout: it may still reach
-            // the phone, and refunding here could pay the same withdrawal twice.
-            status = "pending";
-          } else {
-            status = "failed";
-            await db.rpc("refund_pending_withdrawal", {
-              p_request_id: created.id,
-              p_failure_reason: "provider_error",
-            });
-          }
-        }
       }
+    } catch (payoutError) {
+      console.error("[b2c] payout submission error", payoutError);
+      await db.rpc("refund_pending_withdrawal", {
+        p_request_id: created.id,
+        p_failure_reason: "provider_unreachable",
+      });
+    }
+
+    if (!queued) {
+      return {
+        ok: false as const,
+        error:
+          "M Pesa did not accept the payout request, so the amount was returned to your balance. Please try again.",
+      };
     }
 
     try {
+      const { data: profile } = await db
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", context.userId)
+        .maybeSingle();
       if (profile?.email) {
         const { sendWithdrawalReceipt } = await import("./email.server");
         await sendWithdrawalReceipt({
@@ -397,21 +397,14 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
           name: profile.full_name,
           amountUsdt,
           phone,
-          status,
+          status: "pending",
         });
       }
     } catch (mailError) {
       console.error("Withdrawal email failed", mailError);
     }
 
-    if (status === "failed") {
-      return {
-        ok: false as const,
-        error:
-          "M Pesa could not start the payout, so the amount was returned to your balance. Please try again.",
-      };
-    }
-    return { ok: true as const, id: created.id, amountUsdt, status };
+    return { ok: true as const, id: created.id, amountUsdt, status: "pending" as const };
   });
 
 /** The trader's own funding history for the real account. */
