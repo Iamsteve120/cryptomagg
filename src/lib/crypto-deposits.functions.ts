@@ -109,3 +109,87 @@ export const getUsdtDeposits = createServerFn({ method: "GET" })
       .limit(20);
     return { deposits: data ?? [] };
   });
+
+/**
+ * Confirms a Bitcoin transfer on the network and credits the real
+ * balance once, using the USD value at the time of confirmation.
+ */
+export const confirmBtcDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => schema.parse(data))
+  .handler(async ({ data, context }) => {
+    rateLimit(context.userId, 10);
+
+    const address = (await import("./live-trading")).BTC_DEPOSIT_ADDRESSES[0].address;
+    const { verifyBtcTransfer } = await import("./btc.server");
+    const result = await verifyBtcTransfer(data.txHash, address);
+
+    if (!result.ok) {
+      if (result.reason === "network_error") {
+        return { ok: false as const, error: "The Bitcoin network could not be reached. Please try again shortly." };
+      }
+      if (result.reason === "not_confirmed") {
+        return { ok: false as const, error: "That transfer has no confirmations yet. Please wait a few minutes and try again." };
+      }
+      if (result.reason === "wrong_address") {
+        return { ok: false as const, error: "That transfer was not sent to your CryptoMagg Bitcoin deposit address." };
+      }
+      return {
+        ok: false as const,
+        error: "We cannot see that transfer. Please check the transaction ID and try again.",
+      };
+    }
+
+    const { priceForSymbol } = await import("./market.server");
+    const btcPrice = await priceForSymbol("BTC");
+    const amountUsd = Math.floor(result.amountBtc * btcPrice * 100) / 100;
+
+    const { BTC_MIN_DEPOSIT_USD } = await import("./live-trading");
+    if (amountUsd < BTC_MIN_DEPOSIT_USD) {
+      return {
+        ok: false as const,
+        error: `The smallest BTC deposit value is ${BTC_MIN_DEPOSIT_USD} USD. That transfer was worth approximately ${amountUsd} USD.`,
+      };
+    }
+
+    const db = await admin();
+    // Reusing the same RPC; it handles idempotency via tx_hash and credits live_balance.
+    // We pass 'bitcoin' as network so it is clear in the history.
+    const { data: balance, error } = await db.rpc("credit_crypto_deposit", {
+      p_user_id: context.userId,
+      p_tx_hash: data.txHash.trim().toLowerCase(),
+      p_amount: amountUsd,
+      p_network: "bitcoin",
+      p_address: address,
+    });
+
+    if (error) {
+      if (error.message.includes("already credited")) {
+        return { ok: false as const, error: "That transfer has already been credited." };
+      }
+      return { ok: false as const, error: "Could not credit the deposit. Please try again." };
+    }
+
+    try {
+      const { data: profile } = await db
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", context.userId)
+        .maybeSingle();
+      if (profile?.email) {
+        const { sendDepositReceipt } = await import("./email.server");
+        await sendDepositReceipt({
+          to: profile.email,
+          name: profile.full_name,
+          amountUsdt: amountUsd,
+          amountKes: 0,
+          receipt: data.txHash.trim(),
+          balanceUsdt: Number(balance),
+        });
+      }
+    } catch (mailError) {
+      console.error("BTC deposit email failed", mailError);
+    }
+
+    return { ok: true as const, amountUsdt: amountUsd, balance: Number(balance) };
+  });

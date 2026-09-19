@@ -1,17 +1,16 @@
 # Roadmap
 
-## Done
-- Admin overview page (role-checked server side), range chips 10 min → 1 month, KPI deltas, client search + client detail.
-- Client IDs (IDCW0682xx) generated at sign-up, backfilled, shown on profile, searchable in admin.
-- Forgot password + /reset-password page; Continue with Google and Continue with Apple.
-- Extended sign-up: first/second name, email confirmation, country, phone, terms tick, 18+ tick.
-- Identity document upload (/verify) into private storage + congratulations email.
-- Login/activity tracking with heartbeat.
-- Mobile pass: zoom lock, scrollable nav and chips, truncating headers, tables scroll inside cards.
-- Removed generated badge/icons from the landing page and the "Trade crypto the simple way" footer text.
+## Current work
+- [ ] Keep account and operations navigation hidden during sign-in, sign-up, identity capture, and admin sign-in.
+- [ ] Require live front/back camera capture for National ID, driver's licence, and passport; store both privately.
+- [ ] Add a 29-second automated processing state and clearly distinguish it from third-party identity verification.
+- [ ] Show protected identity-document previews in each client's operations-console details.
+- [ ] Upgrade account, payment, withdrawal-code, and receipt emails to branded CryptoMagg HTML with plain-text fallback.
+- [ ] Verify Google and Apple sign-in/sign-up paths.
+- [ ] Add Bitcoin as a second crypto deposit option using bc1q4zv3u25cmhw5nga995jveya0aalxxvqeqsvuqa, QR/copy, confirmed-chain crediting, 10 USD minimum, and history.
+- [ ] Verify mobile layouts and end-to-end behavior.
 
-## Open (waiting on the owner)
-- Valid M-Pesa B2C initiator name + production security credential (payouts fail: "initiator information is invalid").
-- Raise testing minimums (deposit/withdrawal 0.39 USDT, stake 0.35 USDT) back to production values before public launch.
-- Second distinct USDT deposit address, if still wanted.
-- Compliance: licence, KYC/AML review, segregated client funds.
+## Existing open items
+- [ ] Valid M-Pesa B2C initiator name + production security credential (payouts currently refund after provider rejection).
+- [ ] Raise testing minimums (deposit/withdrawal 0.39 USDT, stake 0.35 USDT) before public launch.
+- [ ] Compliance: licence, formal KYC/AML review, and segregated client funds.

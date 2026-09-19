@@ -22,6 +22,8 @@ export const LIVE_MIN_WITHDRAWAL = 0.39;
 
 /** Smallest USDT crypto transfer we credit. */
 export const USDT_MIN_DEPOSIT = 10;
+n/** Smallest BTC crypto transfer we credit, in USD equivalent. */
+export const BTC_MIN_DEPOSIT_USD = 10;
 
 /** Receiving addresses for USDT crypto deposits. */
 export const USDT_DEPOSIT_ADDRESSES: readonly { label: string; network: string; address: string }[] = [
@@ -29,6 +31,15 @@ export const USDT_DEPOSIT_ADDRESSES: readonly { label: string; network: string; 
     label: "USDT wallet 1",
     network: "Tron (TRC 20)",
     address: "TBWg9bx8uDr6Y9bQVqDXUZEbsrESWCyv2z",
+  },
+];
+
+/** Receiving addresses for Bitcoin deposits. */
+export const BTC_DEPOSIT_ADDRESSES: readonly { label: string; network: string; address: string }[] = [
+  {
+    label: "Bitcoin wallet",
+    network: "Bitcoin",
+    address: "bc1q4zv3u25cmhw5nga995jveya0aalxxvqeqsvuqa",
   },
 ];
 
