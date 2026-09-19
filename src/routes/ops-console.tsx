@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/assets";
 import {
@@ -13,20 +14,25 @@ import {
   searchClients,
   type AdminRangeKey,
 } from "@/lib/admin.functions";
+import {
+  adminPortalLogin,
+  adminPortalLogout,
+  adminPortalStatus,
+} from "@/lib/admin-portal.functions";
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/ops-console")({
   head: () => ({
     meta: [
-      { title: "Admin | CryptoMagg" },
-      { name: "description", content: "Internal CryptoMagg client and activity overview." },
-      { property: "og:title", content: "Admin | CryptoMagg" },
-      { property: "og:description", content: "Internal client and activity overview." },
+      { title: "Operations console" },
+      { name: "description", content: "Private operations console." },
+      { property: "og:title", content: "Operations console" },
+      { property: "og:description", content: "Private operations console." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: AdminPage,
+  component: OpsConsolePage,
 });
 
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
@@ -40,19 +46,98 @@ function Delta({ value }: { value: number | null }) {
   if (value === null) return <span className="text-[11px] text-muted-foreground">new</span>;
   const up = value >= 0;
   return (
-    <span
-      className={cn(
-        "num text-[11px] font-semibold",
-        up ? "text-primary" : "text-destructive",
-      )}
-    >
+    <span className={cn("num text-[11px] font-semibold", up ? "text-primary" : "text-destructive")}>
       {up ? "+" : "−"}
       {Math.abs(value).toFixed(1)}%
     </span>
   );
 }
 
-function AdminPage() {
+function OpsConsolePage() {
+  const queryClient = useQueryClient();
+  const statusFn = useServerFn(adminPortalStatus);
+  const status = useQuery({
+    queryKey: ["admin-portal-status"],
+    queryFn: () => statusFn(),
+    staleTime: 60_000,
+  });
+
+  if (status.isLoading) {
+    return <div className="min-h-dvh bg-background" />;
+  }
+
+  return (
+    <div className="min-h-dvh bg-background px-4 py-6 text-foreground">
+      <div className="mx-auto w-full max-w-5xl min-w-0">
+        {status.data?.signedIn ? (
+          <Console onSignedOut={() => queryClient.invalidateQueries()} />
+        ) : (
+          <LoginCard onSignedIn={() => queryClient.invalidateQueries()} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LoginCard({ onSignedIn }: { onSignedIn: () => void }) {
+  const login = useServerFn(adminPortalLogin);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await login({ data: { username, password } });
+      if (res.ok) onSignedIn();
+      else setError("Those details are not correct.");
+    } catch {
+      setError("Sign in is unavailable right now.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mx-auto mt-10 w-full max-w-sm space-y-4 rounded-xl border border-border/70 bg-card p-5"
+    >
+      <div>
+        <p className="text-lg font-semibold">Operations console</p>
+        <p className="mt-1 text-xs text-muted-foreground">Authorised staff only.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="ops-user">Username</Label>
+        <Input
+          id="ops-user"
+          value={username}
+          autoComplete="username"
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="ops-pass">Password</Label>
+        <Input
+          id="ops-pass"
+          type="password"
+          value={password}
+          autoComplete="current-password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <Button type="submit" className="w-full" disabled={busy}>
+        {busy ? "Checking…" : "Sign in"}
+      </Button>
+    </form>
+  );
+}
+
+function Console({ onSignedOut }: { onSignedOut: () => void }) {
   const [range, setRange] = useState<AdminRangeKey>("1d");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -60,6 +145,7 @@ function AdminPage() {
   const overviewFn = useServerFn(getAdminOverview);
   const searchFn = useServerFn(searchClients);
   const detailFn = useServerFn(getClientDetail);
+  const logoutFn = useServerFn(adminPortalLogout);
 
   const overview = useQuery({
     queryKey: ["admin-overview", range],
@@ -79,29 +165,25 @@ function AdminPage() {
     enabled: selected !== null,
   });
 
-  if (overview.isError) {
-    return (
-      <div className="mx-auto max-w-md rounded-xl border border-border/70 bg-card p-5 text-center">
-        <p className="font-semibold">This area is restricted</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Your account does not have access to the admin overview.
-        </p>
-        <Button asChild className="mt-4">
-          <Link to="/dashboard">Back to dashboard</Link>
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full min-w-0 space-y-5">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold sm:text-2xl">Admin overview</h1>
+          <h1 className="truncate text-xl font-semibold sm:text-2xl">Operations console</h1>
           <p className="truncate text-xs text-muted-foreground sm:text-sm">
             Clients, activity and money movement.
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            await logoutFn();
+            onSignedOut();
+          }}
+        >
+          Sign out
+        </Button>
       </header>
 
       <div className="-mx-4 overflow-x-auto px-4 pb-1">
@@ -223,7 +305,13 @@ function AdminPage() {
             <>
               <dl className="grid grid-cols-2 gap-2 text-xs">
                 {[
-                  ["Full name", detail.data.profile.full_name ?? ([detail.data.profile.first_name, detail.data.profile.last_name].filter(Boolean).join(" ") || "—")],
+                  [
+                    "Full name",
+                    detail.data.profile.full_name ??
+                      ([detail.data.profile.first_name, detail.data.profile.last_name]
+                        .filter(Boolean)
+                        .join(" ") || "—"),
+                  ],
                   ["Country", detail.data.profile.country ?? "—"],
                   ["Phone", detail.data.profile.phone ?? "—"],
                   ["Verification", detail.data.profile.kyc_status],
@@ -231,7 +319,12 @@ function AdminPage() {
                   ["Over 18 confirmed", detail.data.profile.age_confirmed ? "Yes" : "No"],
                   ["Terms accepted", detail.data.profile.terms_accepted_at ? "Yes" : "No"],
                   ["Signed up", new Date(detail.data.profile.created_at).toLocaleString()],
-                  ["Last seen", detail.data.profile.last_seen_at ? new Date(detail.data.profile.last_seen_at).toLocaleString() : "—"],
+                  [
+                    "Last seen",
+                    detail.data.profile.last_seen_at
+                      ? new Date(detail.data.profile.last_seen_at).toLocaleString()
+                      : "—",
+                  ],
                   ["Real balance", formatMoney(Number(detail.data.profile.live_balance)) + " USDT"],
                   ["Demo balance", "$" + formatMoney(Number(detail.data.profile.demo_balance))],
                   ["Total deposited", formatMoney(detail.data.totals.deposited) + " USDT"],

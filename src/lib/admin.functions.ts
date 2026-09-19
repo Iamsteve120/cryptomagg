@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** Selectable reporting windows, in minutes. */
 export const ADMIN_RANGES = {
@@ -23,20 +22,13 @@ function normaliseRange(value: unknown): AdminRangeKey {
   return RANGE_KEYS.includes(value as AdminRangeKey) ? (value as AdminRangeKey) : "1d";
 }
 
-type AuthContext = { supabase: { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown }> }; userId: string };
-
 /**
- * Every admin read is gated here: the role lives in its own table and is read
- * through the caller's own session, so a client cannot claim to be an admin.
+ * Every admin read is gated on the encrypted admin portal session cookie, which
+ * is only issued after the separate username and password check on the server.
  */
-async function requireAdmin(context: AuthContext) {
-  const { data } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (data !== true) throw new Error("You do not have access to this area.");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+async function requireAdmin() {
+  const { requireAdminSession } = await import("./admin-portal.server");
+  return requireAdminSession();
 }
 
 function pct(current: number, previous: number): number | null {
@@ -44,21 +36,10 @@ function pct(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
-export const getAdminAccess = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    return { isAdmin: data === true };
-  });
-
 export const getAdminOverview = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { range?: string }) => ({ range: normaliseRange(input?.range) }))
-  .handler(async ({ data, context }) => {
-    const db = await requireAdmin(context as unknown as AuthContext);
+  .handler(async ({ data }) => {
+    const db = await requireAdmin();
     const minutes = ADMIN_RANGES[data.range].minutes;
     const now = Date.now();
     const windowMs = minutes * 60_000;
@@ -163,12 +144,11 @@ export const getAdminOverview = createServerFn({ method: "POST" })
   });
 
 export const searchClients = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { query?: string }) => ({
     query: String(input?.query ?? "").trim().slice(0, 80),
   }))
-  .handler(async ({ data, context }) => {
-    const db = await requireAdmin(context as unknown as AuthContext);
+  .handler(async ({ data }) => {
+    const db = await requireAdmin();
     let builder = db
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
@@ -195,12 +175,11 @@ export const searchClients = createServerFn({ method: "POST" })
   });
 
 export const getClientDetail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId?: string }) => ({
     clientId: String(input?.clientId ?? "").trim().slice(0, 40),
   }))
-  .handler(async ({ data, context }) => {
-    const db = await requireAdmin(context as unknown as AuthContext);
+  .handler(async ({ data }) => {
+    const db = await requireAdmin();
     if (!data.clientId) throw new Error("Client not found.");
 
     const { data: profile } = await db
