@@ -23,10 +23,10 @@ import {
 import {
   LIVE_MIN_DEPOSIT,
   LIVE_MIN_WITHDRAWAL,
-  USDT_DEPOSIT_ADDRESSES,
+  USDT_DEPOSIT_ADDRESSES, BTC_DEPOSIT_ADDRESSES, BTC_MIN_DEPOSIT_USD,
   USDT_MIN_DEPOSIT,
 } from "@/lib/live-trading";
-import { confirmUsdtDeposit, getUsdtDeposits } from "@/lib/crypto-deposits.functions";
+import { confirmUsdtDeposit, confirmBtcDeposit, getUsdtDeposits } from "@/lib/crypto-deposits.functions";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({
