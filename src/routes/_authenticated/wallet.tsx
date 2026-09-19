@@ -53,13 +53,13 @@ const PRESETS = [5, 10, 15, 20, 25, 30, 50, 100];
 
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Starting",
+  pending: "Processing",
   awaiting_user: "Waiting for your PIN",
   completed: "Completed",
-  paid: "Completed",
+  paid: "Paid out",
   failed: "Failed",
   approved: "Approved",
-  rejected: "Rejected",
+  rejected: "Failed",
   cancelled: "Cancelled",
 };
 
@@ -281,7 +281,7 @@ function WalletPage() {
         toast.error(result.error);
         return;
       }
-      toast.success("Withdrawal accepted. Waiting for M Pesa to confirm the payout.");
+      toast.success("Withdrawal sent to M Pesa. We will confirm once M Pesa completes the payout.");
       setWithdrawAmount("");
       setWithdrawCode("");
       setCodeSent(false);
@@ -530,10 +530,27 @@ function WalletPage() {
                   </li>
                 ))}
                 {(funding?.withdrawals ?? []).map((row) => (
-                  <li key={row.id} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Withdrawal</span>
-                    <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
-                    <StatusPill status={row.status} />
+                  <li key={row.id} className="space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Withdrawal</span>
+                      <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
+                      <StatusPill status={row.status} />
+                    </div>
+                    {row.provider_receipt ? (
+                      <p className="num text-[11px] text-muted-foreground">
+                        M Pesa receipt {row.provider_receipt}
+                      </p>
+                    ) : null}
+                    {row.status === "pending" ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        Sent to M Pesa. We confirm here once M Pesa completes the payout.
+                      </p>
+                    ) : null}
+                    {row.failure_reason && row.status !== "pending" ? (
+                      <p className="text-[11px] text-destructive">
+                        {row.failure_reason} — the amount was returned to your balance.
+                      </p>
+                    ) : null}
                   </li>
                 ))}
                 {(funding?.deposits.length ?? 0) === 0 && (funding?.withdrawals.length ?? 0) === 0 && (
