@@ -40,10 +40,13 @@ function throttle(key: string) {
 
 export async function signInAdmin(username: string, password: string, ip: string) {
   if (!throttle(ip)) return false;
-  const expectedUser = process.env["ADMIN_PORTAL_USERNAME"];
-  const expectedPass = process.env["ADMIN_PORTAL_PASSWORD"];
-  if (!expectedUser || !expectedPass) throw new Error("Admin portal is not configured.");
-  if (!matches(username, expectedUser) || !matches(password, expectedPass)) return false;
+  const pairs = [
+    [process.env["ADMIN_PORTAL_USERNAME"], process.env["ADMIN_PORTAL_PASSWORD"]],
+    [process.env["ADMIN_PORTAL_USERNAME_2"], process.env["ADMIN_PORTAL_PASSWORD_2"]],
+  ].filter(([u, p]) => Boolean(u) && Boolean(p)) as [string, string][];
+  if (pairs.length === 0) throw new Error("Admin portal is not configured.");
+  const ok = pairs.some(([u, p]) => matches(username, u) && matches(password, p));
+  if (!ok) return false;
   const session = await useSession<PortalSession>(sessionConfig());
   await session.update({ admin: true, at: Date.now() });
   attempts.delete(ip);
