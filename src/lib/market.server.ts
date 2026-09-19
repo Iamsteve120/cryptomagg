@@ -217,39 +217,12 @@ async function fetchExchangeQuotes(): Promise<MarketQuote[]> {
   }
 }
 
-/** Quotes for the generated crypto instruments, computed from the clock alone. */
-function syntheticQuotes(): MarketQuote[] {
-  const now = Date.now();
-  return SYNTHETIC_INSTRUMENTS.map((instrument) => {
-    const price = syntheticPrice(instrument.symbol, now);
-    const candles = syntheticCandles(instrument.symbol, 60, 60, now);
-    const closes = candles.map((candle) => candle.close);
-    return {
-      id: instrument.symbol.toLowerCase(),
-      symbol: instrument.symbol,
-      name: instrument.name,
-      price,
-      change24h: syntheticChange24h(instrument.symbol, now),
-      high24h: Math.max(...closes, price),
-      low24h: Math.min(...closes, price),
-      volume24h: 0,
-      marketCap: 0,
-      sparkline: closes,
-      payoutRate: instrument.payoutRate,
-      live: true,
-      synthetic: true,
-    } satisfies MarketQuote;
-  });
-}
-
-/** Exchange pairs plus the generated instruments, in one list. */
+/** Live quotes for the real crypto pairs. */
 export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
-  const exchange = await fetchExchangeQuotes();
-  return [...exchange, ...syntheticQuotes()];
+  return fetchExchangeQuotes();
 }
 
 export async function priceForSymbol(symbol: string): Promise<number> {
-  if (isSyntheticSymbol(symbol)) return syntheticPrice(symbol);
   const quotes = await fetchExchangeQuotes();
   const quote = quotes.find((q) => q.symbol === symbol);
   if (!quote) throw new Error("Unknown asset");
