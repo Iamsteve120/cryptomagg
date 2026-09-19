@@ -87,8 +87,7 @@ export function missingB2cSecrets(): string[] {
 
 /** Generated per request. Never cached, never logged, never compared. */
 function securityCredential(config: B2cConfig): string {
-  const { publicEncrypt, constants, createPublicKey, X509Certificate } = require("node:crypto") as typeof import("node:crypto");
-  let key;
+  let key: KeyObject;
   try {
     key = new X509Certificate(config.certPem).publicKey;
   } catch {
