@@ -140,6 +140,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
 }
 
 async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
+  await refreshSupplies();
   const rows = await Promise.all(ASSETS.map(async (asset) => {
     if (asset.tradable === false) {
       // Stablecoins have no USDT pair; they are listed for reference only.
@@ -152,7 +153,7 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
         high24h: asset.fallbackPrice,
         low24h: asset.fallbackPrice,
         volume24h: 0,
-        marketCap: 0,
+        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
         sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
         payoutRate: asset.payoutRate,
         live: false,
@@ -179,7 +180,7 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
       high24h: Number(ticker["highPrice"] ?? price),
       low24h: Number(ticker["lowPrice"] ?? price),
       volume24h: Number(ticker["quoteVolume"] ?? 0),
-      marketCap: 0,
+      marketCap: marketCapFor(asset.id, price),
       sparkline,
       payoutRate: asset.payoutRate,
       live: true,
