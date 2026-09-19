@@ -127,7 +127,7 @@ function AuthPage() {
   async function handleOAuth(provider: "google" | "apple") {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/auth",
     });
     if (result.error) {
       setBusy(false);
@@ -135,7 +135,18 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    router.navigate({ to: "/dashboard" });
+    const { data: current } = await supabase.auth.getUser();
+    if (!current.user) {
+      setBusy(false);
+      toast.error("That sign in did not finish. Please try again.");
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("kyc_status")
+      .eq("id", current.user.id)
+      .maybeSingle();
+    router.navigate({ to: profile?.kyc_status === "approved" ? "/dashboard" : "/verify" });
   }
 
   return (

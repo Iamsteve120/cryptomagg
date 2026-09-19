@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { USDT_DEPOSIT_ADDRESSES, USDT_MIN_DEPOSIT } from "./live-trading";
+import {
+  BTC_DEPOSIT_ADDRESSES,
+  BTC_MIN_DEPOSIT_USD,
+  USDT_DEPOSIT_ADDRESSES,
+  USDT_MIN_DEPOSIT,
+} from "./live-trading";
 
 const RATE_WINDOW_MS = 60_000;
 const hits = new Map<string, number[]>();
@@ -96,14 +101,14 @@ export const confirmUsdtDeposit = createServerFn({ method: "POST" })
     return { ok: true as const, amountUsdt: result.amountUsdt, balance: Number(balance) };
   });
 
-/** The trader's own USDT deposit history. */
+/** The trader's own crypto deposit history. */
 export const getUsdtDeposits = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const db = await admin();
     const { data } = await db
       .from("crypto_deposits")
-      .select("id, amount_usdt, status, tx_hash, created_at")
+      .select("id, amount_usdt, status, tx_hash, network, created_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -120,7 +125,9 @@ export const confirmBtcDeposit = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, 10);
 
-    const address = (await import("./live-trading")).BTC_DEPOSIT_ADDRESSES[0].address;
+    const wallet = BTC_DEPOSIT_ADDRESSES[0];
+    if (!wallet) throw new Error("Bitcoin deposits are unavailable right now.");
+    const address = wallet.address;
     const { verifyBtcTransfer } = await import("./btc.server");
     const result = await verifyBtcTransfer(data.txHash, address);
 
@@ -144,7 +151,6 @@ export const confirmBtcDeposit = createServerFn({ method: "POST" })
     const btcPrice = await priceForSymbol("BTC");
     const amountUsd = Math.floor(result.amountBtc * btcPrice * 100) / 100;
 
-    const { BTC_MIN_DEPOSIT_USD } = await import("./live-trading");
     if (amountUsd < BTC_MIN_DEPOSIT_USD) {
       return {
         ok: false as const,

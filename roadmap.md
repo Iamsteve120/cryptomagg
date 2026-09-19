@@ -2,7 +2,7 @@
 
 ## Current work
 - [ ] Keep account and operations navigation hidden during sign-in, sign-up, identity capture, and admin sign-in.
-- [ ] Require live front/back camera capture for National ID, driver's licence, and passport; store both privately.
+- [ ] Require front/back camera capture or file upload for National ID, driver's licence, and passport; store both privately.
 - [ ] Add a 29-second automated processing state and clearly distinguish it from third-party identity verification.
 - [ ] Show protected identity-document previews in each client's operations-console details.
 - [ ] Upgrade account, payment, withdrawal-code, and receipt emails to branded CryptoMagg HTML with plain-text fallback.

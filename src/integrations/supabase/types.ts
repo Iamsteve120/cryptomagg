@@ -133,9 +133,13 @@ export type Database = {
           first_name: string | null
           full_name: string | null
           id: string
+          kyc_approved_at: string | null
+          kyc_doc_back_path: string | null
+          kyc_doc_front_path: string | null
           kyc_doc_path: string | null
           kyc_doc_type: string | null
           kyc_status: string
+          kyc_submitted_at: string | null
           last_name: string | null
           last_seen_at: string | null
           live_balance: number
@@ -153,9 +157,13 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           id: string
+          kyc_approved_at?: string | null
+          kyc_doc_back_path?: string | null
+          kyc_doc_front_path?: string | null
           kyc_doc_path?: string | null
           kyc_doc_type?: string | null
           kyc_status?: string
+          kyc_submitted_at?: string | null
           last_name?: string | null
           last_seen_at?: string | null
           live_balance?: number
@@ -173,9 +181,13 @@ export type Database = {
           first_name?: string | null
           full_name?: string | null
           id?: string
+          kyc_approved_at?: string | null
+          kyc_doc_back_path?: string | null
+          kyc_doc_front_path?: string | null
           kyc_doc_path?: string | null
           kyc_doc_type?: string | null
           kyc_status?: string
+          kyc_submitted_at?: string | null
           last_name?: string | null
           last_seen_at?: string | null
           live_balance?: number

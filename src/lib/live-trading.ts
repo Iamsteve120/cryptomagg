@@ -22,7 +22,8 @@ export const LIVE_MIN_WITHDRAWAL = 0.39;
 
 /** Smallest USDT crypto transfer we credit. */
 export const USDT_MIN_DEPOSIT = 10;
-n/** Smallest BTC crypto transfer we credit, in USD equivalent. */
+
+/** Smallest BTC crypto transfer we credit, in USD equivalent. */
 export const BTC_MIN_DEPOSIT_USD = 10;
 
 /** Receiving addresses for USDT crypto deposits. */
