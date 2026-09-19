@@ -49,20 +49,17 @@ function Landing() {
       </header>
 
       <section className="grid-glow border-y border-border/60">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:py-24">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Activity className="size-3.5" /> Live prices · simulated money
-          </span>
-          <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-[1.05] sm:text-6xl">
-            Learn the market. <span className="text-primary">Build your trading discipline.</span>
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:py-24">
+          <h1 className="max-w-3xl text-3xl font-bold leading-[1.1] sm:text-6xl">
+            Trade the crypto market. <span className="text-primary">Fund, trade, withdraw.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-            CryptoMagg mirrors real market movement from a live price feed, then lets you practise
-            up/down trades, deposits and withdrawals with a $10,000 demo balance.
+            CryptoMagg follows live market prices and lets you take up or down positions, fund your
+            account by M-Pesa or USDT, and request a withdrawal whenever you want.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link to="/auth">Create free demo account</Link>
+              <Link to="/auth">Open an account</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link to="/auth">Explore the markets</Link>
@@ -71,19 +68,19 @@ function Landing() {
 
           <div className="mt-12 grid gap-3 sm:grid-cols-3">
             {[
-              { icon: Activity, title: "Real market data", body: "Live prices across 10 major coins." },
-              { icon: Wallet, title: "Simulated wallet", body: "Deposits and withdrawals that move demo funds only." },
-              { icon: ShieldCheck, title: "Zero risk", body: "No payments, no real wallets, no exposure." },
+              { title: "Live market prices", body: "Prices move with the market, all day." },
+              { title: "Instant funding", body: "M-Pesa STK push or USDT on TRC-20." },
+              { title: "Withdraw on request", body: "Payouts sent straight to your M-Pesa." },
             ].map((f) => (
-              <div key={f.title} className="rounded-xl border border-border/70 bg-card/70 p-4">
-                <f.icon className="size-5 text-primary" />
-                <p className="mt-3 font-semibold">{f.title}</p>
+              <div key={f.title} className="min-w-0 rounded-xl border border-border/70 bg-card/70 p-4">
+                <p className="font-semibold">{f.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+
 
       <section className="mx-auto max-w-7xl px-4 py-14">
         <h2 className="text-2xl font-semibold">Live markets</h2>
