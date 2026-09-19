@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, Activity, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { DemoFooter } from "@/components/demo-banner";
@@ -9,17 +8,16 @@ import { useMarkets } from "@/hooks/use-trading";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CryptoMagg | Practise Crypto Trading" },
+      { title: "CryptoMagg | Crypto Trading, Funded by M-Pesa" },
       {
         name: "description",
         content:
-          "CryptoMagg is a crypto trading simulator with live market prices, simulated deposits and up/down trades. No real money is involved.",
+          "CryptoMagg lets you trade the crypto market with live prices, fund your account by M-Pesa or USDT, and withdraw whenever you request it.",
       },
-      { property: "og:title", content: "CryptoMagg | Crypto Trading Simulator" },
+      { property: "og:title", content: "CryptoMagg | Crypto Trading, Funded by M-Pesa" },
       {
         property: "og:description",
-        content:
-          "Live market prices, simulated wallet and up/down trades. Practise trading with zero risk.",
+        content: "Live market prices, instant M-Pesa funding and withdrawals on request.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -33,20 +31,19 @@ function Landing() {
   const quotes = data?.quotes ?? [];
 
   return (
-    <div className="min-h-screen">
-      
-
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+    <div className="min-h-screen overflow-x-hidden">
+      <header className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4">
         <BrandLogo size="md" />
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost">
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
             <Link to="/auth">Sign in</Link>
           </Button>
-          <Button asChild>
-            <Link to="/auth">Start demo</Link>
+          <Button asChild size="sm">
+            <Link to="/auth">Open account</Link>
           </Button>
         </div>
       </header>
+
 
       <section className="grid-glow border-y border-border/60">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:py-24">

@@ -79,13 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CryptoMagg | Crypto Trading Simulator" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" },
+      { title: "CryptoMagg | Crypto Trading, Funded by M-Pesa" },
       {
         name: "description",
         content:
-          "CryptoMagg is a demo crypto trading simulator with live market prices and fully simulated deposits, withdrawals and trades.",
+          "CryptoMagg lets you trade the crypto market with live prices, fund by M-Pesa or USDT, and withdraw on request.",
       },
+
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
