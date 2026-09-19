@@ -50,24 +50,25 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
               activeProps={{ className: "bg-accent text-accent-foreground" }}
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
             >
-              {l.label}
+              {t(l.label)}
             </Link>
           ))}
         </nav>
 
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
-          <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label="Account type">
-            <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>Demo</Button>
-            <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>Real</Button>
+          <LanguagePicker />
+          <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label={t("accountType")}>
+            <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>{t("demo")}</Button>
+            <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>{t("real")}</Button>
           </div>
           <div className="hidden rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right sm:block">
-            <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? "Demo USD" : "Real USDT"}</p>
+            <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? t("demoBalance") : t("realBalance")}</p>
             <p className="num text-sm font-semibold text-primary">
-              {balance === null ? "Unavailable" : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
+              {balance === null ? t("unavailable") : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label={t("signOut")}>
             <LogOut className="size-4" />
           </Button>
         </div>
@@ -82,7 +83,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
             className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted-foreground"
           >
             <l.icon className="size-4" />
-            {l.label}
+            {t(l.label)}
           </Link>
         ))}
       </nav>
