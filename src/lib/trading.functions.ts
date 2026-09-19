@@ -24,15 +24,52 @@ async function admin() {
 async function ensureProfile(userId: string, email: string | null) {
   const db = await admin();
   const { data } = await db.from("profiles").select("*").eq("id", userId).maybeSingle();
-  if (data) return data;
-  const { data: created, error } = await db
-    .from("profiles")
-    .insert({ id: userId, email, demo_balance: 10000 })
-    .select("*")
-    .single();
-  if (error) throw new Error("Could not prepare your demo account.");
-  return created;
+  let profile = data;
+  if (!profile) {
+    const { data: created, error } = await db
+      .from("profiles")
+      .insert({ id: userId, email, demo_balance: 10000 })
+      .select("*")
+      .single();
+    if (error) throw new Error("Could not prepare your demo account.");
+    profile = created;
+  }
+
+  // Every account carries a permanent client ID, and the details captured at
+  // sign up are copied onto the profile the first time the client is seen.
+  if (!profile.client_id) {
+    const { data: clientId } = await db.rpc("next_client_id");
+    const { data: userRecord } = await db.auth.admin.getUserById(userId);
+    const meta = (userRecord?.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const text = (value: unknown) =>
+      typeof value === "string" && value.trim().length > 0 ? value.trim().slice(0, 120) : null;
+    const patch: Record<string, unknown> = { client_id: clientId };
+    if (!profile.first_name && text(meta["first_name"])) patch["first_name"] = text(meta["first_name"]);
+    if (!profile.last_name && text(meta["last_name"])) patch["last_name"] = text(meta["last_name"]);
+    if (!profile.country && text(meta["country"])) patch["country"] = text(meta["country"]);
+    if (!profile.phone && text(meta["phone"])) patch["phone"] = text(meta["phone"]);
+    if (!profile.full_name) {
+      patch["full_name"] =
+        text(meta["full_name"]) ??
+        [text(meta["first_name"]), text(meta["last_name"])].filter(Boolean).join(" ") ??
+        null;
+    }
+    if (meta["age_confirmed"] === true) patch["age_confirmed"] = true;
+    if (meta["terms_accepted"] === true && !profile.terms_accepted_at) {
+      patch["terms_accepted_at"] = new Date().toISOString();
+    }
+    const { data: updated } = await db
+      .from("profiles")
+      .update(patch)
+      .eq("id", userId)
+      .select("*")
+      .single();
+    if (updated) profile = updated;
+  }
+
+  return profile;
 }
+
 
 /**
  * Real trades settle on the published series at the exact expiry moment: up
