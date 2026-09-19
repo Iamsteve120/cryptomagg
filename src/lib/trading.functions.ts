@@ -43,7 +43,17 @@ async function ensureProfile(userId: string, email: string | null) {
     const meta = (userRecord?.user?.user_metadata ?? {}) as Record<string, unknown>;
     const text = (value: unknown) =>
       typeof value === "string" && value.trim().length > 0 ? value.trim().slice(0, 120) : null;
-    const patch: Record<string, unknown> = { client_id: clientId };
+    const patch: {
+      client_id: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      country?: string | null;
+      phone?: string | null;
+      full_name?: string | null;
+      age_confirmed?: boolean;
+      terms_accepted_at?: string;
+    } = { client_id: (clientId as string | null) ?? null };
+
     if (!profile.first_name && text(meta["first_name"])) patch["first_name"] = text(meta["first_name"]);
     if (!profile.last_name && text(meta["last_name"])) patch["last_name"] = text(meta["last_name"]);
     if (!profile.country && text(meta["country"])) patch["country"] = text(meta["country"]);
