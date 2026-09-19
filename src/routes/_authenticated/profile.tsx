@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -67,7 +68,7 @@ function ProfilePage() {
   return (
     <div className="max-w-3xl space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Profile</h1>
+        <h1 className="text-2xl font-semibold">{tr("Profile")}</h1>
         <p className="text-sm text-muted-foreground">
           {mode === "demo" ? "Manage your practice account." : "View your Real account profile."}
         </p>
@@ -85,19 +86,19 @@ function ProfilePage() {
 
       <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4">
         <div className="space-y-2">
-          <Label htmlFor="clientId">Client ID</Label>
+          <Label htmlFor="clientId">{tr("Client ID")}</Label>
           <Input id="clientId" className="num" value={data?.profile?.client_id ?? "Pending"} readOnly disabled />
           <p className="text-xs text-muted-foreground">
             Quote this ID whenever you contact CryptoMagg support.
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{tr("Email")}</Label>
           <Input id="email" value={data?.profile?.email ?? ""} readOnly disabled />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">Display name</Label>
+          <Label htmlFor="name">{tr("Display name")}</Label>
           <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
         <Button
@@ -110,7 +111,7 @@ function ProfilePage() {
 
       <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
         <div className="border-l-2 border-primary pl-3">
-          <p className="font-semibold">Reset demo account</p>
+          <p className="font-semibold">{tr("Reset demo account")}</p>
           <p className="text-sm text-muted-foreground">
             Clears all simulated trades and wallet activity, and restores your $10,000 demo balance.
           </p>
@@ -127,7 +128,7 @@ function ProfilePage() {
       </div>
 
       <div className="rounded-xl border border-border/70 bg-card p-4">
-        <p className="font-semibold">Session</p>
+        <p className="font-semibold">{tr("Session")}</p>
         <Button
           variant="outline"
           className="mt-3"

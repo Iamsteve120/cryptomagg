@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
@@ -177,7 +178,7 @@ function AuthPage() {
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="min-w-0 space-y-2">
-                    <Label htmlFor="firstName">First name</Label>
+                    <Label htmlFor="firstName">{tr("First name")}</Label>
                     <Input
                       id="firstName"
                       required
@@ -187,7 +188,7 @@ function AuthPage() {
                     />
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <Label htmlFor="lastName">Second name</Label>
+                    <Label htmlFor="lastName">{tr("Second name")}</Label>
                     <Input
                       id="lastName"
                       required
@@ -199,7 +200,7 @@ function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
+                  <Label htmlFor="country">{tr("Country")}</Label>
                   <select
                     id="country"
                     required
@@ -216,7 +217,7 @@ function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Mobile phone number</Label>
+                  <Label htmlFor="phone">{tr("Mobile phone number")}</Label>
                   <Input
                     id="phone"
                     required
@@ -231,7 +232,7 @@ function AuthPage() {
             ) : null}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{tr("Email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -245,7 +246,7 @@ function AuthPage() {
 
             {mode === "signup" ? (
               <div className="space-y-2">
-                <Label htmlFor="confirmEmail">Confirm email</Label>
+                <Label htmlFor="confirmEmail">{tr("Confirm email")}</Label>
                 <Input
                   id="confirmEmail"
                   type="email"
@@ -259,7 +260,7 @@ function AuthPage() {
 
             {mode !== "forgot" ? (
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{tr("Password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -294,7 +295,7 @@ function AuthPage() {
                     checked={confirmAge}
                     onChange={(e) => setConfirmAge(e.target.checked)}
                   />
-                  <span className="min-w-0">I confirm that I am 18 years of age or older.</span>
+                  <span className="min-w-0">{tr("I confirm that I am 18 years of age or older.")}</span>
                 </label>
               </div>
             ) : null}

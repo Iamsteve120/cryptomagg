@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { CryptoCard } from "@/components/ui/asset-card";
@@ -35,7 +36,7 @@ function Markets() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Markets</h1>
+          <h1 className="text-2xl font-semibold">{tr("Markets")}</h1>
           <p className="text-sm text-muted-foreground">
             {isFetching ? "Refreshing live prices…" : "Live prices, refreshed automatically."}
           </p>
@@ -43,7 +44,7 @@ function Markets() {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search asset"
+          placeholder={tr("Search asset")}
           className="w-full sm:w-64"
         />
       </div>
@@ -56,7 +57,7 @@ function Markets() {
 
       <section className="space-y-3 pt-2">
         <div>
-          <h2 className="text-xl font-semibold">Market rankings</h2>
+          <h2 className="text-xl font-semibold">{tr("Market rankings")}</h2>
           <p className="text-sm text-muted-foreground">Top coins by market cap and volume, plus today's biggest movers.</p>
         </div>
         <MarketRankings quotes={data?.quotes ?? []} />

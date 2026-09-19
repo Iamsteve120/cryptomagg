@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
@@ -60,14 +61,14 @@ function ResetPasswordPage() {
         <div className="flex justify-center">
           <BrandLogo size="lg" />
         </div>
-        <h1 className="mt-6 text-xl font-semibold sm:text-2xl">Set a new password</h1>
+        <h1 className="mt-6 text-xl font-semibold sm:text-2xl">{tr("Set a new password")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Open this page from the link in your email, then choose a new password.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New password</Label>
+            <Label htmlFor="newPassword">{tr("New password")}</Label>
             <Input
               id="newPassword"
               type="password"
@@ -79,7 +80,7 @@ function ResetPasswordPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Label htmlFor="confirmPassword">{tr("Confirm new password")}</Label>
             <Input
               id="confirmPassword"
               type="password"

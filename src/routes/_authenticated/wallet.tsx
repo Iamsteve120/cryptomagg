@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -156,7 +157,7 @@ function UsdtDepositPanel() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="txHash">Transaction ID from your wallet</Label>
+        <Label htmlFor="txHash">{tr("Transaction ID from your wallet")}</Label>
         <Input
           id="txHash"
           placeholder="Paste the transaction ID (hash)"
@@ -178,7 +179,7 @@ function UsdtDepositPanel() {
       </Button>
 
       <div>
-        <p className="text-sm font-semibold">USDT deposits</p>
+        <p className="text-sm font-semibold">{tr("USDT deposits")}</p>
         <ul className="mt-2 space-y-2 text-sm">
           {(history?.deposits ?? []).map((row) => (
             <li key={row.id} className="flex items-center justify-between gap-3">
@@ -190,7 +191,7 @@ function UsdtDepositPanel() {
             </li>
           ))}
           {(history?.deposits.length ?? 0) === 0 && (
-            <li className="text-muted-foreground">Nothing yet.</li>
+            <li className="text-muted-foreground">{tr("Nothing yet.")}</li>
           )}
         </ul>
       </div>
@@ -295,7 +296,7 @@ function WalletPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Wallet</h1>
+        <h1 className="text-2xl font-semibold">{tr("Wallet")}</h1>
         <p className="text-sm text-muted-foreground">
           {mode === "demo"
             ? "Your Demo balance changes only through trades or a full account reset."
@@ -335,7 +336,7 @@ function WalletPage() {
                   <Smartphone className="size-5" />
                 </div>
                 <div>
-                  <h2 className="font-display text-lg font-semibold">Deposit with M Pesa</h2>
+                  <h2 className="font-display text-lg font-semibold">{tr("Deposit with M Pesa")}</h2>
                   <p className="text-sm text-muted-foreground">
                     Enter your number and amount. A PIN prompt is sent to your phone.
                   </p>
@@ -343,7 +344,7 @@ function WalletPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Quick amount</Label>
+                <Label>{tr("Quick amount")}</Label>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                   {PRESETS.map((value) => (
                     <Button
@@ -374,7 +375,7 @@ function WalletPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="livePhone">M Pesa number</Label>
+                  <Label htmlFor="livePhone">{tr("M Pesa number")}</Label>
                   <Input
                     id="livePhone"
                     inputMode="tel"
@@ -404,7 +405,7 @@ function WalletPage() {
 
             <aside className="space-y-4 rounded-lg border border-border bg-card p-5">
               <div>
-                <p className="text-sm font-semibold">Trade carefully</p>
+                <p className="text-sm font-semibold">{tr("Trade carefully")}</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Short term trading loses money for most people. Never stake money you need.
                 </p>
@@ -422,7 +423,7 @@ function WalletPage() {
                   <ArrowUpFromLine className="size-5" />
                 </div>
                 <div>
-                  <h2 className="font-display text-lg font-semibold">Withdraw to M Pesa</h2>
+                  <h2 className="font-display text-lg font-semibold">{tr("Withdraw to M Pesa")}</h2>
                   <p className="text-sm text-muted-foreground">
                     M Pesa confirms the payout before it is marked completed.
                   </p>
@@ -430,7 +431,7 @@ function WalletPage() {
               </div>
               <div className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
                 <div>
-                  <p className="text-xs text-muted-foreground">Available balance</p>
+                  <p className="text-xs text-muted-foreground">{tr("Available balance")}</p>
                   <p className="num text-xl font-semibold text-foreground">{formatMoney(balance)} USDT</p>
                 </div>
                 <Button
@@ -457,7 +458,7 @@ function WalletPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="withdrawPhone">M Pesa number</Label>
+                  <Label htmlFor="withdrawPhone">{tr("M Pesa number")}</Label>
                   <Input
                     id="withdrawPhone"
                     inputMode="tel"
@@ -465,16 +466,16 @@ function WalletPage() {
                     value={withdrawPhone}
                     onChange={(event) => setWithdrawPhone(event.target.value)}
                   />
-                  <p className="text-sm text-muted-foreground">Enter the phone that should receive the payout.</p>
+                  <p className="text-sm text-muted-foreground">{tr("Enter the phone that should receive the payout.")}</p>
                 </div>
               </div>
               {codeSent ? (
                 <div className="space-y-2">
-                  <Label htmlFor="withdrawCode">Email confirmation code</Label>
+                  <Label htmlFor="withdrawCode">{tr("Email confirmation code")}</Label>
                   <Input
                     id="withdrawCode"
                     autoComplete="one-time-code"
-                    placeholder="Enter the 6 character code"
+                    placeholder={tr("Enter the 6 character code")}
                     value={withdrawCode}
                     onChange={(event) => setWithdrawCode(event.target.value.toUpperCase())}
                   />
@@ -520,11 +521,11 @@ function WalletPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5">
-              <p className="text-sm font-semibold">Recent funding</p>
+              <p className="text-sm font-semibold">{tr("Recent funding")}</p>
               <ul className="mt-3 space-y-2 text-sm">
                 {(funding?.deposits ?? []).map((row) => (
                   <li key={row.id} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Deposit</span>
+                    <span className="text-muted-foreground">{tr("Deposit")}</span>
                     <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
                     <StatusPill status={row.status} />
                   </li>
@@ -532,7 +533,7 @@ function WalletPage() {
                 {(funding?.withdrawals ?? []).map((row) => (
                   <li key={row.id} className="space-y-1">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Withdrawal</span>
+                      <span className="text-muted-foreground">{tr("Withdrawal")}</span>
                       <span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span>
                       <StatusPill status={row.status} />
                     </div>
@@ -554,7 +555,7 @@ function WalletPage() {
                   </li>
                 ))}
                 {(funding?.deposits.length ?? 0) === 0 && (funding?.withdrawals.length ?? 0) === 0 && (
-                  <li className="text-muted-foreground">Nothing yet.</li>
+                  <li className="text-muted-foreground">{tr("Nothing yet.")}</li>
                 )}
               </ul>
             </div>
@@ -567,7 +568,7 @@ function WalletPage() {
               <ShieldCheck className="size-5" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-semibold">Demo wallet</h2>
+              <h2 className="font-display text-lg font-semibold">{tr("Demo wallet")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Deposits and withdrawals are unavailable in Demo mode. Use your starting balance to
                 practise, then reset the full Demo account from Profile when needed.
@@ -629,7 +630,7 @@ function BtcDepositPanel() {
           <Wallet className="size-5" />
         </div>
         <div>
-          <h2 className="font-display text-lg font-semibold">Deposit Bitcoin</h2>
+          <h2 className="font-display text-lg font-semibold">{tr("Deposit Bitcoin")}</h2>
           <p className="text-sm text-muted-foreground">
             Send BTC to the address below. Smallest deposit is ${BTC_MIN_DEPOSIT_USD} USD equivalent.
           </p>
@@ -664,7 +665,7 @@ function BtcDepositPanel() {
         <Label htmlFor="btcTxHash">Transaction ID (TXID)</Label>
         <Input
           id="btcTxHash"
-          placeholder="Paste the transaction ID"
+          placeholder={tr("Paste the transaction ID")}
           value={txHash}
           onChange={(event) => setTxHash(event.target.value)}
         />

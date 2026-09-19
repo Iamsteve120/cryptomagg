@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { DemoFooter } from "@/components/demo-banner";
@@ -36,10 +37,10 @@ function Landing() {
         <BrandLogo size="md" />
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/auth">Sign in</Link>
+            <Link to="/auth">{tr("Sign in")}</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/auth">Open account</Link>
+            <Link to="/auth">{tr("Open account")}</Link>
           </Button>
         </div>
       </header>
@@ -48,7 +49,7 @@ function Landing() {
       <section className="grid-glow border-y border-border/60">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:py-24">
           <h1 className="max-w-3xl text-3xl font-bold leading-[1.1] sm:text-6xl">
-            Trade the crypto market. <span className="text-primary">Fund, trade, withdraw.</span>
+            Trade the crypto market. <span className="text-primary">{tr("Fund, trade, withdraw.")}</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
             CryptoMagg follows live market prices and lets you take up or down positions, fund your
@@ -56,10 +57,10 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link to="/auth">Open an account</Link>
+              <Link to="/auth">{tr("Open an account")}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/auth">Explore the markets</Link>
+              <Link to="/auth">{tr("Explore the markets")}</Link>
             </Button>
           </div>
 
@@ -80,7 +81,7 @@ function Landing() {
 
 
       <section className="mx-auto max-w-7xl px-4 py-14">
-        <h2 className="text-2xl font-semibold">Live markets</h2>
+        <h2 className="text-2xl font-semibold">{tr("Live markets")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Prices update automatically throughout the day.
         </p>
@@ -90,11 +91,11 @@ function Landing() {
 
             <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Asset</th>
-                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">{tr("Asset")}</th>
+                <th className="px-4 py-3">{tr("Price")}</th>
                 <th className="px-4 py-3">24h</th>
                 <th className="hidden px-4 py-3 sm:table-cell">7d trend</th>
-                <th className="px-4 py-3 text-right">Payout</th>
+                <th className="px-4 py-3 text-right">{tr("Payout")}</th>
               </tr>
             </thead>
             <tbody>
