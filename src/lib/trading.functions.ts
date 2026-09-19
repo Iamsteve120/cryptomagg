@@ -82,12 +82,9 @@ async function ensureProfile(userId: string, email: string | null) {
 
 
 /**
- * Real trades settle on the published series at the exact expiry moment: up
- * wins when the level is above entry, down wins when it is below.
- *
- * Synthetic instruments settle at the price the series held at expiry, which
- * anyone can recompute from the instrument and the timestamp. Exchange pairs
- * settle at the exchange price. Nothing here can favour the house or a trader.
+ * Real trades settle on the live exchange price at expiry: up wins when the
+ * price is above entry, down wins when it is below. Nothing here can favour
+ * the house or a trader.
  */
 async function settleDueLiveTrades(userId: string) {
   const db = await admin();
@@ -270,11 +267,7 @@ export const placeTrade = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "trade", data.source === "auto" ? 45 : RATE_MAX);
 
-    const { SYNTHETIC_INSTRUMENTS } = await import("./synthetic");
-    const synthetic = SYNTHETIC_INSTRUMENTS.find((instrument) => instrument.symbol === data.symbol);
-    const asset = synthetic
-      ? { symbol: synthetic.symbol, name: synthetic.name, payoutRate: synthetic.payoutRate }
-      : ASSETS.find((a) => a.symbol === data.symbol);
+    const asset = ASSETS.find((a) => a.symbol === data.symbol && a.tradable !== false);
     if (!asset) throw new Error("Unsupported asset.");
     if (!DURATIONS.some((d) => d.seconds === data.durationSeconds)) {
       throw new Error("Unsupported duration.");
