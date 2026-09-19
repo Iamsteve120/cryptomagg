@@ -82,11 +82,12 @@ function Landing() {
       <section className="mx-auto max-w-7xl px-4 py-14">
         <h2 className="text-2xl font-semibold">Live markets</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Prices update automatically. Payout rates apply to simulated trades.
+          Prices update automatically throughout the day.
         </p>
 
-        <div className="mt-6 overflow-hidden rounded-xl border border-border/70 bg-card">
-          <table className="w-full text-sm">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-border/70 bg-card">
+          <table className="w-full min-w-[32rem] text-sm">
+
             <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Asset</th>
