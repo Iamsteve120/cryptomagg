@@ -1,11 +1,14 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, CandlestickChart } from "lucide-react";
+import { LineChart, Wallet, History, User, LayoutDashboard, LogOut, CandlestickChart, ShieldCheck } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAccountMode } from "@/components/account-mode";
 import { ThemeToggle } from "@/components/theme-mode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
+import { getAdminAccess } from "@/lib/admin.functions";
 
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -18,13 +21,27 @@ const links = [
 
 export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | null; liveBalance: number | null }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { mode, setMode } = useAccountMode();
   const balance = mode === "demo" ? demoBalance : liveBalance;
+  const adminAccess = useServerFn(getAdminAccess);
+  const admin = useQuery({
+    queryKey: ["admin-access"],
+    queryFn: () => adminAccess(),
+    staleTime: 300_000,
+  });
+  const isAdmin = admin.data?.isAdmin === true;
+  const navLinks = isAdmin
+    ? ([...links, { to: "/admin", label: "Admin", icon: ShieldCheck }] as const)
+    : links;
 
   async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
-    router.navigate({ to: "/auth" });
+    router.navigate({ to: "/auth", replace: true });
   }
+
 
   return (
     <header className="sticky top-0 z-[60] border-b border-border/70 bg-background/85 backdrop-blur">
