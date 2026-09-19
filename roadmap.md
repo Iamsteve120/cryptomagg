@@ -12,5 +12,6 @@
 
 ## Existing open items
 - [ ] Valid M-Pesa B2C initiator name + production security credential (payouts currently refund after provider rejection).
-- [ ] Raise testing minimums (deposit/withdrawal 0.39 USDT, stake 0.35 USDT) before public launch.
+- [ ] Raise testing minimums (deposit/withdrawal 0.39 USDT, stake 0.50 USDT) before public launch.
+- [x] Language picker (English, Kiswahili, French, Spanish) in the app header.
 - [ ] Compliance: licence, formal KYC/AML review, and segregated client funds.
