@@ -54,6 +54,40 @@ async function refreshSparklines() {
   }));
 }
 
+/**
+ * Circulating supply per coin, refreshed every ten minutes. Market cap is then
+ * supply times the live price, so the cap always agrees with the price shown.
+ */
+const supplyCache = new Map<string, number>();
+let supplyFetchedAt = 0;
+
+async function refreshSupplies() {
+  if (Date.now() - supplyFetchedAt < 600_000 && supplyCache.size > 0) return;
+  supplyFetchedAt = Date.now();
+  try {
+    const ids = ASSETS.map((asset) => asset.id).join(",");
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&per_page=250`,
+      { headers: { accept: "application/json" } },
+    );
+    if (!response.ok) return;
+    const rows = (await response.json()) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const supply = Number(row["circulating_supply"]);
+      const id = String(row["id"] ?? "");
+      if (id && Number.isFinite(supply) && supply > 0) supplyCache.set(id, supply);
+    }
+  } catch {
+    // Keep the previous supplies when the reference provider is unavailable.
+  }
+}
+
+function marketCapFor(id: string, price: number, previous?: number) {
+  const supply = supplyCache.get(id);
+  if (supply && Number.isFinite(price) && price > 0) return supply * price;
+  return previous ?? 0;
+}
+
 /** One request returns fresh prices for every tradable pair, so live PNL moves on each poll. */
 async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
   const tradable = ASSETS.filter((asset) => asset.tradable !== false);
