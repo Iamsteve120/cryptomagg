@@ -397,6 +397,130 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
           ) : null}
         </section>
       ) : null}
+
+      <PayoutPanel />
     </div>
+  );
+}
+
+function PayoutPanel() {
+  const diagnosticsFn = useServerFn(getB2cDiagnostics);
+  const checkFn = useServerFn(checkB2cCredential);
+  const unblockFn = useServerFn(unblockB2cPayouts);
+  const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const diagnostics = useQuery({
+    queryKey: ["admin-b2c"],
+    queryFn: () => diagnosticsFn(),
+    refetchInterval: 20_000,
+  });
+
+  const data = diagnostics.data;
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">M Pesa payouts</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {data
+              ? data.configured
+                ? "All payout details are present."
+                : `Missing: ${data.missingSecrets.join(", ")}`
+              : "Loading…"}
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const result = await checkFn();
+                setCheckResult(`${result.code} · ${result.description}`);
+              } catch (error) {
+                setCheckResult(error instanceof Error ? error.message : "Check failed.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Check details
+          </Button>
+          {data?.block.blocked ? (
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await unblockFn();
+                  await diagnostics.refetch();
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Unblock
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      {checkResult ? (
+        <p className="mt-2 break-words rounded bg-secondary p-2 text-xs">{checkResult}</p>
+      ) : null}
+
+      {data?.block.blocked ? (
+        <p className="mt-2 rounded bg-destructive/10 p-2 text-xs text-destructive">
+          Payouts are paused ({data.block.code ?? "blocked"}) since{" "}
+          {data.block.since ? new Date(data.block.since).toLocaleString() : "unknown"}.{" "}
+          {data.block.detail ?? ""}
+        </p>
+      ) : null}
+
+      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+        <p className="break-all">Result address: {data?.resultUrl ?? "—"}</p>
+        <p className="break-all">Timeout address: {data?.timeoutUrl ?? "—"}</p>
+      </div>
+
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Waiting on M Pesa
+      </p>
+      <ul className="mt-1 divide-y divide-border/60 text-xs">
+        {(data?.pending ?? []).map((row) => (
+          <li key={row.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
+            <span className="min-w-0 truncate">
+              {row.phone} · {new Date(row.created_at).toLocaleString()}
+            </span>
+            <span className="num shrink-0 font-semibold">{formatMoney(Number(row.amount_usdt))}</span>
+          </li>
+        ))}
+        {(data?.pending.length ?? 0) === 0 ? (
+          <li className="py-2 text-muted-foreground">Nothing waiting.</li>
+        ) : null}
+      </ul>
+
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Last 20 M Pesa replies
+      </p>
+      <ul className="mt-1 divide-y divide-border/60 text-xs">
+        {(data?.events ?? []).map((event) => (
+          <li key={event.id} className="py-2">
+            <p className="text-muted-foreground">
+              {new Date(event.created_at).toLocaleString()} · {event.kind} ·{" "}
+              {event.result_code ?? "—"}
+            </p>
+            <p className="break-words">{event.result_desc ?? ""}</p>
+          </li>
+        ))}
+        {(data?.events.length ?? 0) === 0 ? (
+          <li className="py-2 text-muted-foreground">No replies yet.</li>
+        ) : null}
+      </ul>
+    </section>
   );
 }
