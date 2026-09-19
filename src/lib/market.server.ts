@@ -17,6 +17,16 @@ export type MarketQuote = {
   live: boolean;
 };
 
+type RawTicker = {
+  price: number;
+  change24h: number;
+  high24h: number;
+  low24h: number;
+  volume24h: number;
+};
+
+const TRADABLE = ASSETS.filter((asset) => asset.tradable !== false);
+
 function fallbackQuotes(): MarketQuote[] {
   return ASSETS.map((a) => ({
     id: a.id,
@@ -41,7 +51,7 @@ let sparklineFetchedAt = 0;
 async function refreshSparklines() {
   if (Date.now() - sparklineFetchedAt < 60_000 && sparklineCache.size > 0) return;
   sparklineFetchedAt = Date.now();
-  await Promise.all(ASSETS.filter((asset) => asset.tradable !== false).map(async (asset) => {
+  await Promise.all(TRADABLE.map(async (asset) => {
     try {
       const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${asset.symbol}USDT&interval=1m&limit=60`, { headers: { accept: "application/json" } });
       if (!response.ok) return;
@@ -88,63 +98,127 @@ function marketCapFor(id: string, price: number, previous?: number) {
   return previous ?? 0;
 }
 
-/** One request returns fresh prices for every tradable pair, so live PNL moves on each poll. */
-async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
-  const tradable = ASSETS.filter((asset) => asset.tradable !== false);
-  const symbols = JSON.stringify(tradable.map((asset) => `${asset.symbol}USDT`));
-  const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`, { headers: { accept: "application/json" } });
-  if (!response.ok) return null;
-  const rows = await response.json() as Array<Record<string, unknown>>;
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  await Promise.all([refreshSparklines(), refreshSupplies()]);
-  const quotes = ASSETS.map((asset) => {
-    if (asset.tradable === false) {
-      return {
-        id: asset.id,
-        symbol: asset.symbol,
-        name: asset.name,
-        price: asset.fallbackPrice,
-        change24h: 0,
-        high24h: asset.fallbackPrice,
-        low24h: asset.fallbackPrice,
-      volume24h: 0,
-        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
-        sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
-        payoutRate: asset.payoutRate,
-        live: false,
-      } satisfies MarketQuote;
-    }
-    const row = rows.find((item) => item["symbol"] === `${asset.symbol}USDT`);
-    const price = Number(row?.["lastPrice"] ?? 0);
-    const previous = lastSuccessfulQuotes?.find((item) => item.symbol === asset.symbol);
-    if (!row || !Number.isFinite(price) || price <= 0) {
-      return previous ?? fallbackQuotes().find((item) => item.id === asset.id)!;
-    }
-    const sparkline = sparklineCache.get(asset.symbol) ?? previous?.sparkline ?? [];
-    return {
-      id: asset.id,
-      symbol: asset.symbol,
-      name: asset.name,
-      price,
-      change24h: Number(row["priceChangePercent"] ?? 0),
-      high24h: Number(row["highPrice"] ?? price),
-      low24h: Number(row["lowPrice"] ?? price),
-      volume24h: Number(row["quoteVolume"] ?? 0),
-      marketCap: marketCapFor(asset.id, price, previous?.marketCap),
-      sparkline: [...sparkline.slice(0, -1), price],
-      payoutRate: asset.payoutRate,
-      live: true,
-    } satisfies MarketQuote;
-  });
-  return quotes.filter((quote) => quote.live).length >= 3 ? quotes : null;
+function usable(ticker: RawTicker | undefined): ticker is RawTicker {
+  return !!ticker && Number.isFinite(ticker.price) && ticker.price > 0;
 }
 
-async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
-  await refreshSupplies();
-  const rows = await Promise.all(ASSETS.map(async (asset) => {
+/** Spot exchange sources, tried in order. Each returns real last price, 24h move, range and volume. */
+async function binanceTickers(): Promise<Map<string, RawTicker>> {
+  const symbols = JSON.stringify(TRADABLE.map((asset) => `${asset.symbol}USDT`));
+  const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`, { headers: { accept: "application/json" } });
+  if (!response.ok) throw new Error(`binance ${response.status}`);
+  const rows = await response.json() as Array<Record<string, unknown>>;
+  const out = new Map<string, RawTicker>();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const pair = String(row["symbol"] ?? "");
+    if (!pair.endsWith("USDT")) continue;
+    out.set(pair.slice(0, -4), {
+      price: Number(row["lastPrice"]),
+      change24h: Number(row["priceChangePercent"] ?? 0),
+      high24h: Number(row["highPrice"] ?? 0),
+      low24h: Number(row["lowPrice"] ?? 0),
+      volume24h: Number(row["quoteVolume"] ?? 0),
+    });
+  }
+  return out;
+}
+
+async function bybitTickers(): Promise<Map<string, RawTicker>> {
+  const response = await fetch("https://api.bybit.com/v5/market/tickers?category=spot", { headers: { accept: "application/json" } });
+  if (!response.ok) throw new Error(`bybit ${response.status}`);
+  const body = await response.json() as { result?: { list?: Array<Record<string, unknown>> } };
+  const out = new Map<string, RawTicker>();
+  for (const row of body.result?.list ?? []) {
+    const pair = String(row["symbol"] ?? "");
+    if (!pair.endsWith("USDT")) continue;
+    out.set(pair.slice(0, -4), {
+      price: Number(row["lastPrice"]),
+      change24h: Number(row["price24hPcnt"] ?? 0) * 100,
+      high24h: Number(row["highPrice24h"] ?? 0),
+      low24h: Number(row["lowPrice24h"] ?? 0),
+      volume24h: Number(row["turnover24h"] ?? 0),
+    });
+  }
+  return out;
+}
+
+async function okxTickers(): Promise<Map<string, RawTicker>> {
+  const response = await fetch("https://www.okx.com/api/v5/market/tickers?instType=SPOT", { headers: { accept: "application/json" } });
+  if (!response.ok) throw new Error(`okx ${response.status}`);
+  const body = await response.json() as { data?: Array<Record<string, unknown>> };
+  const out = new Map<string, RawTicker>();
+  for (const row of body.data ?? []) {
+    const instId = String(row["instId"] ?? "");
+    if (!instId.endsWith("-USDT")) continue;
+    const price = Number(row["last"]);
+    const open = Number(row["open24h"]);
+    out.set(instId.slice(0, -5), {
+      price,
+      change24h: Number.isFinite(open) && open > 0 ? ((price - open) / open) * 100 : 0,
+      high24h: Number(row["high24h"] ?? 0),
+      low24h: Number(row["low24h"] ?? 0),
+      volume24h: Number(row["volCcy24h"] ?? 0),
+    });
+  }
+  return out;
+}
+
+async function coingeckoTickers(): Promise<Map<string, RawTicker>> {
+  const ids = ASSETS.map((asset) => asset.id).join(",");
+  const response = await fetch(
+    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&per_page=250`,
+    { headers: { accept: "application/json" } },
+  );
+  if (!response.ok) throw new Error(`coingecko ${response.status}`);
+  const rows = await response.json() as Array<Record<string, unknown>>;
+  const out = new Map<string, RawTicker>();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const asset = ASSETS.find((item) => item.id === String(row["id"] ?? ""));
+    if (!asset) continue;
+    out.set(asset.symbol, {
+      price: Number(row["current_price"]),
+      change24h: Number(row["price_change_percentage_24h"] ?? 0),
+      high24h: Number(row["high_24h"] ?? 0),
+      low24h: Number(row["low_24h"] ?? 0),
+      volume24h: Number(row["total_volume"] ?? 0),
+    });
+  }
+  return out;
+}
+
+/** Merge every reachable source so each coin shows a real traded price. */
+async function collectTickers(): Promise<Map<string, RawTicker>> {
+  const merged = new Map<string, RawTicker>();
+  for (const source of [binanceTickers, bybitTickers, okxTickers, coingeckoTickers]) {
+    const missing = TRADABLE.filter((asset) => !usable(merged.get(asset.symbol)));
+    if (missing.length === 0) break;
+    try {
+      const tickers = await source();
+      for (const asset of missing) {
+        const ticker = tickers.get(asset.symbol);
+        if (usable(ticker)) merged.set(asset.symbol, ticker);
+      }
+    } catch {
+      // Try the next exchange.
+    }
+  }
+  return merged;
+}
+
+/** Quotes are shared for a moment so rapid polling never trips exchange rate limits. */
+let cachedQuotes: { quotes: MarketQuote[]; at: number } | null = null;
+let inFlight: Promise<MarketQuote[]> | null = null;
+
+async function buildQuotes(): Promise<MarketQuote[]> {
+  const tickers = await collectTickers();
+  if (tickers.size === 0) return lastSuccessfulQuotes ?? fallbackQuotes();
+  await Promise.all([refreshSparklines(), refreshSupplies()]);
+
+  const quotes = ASSETS.map((asset) => {
+    const previous = lastSuccessfulQuotes?.find((item) => item.symbol === asset.symbol);
     if (asset.tradable === false) {
-      // Stablecoins have no USDT pair; they are listed for reference only.
-      const pegged: MarketQuote = {
+      // Stablecoins are listed for reference only; they have no traded USDT pair.
+      return {
         id: asset.id,
         symbol: asset.symbol,
         name: asset.name,
@@ -153,103 +227,50 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
         high24h: asset.fallbackPrice,
         low24h: asset.fallbackPrice,
         volume24h: 0,
-        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
+        marketCap: marketCapFor(asset.id, asset.fallbackPrice, previous?.marketCap),
         sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
         payoutRate: asset.payoutRate,
         live: false,
-      };
-      return pegged;
+      } satisfies MarketQuote;
     }
-    const pair = `${asset.symbol}USDT`;
-    const [tickerResponse, candlesResponse] = await Promise.all([
-      fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`, { headers: { accept: "application/json" } }),
-      fetch(`https://api.binance.com/api/v3/klines?symbol=${pair}&interval=5m&limit=60`, { headers: { accept: "application/json" } }),
-    ]);
-    if (!tickerResponse.ok || !candlesResponse.ok) return null;
-    const ticker = await tickerResponse.json() as Record<string, unknown>;
-    const candles = await candlesResponse.json() as unknown[][];
-    const sparkline = candles.map((candle) => Number(candle[4])).filter((price) => Number.isFinite(price) && price > 0);
-    const price = Number(ticker["lastPrice"]);
-    if (!Number.isFinite(price) || price <= 0 || sparkline.length < 6) return null;
-    const quote: MarketQuote = {
+    const ticker = tickers.get(asset.symbol);
+    if (!usable(ticker)) {
+      return previous ?? fallbackQuotes().find((item) => item.id === asset.id)!;
+    }
+    const sparkline = sparklineCache.get(asset.symbol) ?? previous?.sparkline ?? [];
+    return {
       id: asset.id,
       symbol: asset.symbol,
       name: asset.name,
-      price,
-      change24h: Number(ticker["priceChangePercent"] ?? 0),
-      high24h: Number(ticker["highPrice"] ?? price),
-      low24h: Number(ticker["lowPrice"] ?? price),
-      volume24h: Number(ticker["quoteVolume"] ?? 0),
-      marketCap: marketCapFor(asset.id, price),
-      sparkline,
+      price: ticker.price,
+      change24h: ticker.change24h,
+      high24h: ticker.high24h > 0 ? ticker.high24h : ticker.price,
+      low24h: ticker.low24h > 0 ? ticker.low24h : ticker.price,
+      volume24h: ticker.volume24h,
+      marketCap: marketCapFor(asset.id, ticker.price, previous?.marketCap),
+      sparkline: sparkline.length > 0 ? [...sparkline.slice(0, -1), ticker.price] : [ticker.price],
       payoutRate: asset.payoutRate,
       live: true,
-    };
-    return quote;
-  }));
-  const available = rows.filter((row): row is NonNullable<typeof row> => row !== null);
-  return available.length >= 3 ? available : null;
+    } satisfies MarketQuote;
+  });
+
+  if (quotes.some((quote) => quote.live)) lastSuccessfulQuotes = quotes;
+  return quotes;
 }
 
 async function fetchExchangeQuotes(): Promise<MarketQuote[]> {
-  // Fast tick source first: prices refresh on every poll so live PNL moves immediately.
-  try {
-    const ticker = await fetchBinanceTickerQuotes();
-    if (ticker) {
-      lastSuccessfulQuotes = ticker;
-      return ticker;
-    }
-  } catch {
-    // Fall through to the slower reference source.
-  }
-
-  const ids = ASSETS.map((a) => a.id).join(",");
-  const url =
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" +
-    ids +
-    "&sparkline=true&price_change_percentage=24h";
-
-  try {
-    const res = await fetch(url, { headers: { accept: "application/json" } });
-    if (!res.ok) throw new Error("Primary market source unavailable");
-    const rows = (await res.json()) as Array<Record<string, unknown>>;
-    if (!Array.isArray(rows) || rows.length === 0) throw new Error("Primary market source returned no prices");
-
-    const quotes = ASSETS.map((a) => {
-      const row = rows.find((r) => r["id"] === a.id);
-      if (!row) {
-        return { ...fallbackQuotes().find((q) => q.id === a.id)! };
-      }
-      const spark = (row["sparkline_in_7d"] as { price?: number[] } | undefined)?.price ?? [];
-      return {
-        id: a.id,
-        symbol: a.symbol,
-        name: a.name,
-        price: Number(row["current_price"] ?? a.fallbackPrice),
-        change24h: Number(row["price_change_percentage_24h"] ?? 0),
-        high24h: Number(row["high_24h"] ?? 0),
-        low24h: Number(row["low_24h"] ?? 0),
-        volume24h: Number(row["total_volume"] ?? 0),
-        marketCap: Number(row["market_cap"] ?? 0),
-        sparkline: spark.slice(-60).map((p) => Number(p)),
-        payoutRate: a.payoutRate,
-        live: true,
-      } satisfies MarketQuote;
+  if (cachedQuotes && Date.now() - cachedQuotes.at < 1_000) return cachedQuotes.quotes;
+  if (inFlight) return inFlight;
+  inFlight = buildQuotes()
+    .then((quotes) => {
+      cachedQuotes = { quotes, at: Date.now() };
+      return quotes;
+    })
+    .catch(() => lastSuccessfulQuotes ?? fallbackQuotes())
+    .finally(() => {
+      inFlight = null;
     });
-    lastSuccessfulQuotes = quotes;
-    return quotes;
-  } catch {
-    try {
-      const backup = await fetchBinanceQuotes();
-      if (backup) {
-        lastSuccessfulQuotes = backup;
-        return backup;
-      }
-    } catch {
-      // The last successful snapshot keeps the simulator readable during provider interruptions.
-    }
-    return lastSuccessfulQuotes ?? fallbackQuotes();
-  }
+  return inFlight;
 }
 
 /** Live quotes for the real crypto pairs. */
