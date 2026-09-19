@@ -25,9 +25,9 @@ function AuthenticatedLayout() {
   const ping = useServerFn(recordActivity);
 
   useEffect(() => {
-    void ping({ data: { event: "session" } }).catch(() => {});
+    void ping({ data: { kind: "session" } }).catch(() => {});
     const timer = setInterval(() => {
-      void ping({ data: { event: "heartbeat" } }).catch(() => {});
+      void ping({ data: { kind: "heartbeat" } }).catch(() => {});
     }, 300_000);
     return () => clearInterval(timer);
   }, [ping]);
