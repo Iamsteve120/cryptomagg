@@ -413,6 +413,7 @@ function WalletPage() {
           </section>
 
           <UsdtDepositPanel />
+          <BtcDepositPanel />
 
           <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4 rounded-lg border border-border bg-card p-5">
@@ -559,5 +560,109 @@ function WalletPage() {
         </section>
       )}
     </div>
+  );
+}
+
+function BtcDepositPanel() {
+  const queryClient = useQueryClient();
+  const confirmDeposit = useServerFn(confirmBtcDeposit);
+  const fetchDeposits = useServerFn(getUsdtDeposits); // Reusing history fetcher
+
+  const [txHash, setTxHash] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const { data: history } = useQuery({
+    queryKey: ["btc-deposits"], // Use separate key but same fetcher for now as it filters by user
+    queryFn: () => fetchDeposits(),
+    refetchInterval: 20_000,
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: () => confirmDeposit({ data: { txHash: txHash.trim() } }),
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("$" + formatMoney(result.amountUsdt) + " added to your balance.");
+      setTxHash("");
+      void queryClient.invalidateQueries({ queryKey: ["btc-deposits"] });
+      void queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  async function copyAddress(address: string) {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(address);
+      toast.success("Address copied.");
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast.error("Could not copy. Please select the address and copy it manually.");
+    }
+  }
+
+  const btcHistory = (history?.deposits ?? []).filter(d => d.network === 'bitcoin');
+
+  return (
+    <section className="space-y-5 rounded-lg border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[#f7931a]/10 text-[#f7931a]">
+          <Wallet className="size-5" />
+        </div>
+        <div>
+          <h2 className="font-display text-lg font-semibold">Deposit Bitcoin</h2>
+          <p className="text-sm text-muted-foreground">
+            Send BTC to the address below. Smallest deposit is ${BTC_MIN_DEPOSIT_USD} USD equivalent.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-1">
+        {BTC_DEPOSIT_ADDRESSES.map((wallet) => (
+          <div key={wallet.address} className="space-y-3 rounded-md border border-border bg-background p-4">
+            <div>
+              <p className="text-sm font-semibold">{wallet.label}</p>
+              <p className="text-xs text-muted-foreground">{wallet.network}</p>
+            </div>
+            <div className="flex justify-center rounded-md bg-white p-3">
+              <QRCodeSVG value={wallet.address} size={148} level="M" />
+            </div>
+            <p className="num break-all rounded-md bg-secondary px-3 py-2 text-xs">{wallet.address}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => void copyAddress(wallet.address)}
+            >
+              {copied === wallet.address ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {copied === wallet.address ? "Copied" : "Copy address"}
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="btcTxHash">Transaction ID (TXID)</Label>
+        <Input
+          id="btcTxHash"
+          placeholder="Paste the transaction ID"
+          value={txHash}
+          onChange={(event) => setTxHash(event.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          After sending, paste the transaction ID here. We verify it on the Bitcoin network and credit your balance at current market rates.
+        </p>
+      </div>
+      <Button
+        className="w-full"
+        disabled={confirmMutation.isPending || txHash.trim().length < 60}
+        onClick={() => confirmMutation.mutate()}
+      >
+        <ArrowDownToLine className="size-4" />
+        {confirmMutation.isPending ? "Checking the network" : "Confirm my Bitcoin deposit"}
+      </Button>
+    </section>
   );
 }
