@@ -205,7 +205,7 @@ export async function verifyStkPayment(checkoutRequestId: string): Promise<boole
 export function b2cConfigured(): boolean {
   return Boolean(
     process.env["MPESA_INITIATOR_NAME"] &&
-      process.env["MPESA_SECURITY_CREDENTIAL"] &&
+      (process.env["MPESA_INITIATOR_PASSWORD"] || process.env["MPESA_SECURITY_CREDENTIAL"]) &&
       (process.env["MPESA_B2C_CONSUMER_KEY"] ?? process.env["CONSUMER_KEY"]) &&
       (process.env["MPESA_B2C_CONSUMER_SECRET"] ?? process.env["CONSUMER_SECRET"]) &&
       (process.env["MPESA_B2C_SHORTCODE"] ?? process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"]),
