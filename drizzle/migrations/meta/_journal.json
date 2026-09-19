@@ -169,6 +169,13 @@
       "when": 1789807524189,
       "tag": "0023_kyc_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789827722684,
+      "tag": "0024_kyc_two_sided_capture_and_crypto_methods",
+      "breakpoints": true
     }
   ]
 }
