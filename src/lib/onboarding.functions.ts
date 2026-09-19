@@ -75,15 +75,6 @@ export const submitKyc = createServerFn({ method: "POST" })
       .eq("id", context.userId);
     if (error) throw new Error("We could not save your document. Please try again.");
 
-    if (!alreadySubmitted && profile.email) {
-      const { sendWelcomeEmail } = await import("./email.server");
-      await sendWelcomeEmail({
-        to: profile.email,
-        name: profile.first_name ?? profile.full_name,
-        clientId: profile.client_id ?? "",
-      });
-    }
-
     return { ok: true, clientId: profile.client_id ?? null, approvalDelaySeconds: 29 };
   });
 
@@ -94,7 +85,7 @@ export const completeKycProcessing = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: profile } = await db
       .from("profiles")
-      .select("kyc_status, kyc_submitted_at, kyc_doc_front_path, kyc_doc_back_path")
+      .select("kyc_status, kyc_submitted_at, kyc_doc_front_path, kyc_doc_back_path, email, first_name, full_name, client_id")
       .eq("id", context.userId)
       .maybeSingle();
     if (!profile?.kyc_submitted_at || !profile.kyc_doc_front_path || !profile.kyc_doc_back_path) {
@@ -105,11 +96,21 @@ export const completeKycProcessing = createServerFn({ method: "POST" })
       return { approved: false, secondsLeft: Math.ceil((APPROVAL_DELAY_MS - elapsed) / 1000) };
     }
     const approvedAt = new Date().toISOString();
-    const { error } = await db
+    const { data: approved, error } = await db
       .from("profiles")
       .update({ kyc_status: "approved", kyc_approved_at: approvedAt, updated_at: approvedAt })
       .eq("id", context.userId)
-      .eq("kyc_status", "processing");
+      .eq("kyc_status", "processing")
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error("The document check could not finish. Please try again.");
+    if (approved && profile.email) {
+      const { sendWelcomeEmail } = await import("./email.server");
+      await sendWelcomeEmail({
+        to: profile.email,
+        name: profile.first_name ?? profile.full_name,
+        clientId: profile.client_id ?? "",
+      });
+    }
     return { approved: true, secondsLeft: 0 };
   });
