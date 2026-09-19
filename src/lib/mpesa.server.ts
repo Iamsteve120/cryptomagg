@@ -231,14 +231,18 @@ export async function sendB2cPayout(input: {
   const shortcode =
     process.env["MPESA_B2C_SHORTCODE"] ?? process.env["LNM_SHORTCODE"] ?? process.env["MPESA_SHORTCODE"];
   const initiator = clean(process.env["MPESA_INITIATOR_NAME"]);
-  const securityCredential = clean(process.env["MPESA_SECURITY_CREDENTIAL"]);
-  if (!consumerKey || !consumerSecret || !shortcode || !initiator || !securityCredential) {
+  const initiatorPassword = clean(process.env["MPESA_INITIATOR_PASSWORD"]);
+  const preEncrypted = clean(process.env["MPESA_SECURITY_CREDENTIAL"]);
+  if (!consumerKey || !consumerSecret || !shortcode || !initiator || (!initiatorPassword && !preEncrypted)) {
     throw new Error("mpesa_payout_not_configured");
   }
-  // Safaricom rejects a plain password; encrypt it with their production
-  // certificate when the stored value is not already an encrypted credential.
+  // Safaricom rejects a plain password; encrypt the operator password with
+  // their production public key at send time. A pre-encrypted credential is
+  // accepted as a fallback when no plain password is configured.
   const { buildSecurityCredential } = await import("./mpesa-credential.server");
-  const encryptedCredential = buildSecurityCredential(securityCredential);
+  const encryptedCredential = initiatorPassword
+    ? buildSecurityCredential(initiatorPassword)
+    : buildSecurityCredential(preEncrypted!);
 
   const live = process.env["MPESA_ENV"] === "production";
   const baseUrl = live ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
