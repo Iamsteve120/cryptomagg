@@ -24,16 +24,7 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
   const queryClient = useQueryClient();
   const { mode, setMode } = useAccountMode();
   const balance = mode === "demo" ? demoBalance : liveBalance;
-  const adminAccess = useServerFn(getAdminAccess);
-  const admin = useQuery({
-    queryKey: ["admin-access"],
-    queryFn: () => adminAccess(),
-    staleTime: 300_000,
-  });
-  const isAdmin = admin.data?.isAdmin === true;
-  const navLinks = isAdmin
-    ? ([...links, { to: "/admin", label: "Admin", icon: ShieldCheck }] as const)
-    : links;
+  const navLinks = links;
 
   async function signOut() {
     await queryClient.cancelQueries();
