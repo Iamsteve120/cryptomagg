@@ -100,14 +100,11 @@ async function settleDueLiveTrades(userId: string) {
   if (!open || open.length === 0) return;
 
   const { fetchMarketQuotes } = await import("./market.server");
-  const { isSyntheticSymbol, syntheticPrice } = await import("./synthetic");
   const quotes = await fetchMarketQuotes();
   for (const trade of open) {
     const expiresAt = new Date(trade.expires_at).getTime();
     if (expiresAt > Date.now()) continue;
-    const exit = isSyntheticSymbol(trade.symbol)
-      ? syntheticPrice(trade.symbol, expiresAt)
-      : quotes.find((q) => q.symbol === trade.symbol)?.price;
+    const exit = quotes.find((q) => q.symbol === trade.symbol)?.price;
     if (!exit || exit <= 0) continue; // Never settle a real trade on a guessed price.
     const { error } = await db.rpc("settle_live_trade_at_market", {
       p_user_id: userId,
