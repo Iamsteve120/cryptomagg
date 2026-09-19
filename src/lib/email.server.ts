@@ -190,6 +190,30 @@ export async function sendEmail(input: {
 
 const money = (value: number) => value.toFixed(2);
 
+export async function sendWelcomeEmail(input: {
+  to: string;
+  name?: string | null;
+  clientId: string;
+}): Promise<void> {
+  await sendEmail({
+    to: input.to,
+    subject: "Congratulations — your CryptoMagg account is ready",
+    text: [
+      `Hello ${input.name?.split(" ")[0] ?? "there"},`,
+      "",
+      "Congratulations, and welcome to CryptoMagg. Your account is set up and your identity document has been received.",
+      input.clientId ? `Your client ID is ${input.clientId}. Keep it safe — our team uses it to find your account.` : "",
+      "",
+      "You can fund your account by M Pesa or USDT, place trades on our markets, and request a withdrawal at any time.",
+      "",
+      "Crypto trading carries a high level of risk. Only trade money you can afford to lose.",
+      "",
+      "CryptoMagg",
+    ].filter(Boolean).join("\n"),
+  });
+}
+
+
 export async function sendDepositReceipt(input: {
   to: string;
   name?: string | null;

@@ -85,9 +85,17 @@ function ProfilePage() {
 
       <div className="space-y-4 rounded-xl border border-border/70 bg-card p-4">
         <div className="space-y-2">
+          <Label htmlFor="clientId">Client ID</Label>
+          <Input id="clientId" className="num" value={data?.profile?.client_id ?? "Pending"} readOnly disabled />
+          <p className="text-xs text-muted-foreground">
+            Quote this ID whenever you contact CryptoMagg support.
+          </p>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" value={data?.profile?.email ?? ""} readOnly disabled />
         </div>
+
         <div className="space-y-2">
           <Label htmlFor="name">Display name</Label>
           <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />

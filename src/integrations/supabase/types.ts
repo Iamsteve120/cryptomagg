@@ -101,32 +101,86 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
+      login_events: {
         Row: {
           created_at: string
-          demo_balance: number
-          email: string | null
-          full_name: string | null
           id: string
-          live_balance: number
-          updated_at: string
+          kind: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          demo_balance?: number
-          email?: string | null
-          full_name?: string | null
-          id: string
-          live_balance?: number
-          updated_at?: string
+          id?: string
+          kind?: string
+          user_id: string
         }
         Update: {
           created_at?: string
+          id?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age_confirmed: boolean
+          client_id: string | null
+          country: string | null
+          created_at: string
+          demo_balance: number
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string
+          kyc_doc_path: string | null
+          kyc_doc_type: string | null
+          kyc_status: string
+          last_name: string | null
+          last_seen_at: string | null
+          live_balance: number
+          phone: string | null
+          terms_accepted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          age_confirmed?: boolean
+          client_id?: string | null
+          country?: string | null
+          created_at?: string
           demo_balance?: number
           email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id: string
+          kyc_doc_path?: string | null
+          kyc_doc_type?: string | null
+          kyc_status?: string
+          last_name?: string | null
+          last_seen_at?: string | null
+          live_balance?: number
+          phone?: string | null
+          terms_accepted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          age_confirmed?: boolean
+          client_id?: string | null
+          country?: string | null
+          created_at?: string
+          demo_balance?: number
+          email?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          kyc_doc_path?: string | null
+          kyc_doc_type?: string | null
+          kyc_status?: string
+          last_name?: string | null
+          last_seen_at?: string | null
           live_balance?: number
+          phone?: string | null
+          terms_accepted_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -253,6 +307,27 @@ export type Database = {
           kind?: string
           method?: string
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -424,6 +499,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       hold_withdrawal_amount: {
         Args: { p_amount: number; p_phone: string; p_user_id: string }
         Returns: {
@@ -448,6 +530,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      next_client_id: { Args: never; Returns: string }
       refund_pending_withdrawal: {
         Args: { p_failure_reason: string; p_request_id: string }
         Returns: boolean
@@ -673,7 +756,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -800,6 +883,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
