@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,10 +19,12 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
+  const location = useLocation();
   const { data } = useAccount();
   const demoBalance = data?.profile ? Number(data.profile.demo_balance) : null;
   const liveBalance = data?.profile ? Number(data.profile.live_balance) : null;
   const ping = useServerFn(recordActivity);
+  const focusedOnboarding = location.pathname === "/verify";
 
   useEffect(() => {
     void ping({ data: { kind: "session" } }).catch(() => {});
@@ -34,12 +36,12 @@ function AuthenticatedLayout() {
 
   return (
     <AccountModeProvider>
-      <div className="app-shell min-h-screen overflow-x-hidden">
-        <AppNav demoBalance={demoBalance} liveBalance={liveBalance} />
+      <div className={focusedOnboarding ? "min-h-screen overflow-x-hidden" : "app-shell min-h-screen overflow-x-hidden"}>
+        {!focusedOnboarding ? <AppNav demoBalance={demoBalance} liveBalance={liveBalance} /> : null}
         <main className="mx-auto w-full min-w-0 max-w-7xl px-3 py-5 sm:px-4 sm:py-6">
           <Outlet />
         </main>
-        <DemoFooter />
+        {!focusedOnboarding ? <DemoFooter /> : null}
       </div>
     </AccountModeProvider>
   );

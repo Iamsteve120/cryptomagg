@@ -242,3 +242,29 @@ export const getClientDetail = createServerFn({ method: "POST" })
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };
   });
+
+export const getClientKycLinks = createServerFn({ method: "POST" })
+  .inputValidator((input: { clientId?: string }) => ({
+    clientId: String(input?.clientId ?? "").trim().slice(0, 40),
+  }))
+  .handler(async ({ data }) => {
+    const db = await requireAdmin();
+    const { data: profile } = await db
+      .from("profiles")
+      .select("kyc_doc_front_path, kyc_doc_back_path")
+      .eq("client_id", data.clientId)
+      .maybeSingle();
+    if (!profile) throw new Error("Client not found.");
+    const paths = [profile.kyc_doc_front_path, profile.kyc_doc_back_path].filter(
+      (path): path is string => Boolean(path),
+    );
+    if (paths.length === 0) return { documents: [] };
+    const { data: signed, error } = await db.storage.from("kyc-documents").createSignedUrls(paths, 120);
+    if (error) throw new Error("Documents could not be opened.");
+    return {
+      documents: (signed ?? []).map((item, index) => ({
+        side: index === 0 ? "Front" : "Back",
+        url: item.signedUrl,
+      })),
+    };
+  });
