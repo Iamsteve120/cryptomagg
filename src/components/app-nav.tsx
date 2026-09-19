@@ -10,18 +10,19 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
 
 const links = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/markets", label: "Markets", icon: LineChart },
-  { to: "/trade", label: "Trade", icon: CandlestickChart },
-  { to: "/wallet", label: "Wallet", icon: Wallet },
-  { to: "/history", label: "History", icon: History },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/dashboard", label: "dashboard", icon: LayoutDashboard },
+  { to: "/markets", label: "markets", icon: LineChart },
+  { to: "/trade", label: "trade", icon: CandlestickChart },
+  { to: "/wallet", label: "wallet", icon: Wallet },
+  { to: "/history", label: "history", icon: History },
+  { to: "/profile", label: "profile", icon: User },
 ] as const;
 
 export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | null; liveBalance: number | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { mode, setMode } = useAccountMode();
+  const { t } = useLanguage();
   const balance = mode === "demo" ? demoBalance : liveBalance;
   const navLinks = links;
 
