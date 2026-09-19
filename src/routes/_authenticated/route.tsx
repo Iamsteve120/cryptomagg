@@ -1,9 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { AppNav } from "@/components/app-nav";
 import { DemoFooter } from "@/components/demo-banner";
 import { useAccount } from "@/hooks/use-trading";
 import { AccountModeProvider } from "@/components/account-mode";
+import { recordActivity } from "@/lib/onboarding.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -19,13 +22,21 @@ function AuthenticatedLayout() {
   const { data } = useAccount();
   const demoBalance = data?.profile ? Number(data.profile.demo_balance) : null;
   const liveBalance = data?.profile ? Number(data.profile.live_balance) : null;
+  const ping = useServerFn(recordActivity);
+
+  useEffect(() => {
+    void ping({ data: { event: "session" } }).catch(() => {});
+    const timer = setInterval(() => {
+      void ping({ data: { event: "heartbeat" } }).catch(() => {});
+    }, 300_000);
+    return () => clearInterval(timer);
+  }, [ping]);
 
   return (
     <AccountModeProvider>
-      <div className="app-shell min-h-screen">
-        
+      <div className="app-shell min-h-screen overflow-x-hidden">
         <AppNav demoBalance={demoBalance} liveBalance={liveBalance} />
-        <main className="mx-auto max-w-7xl px-4 py-6">
+        <main className="mx-auto w-full min-w-0 max-w-7xl px-3 py-5 sm:px-4 sm:py-6">
           <Outlet />
         </main>
         <DemoFooter />
@@ -33,3 +44,4 @@ function AuthenticatedLayout() {
     </AccountModeProvider>
   );
 }
+
