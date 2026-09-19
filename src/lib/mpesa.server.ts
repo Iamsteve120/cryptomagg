@@ -260,7 +260,7 @@ export async function sendB2cPayout(input: {
     body: JSON.stringify({
       OriginatorConversationID: crypto.randomUUID(),
       InitiatorName: initiator,
-      SecurityCredential: securityCredential,
+      SecurityCredential: encryptedCredential,
       CommandID: "BusinessPayment",
       Amount: Math.max(1, Math.round(input.amountKes)),
       PartyA: shortcode,
