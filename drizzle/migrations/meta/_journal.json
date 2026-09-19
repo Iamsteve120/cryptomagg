@@ -162,6 +162,13 @@
       "when": 1789807492909,
       "tag": "0022_admin_roles_client_ids_kyc",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789807524189,
+      "tag": "0023_kyc_storage_policies",
+      "breakpoints": true
     }
   ]
 }
