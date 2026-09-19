@@ -101,11 +101,14 @@ function securityCredential(config: B2cConfig): string {
   } catch {
     key = createPublicKey(config.certPem);
   }
+  // The worker runtime's publicEncrypt only accepts PEM/Buffer keys, not KeyObject.
+  const publicKeyPem = key.export({ type: "spki", format: "pem" }) as string;
   return publicEncrypt(
-    { key, padding: constants.RSA_PKCS1_PADDING },
+    { key: publicKeyPem, padding: constants.RSA_PKCS1_PADDING },
     Buffer.from(config.initiatorPassword, "utf8"),
   ).toString("base64");
 }
+
 
 type TokenCache = { token: string; expiresAt: number };
 let tokenCache: TokenCache | null = null;
