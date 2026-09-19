@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/assets";
 
 const links = [
-  { to: "/dashboard", label: "dashboard", icon: LayoutDashboard },
-  { to: "/markets", label: "markets", icon: LineChart },
-  { to: "/trade", label: "trade", icon: CandlestickChart },
-  { to: "/wallet", label: "wallet", icon: Wallet },
-  { to: "/history", label: "history", icon: History },
-  { to: "/profile", label: "profile", icon: User },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/markets", label: "Markets", icon: LineChart },
+  { to: "/trade", label: "Trade", icon: CandlestickChart },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/history", label: "History", icon: History },
+  { to: "/profile", label: "Profile", icon: User },
 ] as const;
 
 export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | null; liveBalance: number | null }) {
@@ -58,17 +58,17 @@ export function AppNav({ demoBalance, liveBalance }: { demoBalance: number | nul
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           <LanguagePicker />
-          <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label={t("accountType")}>
-            <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>{t("demo")}</Button>
-            <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>{t("real")}</Button>
+          <div className="flex rounded-md border border-border bg-secondary/40 p-1" aria-label={t("Account type")}>
+            <Button size="sm" variant={mode === "demo" ? "secondary" : "ghost"} onClick={() => setMode("demo")}>{t("Demo")}</Button>
+            <Button size="sm" variant={mode === "live" ? "default" : "ghost"} onClick={() => setMode("live")}>{t("Real")}</Button>
           </div>
           <div className="hidden rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-right sm:block">
-            <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? t("demoBalance") : t("realBalance")}</p>
+            <p className="text-[10px] uppercase tracking-wider text-primary/80">{mode === "demo" ? t("Demo USD") : t("Real USDT")}</p>
             <p className="num text-sm font-semibold text-primary">
-              {balance === null ? t("unavailable") : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
+              {balance === null ? t("Unavailable") : mode === "demo" ? "$" + formatMoney(balance) : formatMoney(balance) + " USDT"}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={signOut} aria-label={t("signOut")}>
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label={t("Sign out")}>
             <LogOut className="size-4" />
           </Button>
         </div>

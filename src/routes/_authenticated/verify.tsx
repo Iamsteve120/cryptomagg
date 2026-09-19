@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Camera, FileUp, LogOut, ShieldCheck } from "lucide-react";
@@ -191,7 +192,7 @@ function VerifyPage() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg items-center justify-center">
         <div className="w-full rounded-lg border border-primary/40 bg-card p-6 text-center">
           <ShieldCheck className="mx-auto size-10 text-primary" />
-          <h1 className="mt-3 text-xl font-semibold">Upload approved</h1>
+          <h1 className="mt-3 text-xl font-semibold">{tr("Upload approved")}</h1>
           <Button className="mt-5 w-full" onClick={() => router.navigate({ to: "/dashboard" })}>
             Continue to dashboard
           </Button>
@@ -204,7 +205,7 @@ function VerifyPage() {
     <div className="mx-auto w-full min-w-0 max-w-lg space-y-5">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-4">
         <BrandLogo size="md" />
-        <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+        <Button variant="ghost" size="icon" onClick={signOut} aria-label={tr("Sign out")}>
           <LogOut className="size-4" />
         </Button>
       </header>
@@ -214,7 +215,7 @@ function VerifyPage() {
           <div className="num mx-auto grid size-20 place-items-center rounded-full border-4 border-primary text-2xl font-semibold text-primary">
             {secondsLeft ?? 29}s
           </div>
-          <h1 className="mt-5 text-xl font-semibold">Checking your upload</h1>
+          <h1 className="mt-5 text-xl font-semibold">{tr("Checking your upload")}</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             We are checking that both images were received and can be opened. This automated check does not authenticate the document with its issuer.
           </p>
@@ -222,16 +223,16 @@ function VerifyPage() {
       ) : (
         <>
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold sm:text-2xl">Verify your identity</h1>
+            <h1 className="text-xl font-semibold sm:text-2xl">{tr("Verify your identity")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Add clear images of both sides. They stay private and are available only to authorised staff.
             </p>
-            {clientId ? <p className="num mt-2 text-sm">Your client ID: <span className="font-semibold text-primary">{clientId}</span></p> : null}
+            {clientId ? <p className="num mt-2 text-sm">{tr("Your client ID:")} <span className="font-semibold text-primary">{clientId}</span></p> : null}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-border bg-card p-4">
             <div className="space-y-2">
-              <Label htmlFor="docType">Document type</Label>
+              <Label htmlFor="docType">{tr("Document type")}</Label>
               <select
                 id="docType"
                 value={docType}
@@ -248,7 +249,7 @@ function VerifyPage() {
 
             <CaptureField side="Front" file={frontFile} onChange={setFrontFile} />
             <CaptureField side="Back" file={backFile} onChange={setBackFile} />
-            <p className="text-xs leading-relaxed text-muted-foreground">JPG, PNG or WEBP, up to 8 MB per side. Use a clear, well-lit image with all edges visible.</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">{tr("JPG, PNG or WEBP, up to 8 MB per side. Use a clear, well-lit image with all edges visible.")}</p>
             <Button type="submit" className="w-full" disabled={busy || !frontFile || !backFile}>
               {busy ? "Uploading securely" : "Submit both sides"}
             </Button>

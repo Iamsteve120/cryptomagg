@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { tr } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/market-widgets";
 import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
@@ -53,7 +54,7 @@ function Dashboard() {
           </p>
         </div>
         <Button asChild>
-          <Link to="/trade">Place a trade</Link>
+          <Link to="/trade">{tr("Place a trade")}</Link>
         </Button>
       </div>
 
@@ -80,7 +81,7 @@ function Dashboard() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-border/70 bg-card p-4 lg:col-span-2">
-          <h2 className="text-lg font-semibold">Open positions</h2>
+          <h2 className="text-lg font-semibold">{tr("Open positions")}</h2>
           {openTrades.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               {mode === "demo"
@@ -100,7 +101,7 @@ function Dashboard() {
                     </p>
                     <p className="num text-xs text-muted-foreground">Entry ${formatPrice(Number(t.entry_price))} | Live ${formatPrice(quotes.find((quote) => quote.symbol === t.symbol)?.price ?? Number(t.entry_price))} | {t.duration_seconds}s</p>
                   </div>
-                  {(() => { const pnl = calculateRapidLiveState(t, quotes.find((quote) => quote.symbol === t.symbol)?.price, rapidNow).pnl; return <div className="text-right"><p className="text-xs text-muted-foreground">Live PNL now</p><p className={pnl >= 0 ? "num font-semibold tabular-nums text-primary" : "num font-semibold tabular-nums text-destructive"}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))} USD</p></div>; })()}
+                  {(() => { const pnl = calculateRapidLiveState(t, quotes.find((quote) => quote.symbol === t.symbol)?.price, rapidNow).pnl; return <div className="text-right"><p className="text-xs text-muted-foreground">{tr("Live PNL now")}</p><p className={pnl >= 0 ? "num font-semibold tabular-nums text-primary" : "num font-semibold tabular-nums text-destructive"}>{pnl >= 0 ? "+" : "-"}{formatMoney(Math.abs(pnl))} USD</p></div>; })()}
                 </li>
               ))}
             </ul>
@@ -108,20 +109,20 @@ function Dashboard() {
         </div>
 
         <div className="rounded-xl border border-border/70 bg-card p-4">
-          <h2 className="text-lg font-semibold">Top movers</h2>
+          <h2 className="text-lg font-semibold">{tr("Top movers")}</h2>
           <div className="mt-4 space-y-3">
             {movers.slice(0, 2).map((q) => (
               <CryptoCard key={q.symbol} ticker={q.symbol} name={q.name} currentPrice={q.price} percentageChange={q.change24h} points={q.sparkline} payoutRate={q.payoutRate} onTrade={(ticker) => navigate({ to: "/trade", search: { symbol: ticker } })} />
             ))}
           </div>
           <Button asChild variant="outline" className="mt-4 w-full">
-            <Link to="/markets">View all markets</Link>
+            <Link to="/markets">{tr("View all markets")}</Link>
           </Button>
         </div>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Market rankings</h2>
+        <h2 className="text-lg font-semibold">{tr("Market rankings")}</h2>
         <MarketRankings quotes={quotes} limit={4} />
       </section>
     </div>

@@ -2,94 +2,24 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { LANGUAGES, setActiveLanguage, tr, type LanguageCode } from "@/lib/i18n";
 
-export type LanguageCode = "en" | "sw" | "fr" | "es";
-
-export const LANGUAGES: readonly { code: LanguageCode; flag: string; native: string; english: string }[] = [
-  { code: "en", flag: "🇬🇧", native: "English", english: "English" },
-  { code: "sw", flag: "🇰🇪", native: "Kiswahili", english: "Swahili" },
-  { code: "fr", flag: "🇫🇷", native: "Français", english: "French" },
-  { code: "es", flag: "🇪🇸", native: "Español", english: "Spanish" },
-];
+export { LANGUAGES, tr };
+export type { LanguageCode };
 
 const STORAGE_KEY = "cryptomagg-language";
-
-/** Shared interface wording. Anything missing falls back to English. */
-const DICTIONARY: Record<LanguageCode, Record<string, string>> = {
-  en: {
-    language: "Language",
-    dashboard: "Dashboard",
-    markets: "Markets",
-    trade: "Trade",
-    wallet: "Wallet",
-    history: "History",
-    profile: "Profile",
-    demo: "Demo",
-    real: "Real",
-    signOut: "Sign out",
-    accountType: "Account type",
-    demoBalance: "Demo USD",
-    realBalance: "Real USDT",
-    unavailable: "Unavailable",
-  },
-  sw: {
-    language: "Lugha",
-    dashboard: "Dashibodi",
-    markets: "Masoko",
-    trade: "Biashara",
-    wallet: "Pochi",
-    history: "Historia",
-    profile: "Wasifu",
-    demo: "Majaribio",
-    real: "Halisi",
-    signOut: "Toka",
-    accountType: "Aina ya akaunti",
-    demoBalance: "USD ya majaribio",
-    realBalance: "USDT halisi",
-    unavailable: "Haipatikani",
-  },
-  fr: {
-    language: "Langue",
-    dashboard: "Tableau de bord",
-    markets: "Marchés",
-    trade: "Trader",
-    wallet: "Portefeuille",
-    history: "Historique",
-    profile: "Profil",
-    demo: "Démo",
-    real: "Réel",
-    signOut: "Se déconnecter",
-    accountType: "Type de compte",
-    demoBalance: "USD démo",
-    realBalance: "USDT réel",
-    unavailable: "Indisponible",
-  },
-  es: {
-    language: "Idioma",
-    dashboard: "Panel",
-    markets: "Mercados",
-    trade: "Operar",
-    wallet: "Cartera",
-    history: "Historial",
-    profile: "Perfil",
-    demo: "Demo",
-    real: "Real",
-    signOut: "Cerrar sesión",
-    accountType: "Tipo de cuenta",
-    demoBalance: "USD demo",
-    realBalance: "USDT real",
-    unavailable: "No disponible",
-  },
-};
 
 const LanguageContext = createContext<{
   language: LanguageCode;
   setLanguage: (code: LanguageCode) => void;
-  t: (key: string) => string;
-}>({ language: "en", setLanguage: () => {}, t: (key) => DICTIONARY.en[key] ?? key });
+  t: (text: string) => string;
+}>({ language: "en", setLanguage: () => {}, t: (text) => text });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>("en");
+
+  // Applied before children render so every tr() call uses the chosen language.
+  setActiveLanguage(language);
 
   // Read after hydration so the server and client render identical markup.
   useEffect(() => {
@@ -98,24 +28,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const entry = LANGUAGES.find((l) => l.code === language);
     document.documentElement.lang = language;
+    document.documentElement.dir = entry?.rtl ? "rtl" : "ltr";
   }, [language]);
 
   const setLanguage = useCallback((code: LanguageCode) => {
+    setActiveLanguage(code);
     setLanguageState(code);
     window.localStorage.setItem(STORAGE_KEY, code);
   }, []);
 
-  const value = useMemo(
-    () => ({
-      language,
-      setLanguage,
-      t: (key: string) => DICTIONARY[language]?.[key] ?? DICTIONARY.en[key] ?? key,
-    }),
-    [language, setLanguage],
-  );
+  const value = useMemo(() => ({ language, setLanguage, t: tr }), [language, setLanguage]);
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return (
+    <LanguageContext.Provider value={value}>
+      {/* Remounting on change re-renders every translated string in the tree. */}
+      <div key={language} className="contents">
+        {children}
+      </div>
+    </LanguageContext.Provider>
+  );
 }
 
 export function useLanguage() {
@@ -123,21 +56,21 @@ export function useLanguage() {
 }
 
 export function LanguagePicker() {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
   const active = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0]!;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full bg-card/80 px-2.5 shadow-sm" aria-label={t("language")}>
+        <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-full bg-card/80 px-2.5 shadow-sm" aria-label={tr("Language")}>
           <Globe className="size-3.5" />
           <span className="text-xs font-semibold uppercase">{active.code}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b border-border px-5 py-4 text-left">
-          <DialogTitle className="text-lg">{t("language")}</DialogTitle>
+          <DialogTitle className="text-lg">{tr("Language")}</DialogTitle>
         </DialogHeader>
         <ul className="max-h-[60vh] overflow-y-auto">
           {LANGUAGES.map((item) => {
