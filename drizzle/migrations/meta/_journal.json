@@ -176,6 +176,13 @@
       "when": 1789827722684,
       "tag": "0024_kyc_two_sided_capture_and_crypto_methods",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789838066658,
+      "tag": "0025_b2c_payout_tracking_and_block_flag",
+      "breakpoints": true
     }
   ]
 }
