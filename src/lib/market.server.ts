@@ -96,7 +96,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
   if (!response.ok) return null;
   const rows = await response.json() as Array<Record<string, unknown>>;
   if (!Array.isArray(rows) || rows.length === 0) return null;
-  await refreshSparklines();
+  await Promise.all([refreshSparklines(), refreshSupplies()]);
   const quotes = ASSETS.map((asset) => {
     if (asset.tradable === false) {
       return {
@@ -107,8 +107,8 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
         change24h: 0,
         high24h: asset.fallbackPrice,
         low24h: asset.fallbackPrice,
-        volume24h: 0,
-        marketCap: 0,
+      volume24h: 0,
+        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
         sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
         payoutRate: asset.payoutRate,
         live: false,
@@ -130,7 +130,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
       high24h: Number(row["highPrice"] ?? price),
       low24h: Number(row["lowPrice"] ?? price),
       volume24h: Number(row["quoteVolume"] ?? 0),
-      marketCap: previous?.marketCap ?? 0,
+      marketCap: marketCapFor(asset.id, price, previous?.marketCap),
       sparkline: [...sparkline.slice(0, -1), price],
       payoutRate: asset.payoutRate,
       live: true,
