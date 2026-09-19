@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as OpsConsoleRouteImport } from './routes/ops-console'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -36,6 +37,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsConsoleRoute = OpsConsoleRouteImport.update({
+  id: '/ops-console',
+  path: '/ops-console',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -97,6 +103,7 @@ const ApiPublicMpesaCallbackRoute = ApiPublicMpesaCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/ops-console': typeof OpsConsoleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/ops-console': typeof OpsConsoleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/ops-console': typeof OpsConsoleRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/ops-console'
     | '/reset-password'
     | '/admin'
     | '/dashboard'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/ops-console'
     | '/reset-password'
     | '/admin'
     | '/dashboard'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/ops-console'
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  OpsConsoleRoute: typeof OpsConsoleRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicDarajaDiagRoute: typeof ApiPublicDarajaDiagRoute
   ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops-console': {
+      id: '/ops-console'
+      path: '/ops-console'
+      fullPath: '/ops-console'
+      preLoaderRoute: typeof OpsConsoleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -331,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  OpsConsoleRoute: OpsConsoleRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicDarajaDiagRoute: ApiPublicDarajaDiagRoute,
   ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
