@@ -82,13 +82,13 @@ export const Route = createFileRoute("/api/public/b2c-result")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: settled, error } = await supabaseAdmin.rpc("finalize_b2c_withdrawal", {
-          p_originator_conversation_id: result.OriginatorConversationID ?? null,
-          p_conversation_id: result.ConversationID ?? null,
+          p_originator_conversation_id: result.OriginatorConversationID ?? "",
+          p_conversation_id: result.ConversationID ?? "",
           p_success: success,
-          p_receipt: receipt || null,
+          ...(receipt ? { p_receipt: receipt } : {}),
           p_result_code: result.ResultCode,
-          p_result_desc: result.ResultDesc ?? null,
-          p_receiver_name: receiverName || null,
+          ...(result.ResultDesc ? { p_result_desc: result.ResultDesc } : {}),
+          ...(receiverName ? { p_receiver_name: receiverName } : {}),
         });
         if (error) {
           console.error("[b2c] settlement failed", error.message);

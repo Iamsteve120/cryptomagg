@@ -21,6 +21,8 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTradeRouteImport } from './routes/_authenticated/trade'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as ApiPublicB2cResultRouteImport } from './routes/api/public/b2c-result'
+import { Route as ApiPublicB2cTimeoutRouteImport } from './routes/api/public/b2c-timeout'
 import { Route as ApiPublicDarajaDiagRouteImport } from './routes/api/public/daraja-diag'
 import { Route as ApiPublicMpesaCallbackRouteImport } from './routes/api/public/mpesa-callback'
 
@@ -83,6 +85,16 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicB2cResultRoute = ApiPublicB2cResultRouteImport.update({
+  id: '/api/public/b2c-result',
+  path: '/api/public/b2c-result',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicB2cTimeoutRoute = ApiPublicB2cTimeoutRouteImport.update({
+  id: '/api/public/b2c-timeout',
+  path: '/api/public/b2c-timeout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicDarajaDiagRoute = ApiPublicDarajaDiagRouteImport.update({
   id: '/api/public/daraja-diag',
   path: '/api/public/daraja-diag',
@@ -106,6 +118,8 @@ export interface FileRoutesByFullPath {
   '/trade': typeof AuthenticatedTradeRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
+  '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -121,6 +135,8 @@ export interface FileRoutesByTo {
   '/trade': typeof AuthenticatedTradeRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
+  '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -138,6 +154,8 @@ export interface FileRoutesById {
   '/_authenticated/trade': typeof AuthenticatedTradeRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
+  '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -155,6 +173,8 @@ export interface FileRouteTypes {
     | '/trade'
     | '/verify'
     | '/wallet'
+    | '/api/public/b2c-result'
+    | '/api/public/b2c-timeout'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   fileRoutesByTo: FileRoutesByTo
@@ -170,6 +190,8 @@ export interface FileRouteTypes {
     | '/trade'
     | '/verify'
     | '/wallet'
+    | '/api/public/b2c-result'
+    | '/api/public/b2c-timeout'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   id:
@@ -186,6 +208,8 @@ export interface FileRouteTypes {
     | '/_authenticated/trade'
     | '/_authenticated/verify'
     | '/_authenticated/wallet'
+    | '/api/public/b2c-result'
+    | '/api/public/b2c-timeout'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   fileRoutesById: FileRoutesById
@@ -196,6 +220,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   OpsConsoleRoute: typeof OpsConsoleRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicB2cResultRoute: typeof ApiPublicB2cResultRoute
+  ApiPublicB2cTimeoutRoute: typeof ApiPublicB2cTimeoutRoute
   ApiPublicDarajaDiagRoute: typeof ApiPublicDarajaDiagRoute
   ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
 }
@@ -286,6 +312,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/b2c-result': {
+      id: '/api/public/b2c-result'
+      path: '/api/public/b2c-result'
+      fullPath: '/api/public/b2c-result'
+      preLoaderRoute: typeof ApiPublicB2cResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/b2c-timeout': {
+      id: '/api/public/b2c-timeout'
+      path: '/api/public/b2c-timeout'
+      fullPath: '/api/public/b2c-timeout'
+      preLoaderRoute: typeof ApiPublicB2cTimeoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/daraja-diag': {
       id: '/api/public/daraja-diag'
       path: '/api/public/daraja-diag'
@@ -332,6 +372,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   OpsConsoleRoute: OpsConsoleRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicB2cResultRoute: ApiPublicB2cResultRoute,
+  ApiPublicB2cTimeoutRoute: ApiPublicB2cTimeoutRoute,
   ApiPublicDarajaDiagRoute: ApiPublicDarajaDiagRoute,
   ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
 }
