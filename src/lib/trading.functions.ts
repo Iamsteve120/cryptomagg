@@ -339,9 +339,9 @@ export const placeTrade = createServerFn({ method: "POST" })
 
 
     const stake = Math.round(data.stake * 100) / 100;
-    const minimumStake = data.source === "auto" ? 1 : 5;
+    const minimumStake = 0.5;
     const maximumStake = data.source === "auto" ? 2000 : 500;
-    if (stake < minimumStake || stake > maximumStake) throw new Error(data.source === "auto" ? "Bot amount must be between 1.00 and 2,000.00 USD." : "Demo stake must be between 5.00 and 500.00 USD.");
+    if (stake < minimumStake || stake > maximumStake) throw new Error(data.source === "auto" ? "Bot amount must be between 0.50 and 2,000.00 USD." : "Demo stake must be between 0.50 and 500.00 USD.");
 
     await ensureProfile(context.userId, null);
 
