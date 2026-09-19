@@ -16,8 +16,6 @@ import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading
 import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { getLiveAccountStatus } from "@/lib/payments.functions";
 import { LIVE_PAYOUT_RATE } from "@/lib/live-trading";
-import { SYNTHETIC_INSTRUMENTS, isSyntheticSymbol } from "@/lib/synthetic";
-import { SyntheticChart } from "@/components/synthetic-chart";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
@@ -239,12 +237,10 @@ function TradePage() {
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
-  /** Real accounts trade the generated crypto instruments, Demo trades the exchange pairs. */
+  /** Both Demo and Real accounts trade the same real crypto pairs. */
   const marketList = useMemo(
-    () => (mode === "live"
-      ? SYNTHETIC_INSTRUMENTS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))
-      : TRADABLE_ASSETS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate }))),
-    [mode],
+    () => TRADABLE_ASSETS.map((item) => ({ symbol: item.symbol, name: item.name, payoutRate: item.payoutRate })),
+    [],
   );
   useEffect(() => {
     if (!marketList.some((item) => item.symbol === symbol)) setSymbol(marketList[0]!.symbol);
@@ -253,7 +249,7 @@ function TradePage() {
   const unit = mode === "demo" ? "USD" : "USDT";
   const balance = account?.profile ? Number(mode === "demo" ? account.profile.demo_balance : account.profile.live_balance) : 0;
   const stakeValue = Number(stake) || 0;
-  const validStake = stakeValue >= 0.35 && stakeValue <= 500 && stakeValue <= balance;
+  const validStake = stakeValue >= 1 && stakeValue <= 500 && stakeValue <= balance;
   const takeProfitValue = Number(takeProfit) || 0;
   const stopLossValue = Number(stopLoss) || 0;
   const validLevels = takeProfitValue >= 0.1 && takeProfitValue <= 2000 && stopLossValue >= 0.1 && stopLossValue <= stakeValue;
@@ -380,7 +376,7 @@ function TradePage() {
     setPendingBotId(bot.id);
     setBotDuration(String(Math.min(3600, Math.max(30, bot.durationSeconds))));
     setBotTradeCount(String(Math.min(20, Math.max(5, bot.tradeLimit))));
-    setBotStake(stakeValue >= 0.35 && stakeValue <= 2000 ? stake : "10");
+    setBotStake(stakeValue >= 1 && stakeValue <= 2000 ? stake : "10");
     setBotTakeProfit(takeProfit);
     setBotStopLoss(stopLoss);
     setBotSetupOpen(true);
@@ -391,7 +387,7 @@ function TradePage() {
     const maxBotStake = mode === "demo" ? 2000 : 200;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(20, Math.max(5, Number(botTradeCount) || 5));
-    const configuredStake = Math.min(maxBotStake, Math.max(0.35, Number(botStake) || 0.35));
+    const configuredStake = Math.min(maxBotStake, Math.max(1, Number(botStake) || 1));
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
     const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
@@ -544,9 +540,7 @@ function TradePage() {
               ))}
             </div>
             <div className="h-64 px-1 pb-1 lg:h-80">
-              {isSyntheticSymbol(symbol)
-                ? <SyntheticChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />
-                : <CandlestickChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />}
+              <CandlestickChart symbol={symbol} interval={candleInterval} theme={theme} className="h-full w-full" />
             </div>
           </section>
 
@@ -628,9 +622,9 @@ function TradePage() {
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="stake" className="text-[10px] uppercase tracking-widest text-muted-foreground">Amount ({unit})</Label>
-                <span className="num text-[10px] text-muted-foreground">Min 0.35 | Max 500</span>
+                <span className="num text-[10px] text-muted-foreground">Min 1 | Max 500</span>
               </div>
-              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="0.35" max="500" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} />
+              <Input id="stake" className="num mt-2 h-11 text-base font-semibold" type="number" inputMode="decimal" min="1" max="500" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} />
               <div className="mt-1.5 grid grid-cols-5 gap-1">
                 {[10, 50, 100, 250, 500].map((value) => (
                   <Button key={value} type="button" size="sm" variant="secondary" className="h-7 px-0 text-[10px]" onClick={() => setStake(String(value))}>{value}</Button>
@@ -720,7 +714,7 @@ function TradePage() {
               </div>
             )}
 
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades run on CryptoMagg synthetic crypto instruments. These are generated price series, not real coins, identical for every trader and set only by the clock. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
+            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades settle on the live crypto market price at expiry. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
           </div>
         </aside>
       </div>}
@@ -728,7 +722,7 @@ function TradePage() {
       <p className="rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {mode === "demo"
           ? "Simulation mode | No real funds involved | Virtual balance for practice only"
-          : `Real account | Synthetic crypto instruments, not real coins | Win pays ${LIVE_PAYOUT_RATE} percent, a loss costs your full amount`}
+          : `Real account | Live crypto market prices | Win pays ${LIVE_PAYOUT_RATE} percent, a loss costs your full amount`}
       </p>
 
       <Dialog open={botSetupOpen} onOpenChange={setBotSetupOpen}>
@@ -740,8 +734,8 @@ function TradePage() {
           <div className="space-y-5 px-5 py-4">
             <div>
               <Label htmlFor="botStake">Amount per trade (USD)</Label>
-              <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="0.35" max="2000" step="0.01" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
-              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 0.35 USD | Maximum 2,000 USD</p>
+              <Input id="botStake" className="num mt-2 h-11" type="number" inputMode="decimal" min="1" max="2000" step="0.01" value={botStake} onChange={(event) => setBotStake(event.target.value)} />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 1 USD | Maximum 2,000 USD</p>
             </div>
             <div>
               <Label htmlFor="botDuration">How long should each trade run?</Label>
@@ -784,7 +778,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 0.35 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>

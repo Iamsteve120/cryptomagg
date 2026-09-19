@@ -1,11 +1,4 @@
 import { ASSETS } from "./assets";
-import {
-  SYNTHETIC_INSTRUMENTS,
-  isSyntheticSymbol,
-  syntheticCandles,
-  syntheticChange24h,
-  syntheticPrice,
-} from "./synthetic";
 
 let lastSuccessfulQuotes: MarketQuote[] | null = null;
 
@@ -22,8 +15,6 @@ export type MarketQuote = {
   sparkline: number[];
   payoutRate: number;
   live: boolean;
-  /** True for generated instruments that are not real coins. */
-  synthetic?: boolean;
 };
 
 function fallbackQuotes(): MarketQuote[] {
@@ -63,6 +54,40 @@ async function refreshSparklines() {
   }));
 }
 
+/**
+ * Circulating supply per coin, refreshed every ten minutes. Market cap is then
+ * supply times the live price, so the cap always agrees with the price shown.
+ */
+const supplyCache = new Map<string, number>();
+let supplyFetchedAt = 0;
+
+async function refreshSupplies() {
+  if (Date.now() - supplyFetchedAt < 600_000 && supplyCache.size > 0) return;
+  supplyFetchedAt = Date.now();
+  try {
+    const ids = ASSETS.map((asset) => asset.id).join(",");
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&per_page=250`,
+      { headers: { accept: "application/json" } },
+    );
+    if (!response.ok) return;
+    const rows = (await response.json()) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const supply = Number(row["circulating_supply"]);
+      const id = String(row["id"] ?? "");
+      if (id && Number.isFinite(supply) && supply > 0) supplyCache.set(id, supply);
+    }
+  } catch {
+    // Keep the previous supplies when the reference provider is unavailable.
+  }
+}
+
+function marketCapFor(id: string, price: number, previous?: number) {
+  const supply = supplyCache.get(id);
+  if (supply && Number.isFinite(price) && price > 0) return supply * price;
+  return previous ?? 0;
+}
+
 /** One request returns fresh prices for every tradable pair, so live PNL moves on each poll. */
 async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
   const tradable = ASSETS.filter((asset) => asset.tradable !== false);
@@ -71,7 +96,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
   if (!response.ok) return null;
   const rows = await response.json() as Array<Record<string, unknown>>;
   if (!Array.isArray(rows) || rows.length === 0) return null;
-  await refreshSparklines();
+  await Promise.all([refreshSparklines(), refreshSupplies()]);
   const quotes = ASSETS.map((asset) => {
     if (asset.tradable === false) {
       return {
@@ -82,8 +107,8 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
         change24h: 0,
         high24h: asset.fallbackPrice,
         low24h: asset.fallbackPrice,
-        volume24h: 0,
-        marketCap: 0,
+      volume24h: 0,
+        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
         sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
         payoutRate: asset.payoutRate,
         live: false,
@@ -105,7 +130,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
       high24h: Number(row["highPrice"] ?? price),
       low24h: Number(row["lowPrice"] ?? price),
       volume24h: Number(row["quoteVolume"] ?? 0),
-      marketCap: previous?.marketCap ?? 0,
+      marketCap: marketCapFor(asset.id, price, previous?.marketCap),
       sparkline: [...sparkline.slice(0, -1), price],
       payoutRate: asset.payoutRate,
       live: true,
@@ -115,6 +140,7 @@ async function fetchBinanceTickerQuotes(): Promise<MarketQuote[] | null> {
 }
 
 async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
+  await refreshSupplies();
   const rows = await Promise.all(ASSETS.map(async (asset) => {
     if (asset.tradable === false) {
       // Stablecoins have no USDT pair; they are listed for reference only.
@@ -127,7 +153,7 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
         high24h: asset.fallbackPrice,
         low24h: asset.fallbackPrice,
         volume24h: 0,
-        marketCap: 0,
+        marketCap: marketCapFor(asset.id, asset.fallbackPrice),
         sparkline: Array.from({ length: 8 }, () => asset.fallbackPrice),
         payoutRate: asset.payoutRate,
         live: false,
@@ -154,7 +180,7 @@ async function fetchBinanceQuotes(): Promise<MarketQuote[] | null> {
       high24h: Number(ticker["highPrice"] ?? price),
       low24h: Number(ticker["lowPrice"] ?? price),
       volume24h: Number(ticker["quoteVolume"] ?? 0),
-      marketCap: 0,
+      marketCap: marketCapFor(asset.id, price),
       sparkline,
       payoutRate: asset.payoutRate,
       live: true,
@@ -226,39 +252,12 @@ async function fetchExchangeQuotes(): Promise<MarketQuote[]> {
   }
 }
 
-/** Quotes for the generated crypto instruments, computed from the clock alone. */
-function syntheticQuotes(): MarketQuote[] {
-  const now = Date.now();
-  return SYNTHETIC_INSTRUMENTS.map((instrument) => {
-    const price = syntheticPrice(instrument.symbol, now);
-    const candles = syntheticCandles(instrument.symbol, 60, 60, now);
-    const closes = candles.map((candle) => candle.close);
-    return {
-      id: instrument.symbol.toLowerCase(),
-      symbol: instrument.symbol,
-      name: instrument.name,
-      price,
-      change24h: syntheticChange24h(instrument.symbol, now),
-      high24h: Math.max(...closes, price),
-      low24h: Math.min(...closes, price),
-      volume24h: 0,
-      marketCap: 0,
-      sparkline: closes,
-      payoutRate: instrument.payoutRate,
-      live: true,
-      synthetic: true,
-    } satisfies MarketQuote;
-  });
-}
-
-/** Exchange pairs plus the generated instruments, in one list. */
+/** Live quotes for the real crypto pairs. */
 export async function fetchMarketQuotes(): Promise<MarketQuote[]> {
-  const exchange = await fetchExchangeQuotes();
-  return [...exchange, ...syntheticQuotes()];
+  return fetchExchangeQuotes();
 }
 
 export async function priceForSymbol(symbol: string): Promise<number> {
-  if (isSyntheticSymbol(symbol)) return syntheticPrice(symbol);
   const quotes = await fetchExchangeQuotes();
   const quote = quotes.find((q) => q.symbol === symbol);
   if (!quote) throw new Error("Unknown asset");
