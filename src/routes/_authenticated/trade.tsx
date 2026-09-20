@@ -388,14 +388,16 @@ function TradePage() {
     const maxBotStake = mode === "demo" ? 2000 : 200;
     const configuredDuration = Math.min(3600, Math.max(30, Number(botDuration) || 30));
     const configuredTradeCount = Math.min(20, Math.max(5, Number(botTradeCount) || 5));
-    const configuredStake = Math.min(maxBotStake, Math.max(1, Number(botStake) || 1));
+    const requestedStake = Math.min(maxBotStake, Math.max(0.5, Number(botStake) || 0.5));
+    const configuredStake = Math.min(requestedStake, Math.max(0.5, balance));
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
-    const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
+    const configuredStopLoss = Math.max(0.1, Number(botStopLoss) || 0.1);
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (configuredStake > balance) {
       toast.error(mode === "demo" ? "Bot amount is higher than your Demo balance." : "Bot amount is higher than your available balance.");
       return;
     }
+    setBotStake(String(configuredStake));
     botDurationRef.current = configuredDuration;
     activeBotPairsRef.current = bot?.pairs ?? [];
     if (bot) {
