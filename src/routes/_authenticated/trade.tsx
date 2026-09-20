@@ -781,7 +781,7 @@ function TradePage() {
           </div>
           <DialogFooter className="gap-2 border-t border-border px-5 py-4 sm:space-x-0">
             <Button type="button" variant="secondary" onClick={() => setBotSetupOpen(false)}>{tr("Cancel")}</Button>
-            <Button type="button" onClick={startAutoTrading} disabled={Number(botStake) < 1 || Number(botStake) > 2000 || Number(botStake) > balance || Number(botTradeCount) < 5 || Number(botTradeCount) > 20 || Number(botDuration) < 30 || Number(botDuration) > 3600 || Number(botTakeProfit) < 0.1 || Number(botTakeProfit) > 2000 || Number(botStopLoss) < 0.1 || (martingaleEnabled && (Number(martingaleLevel) < 1.25 || Number(martingaleLevel) > 5.5))}>
+            <Button type="button" onClick={startAutoTrading}>
               <Play className="size-4" /> Start bot
             </Button>
           </DialogFooter>
