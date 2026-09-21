@@ -203,6 +203,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .select("id, user_id, symbol, direction, stake, pnl, status, created_at")
         .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
@@ -210,27 +211,32 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .select("id, user_id, kind, method, amount, status, created_at")
         .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("withdrawal_requests")
         .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("deposit_intents")
         .select("id, user_id, amount_usdt, amount_kes, status, provider_receipt, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
         .from("login_events")
         .select("id, user_id, kind, created_at")
         .gte("created_at", CONSOLE_EPOCH)
+        .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
         .limit(data.limit),
     ]);
+
 
     const userIds = new Set<string>();
     for (const row of [
