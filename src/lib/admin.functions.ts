@@ -59,7 +59,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
 
-    const [profilesRes, txRes, tradesRes, loginsRes] = await Promise.all([
+    const [profilesRes, txRes, tradesRes, loginsRes, rateRes] = await Promise.all([
       db
         .from("profiles")
         .select("id, created_at, last_seen_at, live_balance, demo_balance")
@@ -67,18 +67,24 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db
         .from("transactions")
         .select("user_id, kind, amount, status, account_mode, created_at")
+        .eq("account_mode", "live")
         .gte("created_at", sinceIso),
+      // Real money activity only. Practice trades are never counted here.
       db
         .from("trades")
         .select("user_id, stake, status, pnl, account_mode, created_at")
+        .eq("account_mode", "live")
         .gte("created_at", sinceIso),
       db.from("login_events").select("user_id, created_at").gte("created_at", sinceIso),
+      db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
     const profiles = profilesRes.data ?? [];
     const transactions = txRes.data ?? [];
     const trades = tradesRes.data ?? [];
     const logins = loginsRes.data ?? [];
+    const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
+    const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
 
     const inWindow = (iso: string | null, from: string, to?: string) => {
       if (!iso) return false;
@@ -92,28 +98,30 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       const activeIds = new Set<string>();
       logins.filter((l) => inWindow(l.created_at, from, to)).forEach((l) => activeIds.add(l.user_id));
       trades.filter((t) => inWindow(t.created_at, from, to)).forEach((t) => activeIds.add(t.user_id));
-      const tx = transactions.filter((t) => inWindow(t.created_at, from, to));
-      const liveTx = tx.filter((t) => t.account_mode === "live");
+      const liveTx = transactions.filter((t) => inWindow(t.created_at, from, to));
       const deposits = liveTx
         .filter((t) => t.kind === "deposit" && t.status === "completed")
         .reduce((sum, t) => sum + Number(t.amount), 0);
       const withdrawals = liveTx
         .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
         .reduce((sum, t) => sum + Number(t.amount), 0);
-      const windowTrades = trades.filter((t) => inWindow(t.created_at, from, to));
-      const liveTrades = windowTrades.filter((t) => t.account_mode === "live");
+      const liveTrades = trades.filter((t) => inWindow(t.created_at, from, to));
       const staked = liveTrades.reduce((sum, t) => sum + Number(t.stake), 0);
-      const traderPnl = liveTrades
-        .filter((t) => t.status !== "open")
-        .reduce((sum, t) => sum + Number(t.pnl), 0);
+      const settled = liveTrades.filter((t) => t.status !== "open");
+      const traderPnl = settled.reduce((sum, t) => sum + Number(t.pnl), 0);
+      // What clients actually lost on the market, real accounts only.
+      const lostUsd = settled
+        .filter((t) => Number(t.pnl) < 0)
+        .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
       return {
         signups,
         active: activeIds.size,
         deposits,
         withdrawals,
-        trades: windowTrades.length,
+        trades: liveTrades.length,
         liveTrades: liveTrades.length,
         staked,
+        lostUsd,
         wins: liveTrades.filter((t) => t.status === "won").length,
         losses: liveTrades.filter((t) => t.status === "lost").length,
         housePnl: -traderPnl,
@@ -138,21 +146,166 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     return {
       range: data.range,
       generatedAt: new Date(now).toISOString(),
+      usdKesRate: usdKes,
+      marketLosses: {
+        usd: current.lostUsd,
+        kes: current.lostUsd * usdKes,
+        deltaPct: pct(current.lostUsd, previous.lostUsd),
+      },
       headline: [
         { label: "Total clients", value: totalClients, kind: "count" as const, deltaPct: null },
         { label: "Client balances held", value: liveFloat, kind: "money" as const, deltaPct: null },
-        { label: "Total trades", value: trades.length, kind: "count" as const, deltaPct: null },
+        { label: "Real trades", value: trades.length, kind: "count" as const, deltaPct: null },
       ],
       metrics: [
         metric("Deposited", current.deposits, previous.deposits, "money"),
         metric("Withdrawn", current.withdrawals, previous.withdrawals, "money"),
-        metric("Trades placed", current.trades, previous.trades, "count"),
+        metric("Real trades placed", current.trades, previous.trades, "count"),
         metric("Real trades staked", current.staked, previous.staked, "money"),
         metric("House result", current.housePnl, previous.housePnl, "money"),
         metric("Real wins", current.wins, previous.wins, "count"),
         metric("Real losses", current.losses, previous.losses, "count"),
       ],
     };
+  });
+
+/**
+ * Rolling activity log for the console. Real account activity only: trades,
+ * money in, money out, payout replies and sign ins, newest first.
+ */
+export const getAdminActivityLog = createServerFn({ method: "POST" })
+  .inputValidator((input: { limit?: number }) => ({
+    limit: Math.min(Math.max(Number(input?.limit ?? 60), 10), 150),
+  }))
+  .handler(async ({ data }) => {
+    const db = await requireAdmin();
+
+    const [tradesRes, txRes, withdrawalsRes, intentsRes, loginsRes] = await Promise.all([
+      db
+        .from("trades")
+        .select("id, user_id, symbol, direction, stake, pnl, status, created_at")
+        .eq("account_mode", "live")
+        .gte("created_at", CONSOLE_EPOCH)
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+      db
+        .from("transactions")
+        .select("id, user_id, kind, method, amount, status, created_at")
+        .eq("account_mode", "live")
+        .gte("created_at", CONSOLE_EPOCH)
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+      db
+        .from("withdrawal_requests")
+        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
+        .gte("created_at", CONSOLE_EPOCH)
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+      db
+        .from("deposit_intents")
+        .select("id, user_id, amount_usdt, amount_kes, status, provider_receipt, created_at")
+        .gte("created_at", CONSOLE_EPOCH)
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+      db
+        .from("login_events")
+        .select("id, user_id, kind, created_at")
+        .gte("created_at", CONSOLE_EPOCH)
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+    ]);
+
+    const userIds = new Set<string>();
+    for (const row of [
+      ...(tradesRes.data ?? []),
+      ...(txRes.data ?? []),
+      ...(withdrawalsRes.data ?? []),
+      ...(intentsRes.data ?? []),
+      ...(loginsRes.data ?? []),
+    ]) {
+      userIds.add(row.user_id);
+    }
+
+    const labels = new Map<string, string>();
+    if (userIds.size > 0) {
+      const { data: owners } = await db
+        .from("profiles")
+        .select("id, client_id, email")
+        .in("id", Array.from(userIds));
+      for (const owner of owners ?? []) {
+        labels.set(owner.id, owner.client_id ?? owner.email ?? "client");
+      }
+    }
+
+    const who = (id: string) => labels.get(id) ?? "client";
+
+    const events: {
+      id: string;
+      at: string;
+      kind: "trade" | "money" | "withdrawal" | "deposit" | "login";
+      client: string;
+      text: string;
+      amountUsd: number | null;
+    }[] = [];
+
+    for (const t of tradesRes.data ?? []) {
+      events.push({
+        id: `trade-${t.id}`,
+        at: t.created_at,
+        kind: "trade",
+        client: who(t.user_id),
+        text: `Real trade ${t.symbol} ${t.direction} · ${t.status}`,
+        amountUsd: t.status === "open" ? Number(t.stake) : Number(t.pnl),
+      });
+    }
+    for (const t of txRes.data ?? []) {
+      events.push({
+        id: `tx-${t.id}`,
+        at: t.created_at,
+        kind: "money",
+        client: who(t.user_id),
+        text: `${t.kind} · ${t.method} · ${t.status}`,
+        amountUsd: Number(t.amount),
+      });
+    }
+    for (const w of withdrawalsRes.data ?? []) {
+      events.push({
+        id: `wd-${w.id}`,
+        at: w.created_at,
+        kind: "withdrawal",
+        client: who(w.user_id),
+        text: `Withdrawal ${w.status} · ${w.phone}${
+          w.provider_receipt ? ` · M Pesa code ${w.provider_receipt}` : ""
+        }${w.failure_reason ? ` · ${w.failure_reason}` : ""}`,
+        amountUsd: Number(w.amount_usdt),
+      });
+    }
+    for (const d of intentsRes.data ?? []) {
+      events.push({
+        id: `dep-${d.id}`,
+        at: d.created_at,
+        kind: "deposit",
+        client: who(d.user_id),
+        text: `M Pesa deposit ${d.status}${
+          d.provider_receipt ? ` · M Pesa code ${d.provider_receipt}` : ""
+        } · ${Number(d.amount_kes).toFixed(0)} KES`,
+        amountUsd: Number(d.amount_usdt),
+      });
+    }
+    for (const l of loginsRes.data ?? []) {
+      events.push({
+        id: `login-${l.id}`,
+        at: l.created_at,
+        kind: "login",
+        client: who(l.user_id),
+        text: `Signed in (${l.kind})`,
+        amountUsd: null,
+      });
+    }
+
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+    return { events: events.slice(0, data.limit), generatedAt: new Date().toISOString() };
   });
 
 export const searchClients = createServerFn({ method: "POST" })
