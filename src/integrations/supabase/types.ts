@@ -86,6 +86,65 @@ export type Database = {
         }
         Relationships: []
       }
+      crypto_withdrawals: {
+        Row: {
+          amount_usdt: number
+          asset: string
+          created_at: string
+          destination_address: string
+          failure_reason: string | null
+          id: string
+          network: string
+          provider: string
+          provider_payout_id: string | null
+          status: string
+          transaction_id: string | null
+          tx_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_usdt: number
+          asset: string
+          created_at?: string
+          destination_address: string
+          failure_reason?: string | null
+          id?: string
+          network: string
+          provider?: string
+          provider_payout_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          tx_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_usdt?: number
+          asset?: string
+          created_at?: string
+          destination_address?: string
+          failure_reason?: string | null
+          id?: string
+          network?: string
+          provider?: string
+          provider_payout_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          tx_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crypto_withdrawals_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposit_intents: {
         Row: {
           amount_kes: number
@@ -580,6 +639,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      finalize_crypto_withdrawal: {
+        Args: {
+          p_failure_reason?: string
+          p_provider_id: string
+          p_request_id: string
+          p_success: boolean
+          p_tx_hash?: string
+        }
+        Returns: boolean
+      }
       finalize_mpesa_withdrawal: {
         Args: {
           p_conversation_id: string
@@ -601,6 +670,37 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hold_crypto_withdrawal: {
+        Args: {
+          p_address: string
+          p_amount: number
+          p_asset: string
+          p_network: string
+          p_user_id: string
+        }
+        Returns: {
+          amount_usdt: number
+          asset: string
+          created_at: string
+          destination_address: string
+          failure_reason: string | null
+          id: string
+          network: string
+          provider: string
+          provider_payout_id: string | null
+          status: string
+          transaction_id: string | null
+          tx_hash: string | null
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "crypto_withdrawals"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       hold_withdrawal_amount: {
         Args: { p_amount: number; p_phone: string; p_user_id: string }

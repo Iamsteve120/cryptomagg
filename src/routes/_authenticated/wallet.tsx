@@ -17,6 +17,8 @@ import { getUsdKesRate } from "@/lib/market.functions";
 import {
   getFundingActivity,
   getLiveAccountStatus,
+  requestCryptoWithdrawal,
+  requestCryptoWithdrawalCode,
   requestMpesaWithdrawal,
   requestWithdrawalCode,
   startMpesaDeposit,
@@ -210,6 +212,8 @@ function WalletPage() {
   const deposit = useServerFn(startMpesaDeposit);
   const withdraw = useServerFn(requestMpesaWithdrawal);
   const requestCode = useServerFn(requestWithdrawalCode);
+  const cryptoWithdraw = useServerFn(requestCryptoWithdrawal);
+  const requestCryptoCode = useServerFn(requestCryptoWithdrawalCode);
 
   const { data: exchange } = useQuery({
     queryKey: ["usd-kes-rate"],
@@ -235,6 +239,11 @@ function WalletPage() {
   const [withdrawCode, setWithdrawCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [codeSecondsLeft, setCodeSecondsLeft] = useState(0);
+  const [cryptoNetwork, setCryptoNetwork] = useState<"btc" | "usdttrc20">("usdttrc20");
+  const [cryptoAmount, setCryptoAmount] = useState("");
+  const [cryptoAddress, setCryptoAddress] = useState("");
+  const [cryptoCode, setCryptoCode] = useState("");
+  const [cryptoCodeSent, setCryptoCodeSent] = useState(false);
 
   useEffect(() => {
     if (codeSecondsLeft <= 0) return;
@@ -287,6 +296,29 @@ function WalletPage() {
       setWithdrawCode("");
       setCodeSent(false);
       setCodeSecondsLeft(0);
+      void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
+      void queryClient.invalidateQueries({ queryKey: ["account"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const cryptoCodeMutation = useMutation({
+    mutationFn: () => requestCryptoCode({ data: { amountUsdt: Number(cryptoAmount) || 0, network: cryptoNetwork, address: cryptoAddress.trim() } }),
+    onSuccess: (result) => {
+      setCryptoCodeSent(true);
+      setCryptoCode("");
+      setCodeSecondsLeft(result.expiresInSeconds);
+      toast.success(`Confirmation code sent to ${result.sentTo}.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const cryptoWithdrawalMutation = useMutation({
+    mutationFn: () => cryptoWithdraw({ data: { amountUsdt: Number(cryptoAmount) || 0, network: cryptoNetwork, address: cryptoAddress.trim(), code: cryptoCode } }),
+    onSuccess: (result) => {
+      if (!result.ok) { toast.error(result.error); return; }
+      toast.success("Crypto withdrawal submitted. Network confirmation will appear here.");
+      setCryptoAmount(""); setCryptoAddress(""); setCryptoCode(""); setCryptoCodeSent(false); setCodeSecondsLeft(0);
       void queryClient.invalidateQueries({ queryKey: ["funding-activity"] });
       void queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -415,6 +447,38 @@ function WalletPage() {
 
           <UsdtDepositPanel />
           <BtcDepositPanel />
+
+          <section className="space-y-4 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><ArrowUpFromLine className="size-5" /></div>
+              <div>
+                <h2 className="font-display text-lg font-semibold">Withdraw cryptocurrency</h2>
+                <p className="text-sm text-muted-foreground">Paste your own wallet address. The address and network cannot be changed after submission.</p>
+              </div>
+            </div>
+            {!liveStatus?.cryptoPayoutConfigured ? <p className="rounded-md border border-border bg-background px-4 py-3 text-sm text-muted-foreground">Automatic crypto payouts are temporarily unavailable.</p> : null}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant={cryptoNetwork === "usdttrc20" ? "default" : "outline"} onClick={() => { setCryptoNetwork("usdttrc20"); setCryptoCodeSent(false); }}>USDT · TRC20</Button>
+              <Button type="button" variant={cryptoNetwork === "btc" ? "default" : "outline"} onClick={() => { setCryptoNetwork("btc"); setCryptoCodeSent(false); }}>Bitcoin · BTC</Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="cryptoAmount">Amount in USDT</Label>
+                <Input id="cryptoAmount" inputMode="decimal" placeholder={String(LIVE_MIN_WITHDRAWAL)} value={cryptoAmount} onChange={(event) => { setCryptoAmount(event.target.value); setCryptoCodeSent(false); }} />
+                <p className="text-xs text-muted-foreground">Bitcoin payouts are converted from this USDT amount at the provider's current rate.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cryptoAddress">{cryptoNetwork === "btc" ? "Bitcoin address" : "USDT TRC20 address"}</Label>
+                <Input id="cryptoAddress" autoComplete="off" spellCheck={false} placeholder={cryptoNetwork === "btc" ? "bc1… or legacy BTC address" : "T…"} value={cryptoAddress} onChange={(event) => { setCryptoAddress(event.target.value.trim()); setCryptoCodeSent(false); }} />
+                <p className="text-xs text-destructive">Only send to the selected network. A wrong address or network may permanently lose the funds.</p>
+              </div>
+            </div>
+            {cryptoCodeSent ? <div className="space-y-2"><Label htmlFor="cryptoCode">Email confirmation code</Label><Input id="cryptoCode" autoComplete="one-time-code" placeholder="Enter the 6 character code" value={cryptoCode} onChange={(event) => setCryptoCode(event.target.value.toUpperCase())} /></div> : null}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant="outline" disabled={!liveStatus?.cryptoPayoutConfigured || cryptoCodeMutation.isPending || (Number(cryptoAmount) || 0) < LIVE_MIN_WITHDRAWAL || (Number(cryptoAmount) || 0) > balance + 0.001 || cryptoAddress.length < 25} onClick={() => cryptoCodeMutation.mutate()}>{cryptoCodeMutation.isPending ? "Sending code" : cryptoCodeSent ? "Send a new code" : "Email me a code"}</Button>
+              <Button type="button" disabled={!liveStatus?.cryptoPayoutConfigured || !cryptoCodeSent || codeSecondsLeft <= 0 || cryptoWithdrawalMutation.isPending || cryptoCode.trim().length < 4} onClick={() => cryptoWithdrawalMutation.mutate()}>{cryptoWithdrawalMutation.isPending ? "Submitting" : "Confirm crypto withdrawal"}</Button>
+            </div>
+          </section>
 
           <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4 rounded-lg border border-border bg-card p-5">
@@ -554,7 +618,15 @@ function WalletPage() {
                     ) : null}
                   </li>
                 ))}
-                {(funding?.deposits.length ?? 0) === 0 && (funding?.withdrawals.length ?? 0) === 0 && (
+                {(funding?.cryptoWithdrawals ?? []).map((row) => (
+                  <li key={row.id} className="space-y-1">
+                    <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">{row.asset} withdrawal</span><span className="num">{formatMoney(Number(row.amount_usdt))} USDT</span><StatusPill status={row.status} /></div>
+                    <p className="num truncate text-[11px] text-muted-foreground">{row.network.toUpperCase()} · {row.destination_address}</p>
+                    {row.tx_hash ? <p className="num truncate text-[11px] text-muted-foreground">Transaction {row.tx_hash}</p> : null}
+                    {row.failure_reason && row.status !== "pending" ? <p className="text-[11px] text-destructive">Payout failed — the amount was returned to your balance.</p> : null}
+                  </li>
+                ))}
+                {(funding?.deposits.length ?? 0) === 0 && (funding?.withdrawals.length ?? 0) === 0 && (funding?.cryptoWithdrawals.length ?? 0) === 0 && (
                   <li className="text-muted-foreground">{tr("Nothing yet.")}</li>
                 )}
               </ul>

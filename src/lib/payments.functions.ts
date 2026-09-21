@@ -71,6 +71,7 @@ export const getLiveAccountStatus = createServerFn({ method: "GET" })
     return {
       enabled: realMoneyEnabled(),
       providerConfigured: readDarajaConfig() !== null,
+      cryptoPayoutConfigured: (await import("./crypto-payout.server")).cryptoPayoutConfigured(),
       sandbox: sandboxMode(),
     };
   });
@@ -193,6 +194,53 @@ const otpRequestSchema = z.object({
   phone: z.string().trim().min(9).max(20),
 });
 
+const cryptoNetworkSchema = z.enum(["btc", "usdttrc20"]);
+const cryptoAddressSchema = z.object({
+  amountUsdt: z.number().positive().max(100_000),
+  network: cryptoNetworkSchema,
+  address: z.string().trim().min(25).max(120),
+});
+const cryptoWithdrawalSchema = cryptoAddressSchema.extend({ code: z.string().trim().min(4).max(12) });
+
+function validCryptoAddress(network: "btc" | "usdttrc20", address: string): boolean {
+  if (network === "usdttrc20") return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
+  return /^(bc1[ac-hj-np-z02-9]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/i.test(address);
+}
+
+async function sendWithdrawalCode(input: {
+  userId: string;
+  claims: unknown;
+  amountUsdt: number;
+  destination: string;
+  destinationLabel: string;
+}) {
+  const db = await admin();
+  const { data: profile } = await db.from("profiles").select("email, full_name").eq("id", input.userId).maybeSingle();
+  const email = profile?.email ?? (input.claims as { email?: string } | null)?.email ?? null;
+  if (!email) throw new Error("No email is saved on your account, so a code cannot be sent.");
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const code = [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
+  await db.from("withdrawal_otps").update({ consumed_at: new Date().toISOString() }).eq("user_id", input.userId).is("consumed_at", null);
+  const { error } = await db.from("withdrawal_otps").insert({
+    user_id: input.userId,
+    code_hash: await hashCode(code),
+    amount_usdt: input.amountUsdt,
+    phone: input.destination,
+    expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+  });
+  if (error) throw new Error("Could not start the withdrawal check. Please try again.");
+  const { sendEmail } = await import("./email.server");
+  const sent = await sendEmail({
+    to: email,
+    subject: "Your CryptoMagg withdrawal code",
+    text: [`Hello${profile?.full_name ? " " + profile.full_name : ""},`, "", `Your withdrawal confirmation code is: ${code}`, "", `It confirms a withdrawal of ${input.amountUsdt.toFixed(2)} USDT to ${input.destinationLabel}.`, "The code expires in 1 minute and can be entered 3 times.", "", "If you did not request this, ignore this email and no money will leave your account.", "", "CryptoMagg"].join("\n"),
+  });
+  if (!sent) throw new Error("We could not email your code right now. Please try again shortly.");
+  return { sentTo: email.replace(/^(.).*(@.*)$/, (_m, first: string, rest: string) => `${first}***${rest}`), expiresInSeconds: OTP_TTL_MS / 1000 };
+}
+
 /** Emails a one time code that must be entered before a payout is submitted. */
 export const requestWithdrawalCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -259,6 +307,18 @@ export const requestWithdrawalCode = createServerFn({ method: "POST" })
 
     const masked = email.replace(/^(.).*(@.*)$/, (_m, first: string, rest: string) => `${first}***${rest}`);
     return { sentTo: masked, expiresInSeconds: OTP_TTL_MS / 1000 };
+  });
+
+export const requestCryptoWithdrawalCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => cryptoAddressSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    rateLimit(context.userId, "crypto-withdrawal-code", 5);
+    await requireTradingActivity(context.userId);
+    const amountUsdt = Math.round(data.amountUsdt * 100) / 100;
+    if (amountUsdt < LIVE_MIN_WITHDRAWAL) throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
+    if (!validCryptoAddress(data.network, data.address)) throw new Error(data.network === "btc" ? "Enter a valid Bitcoin address." : "Enter a valid USDT TRC20 address beginning with T.");
+    return sendWithdrawalCode({ userId: context.userId, claims: context.claims, amountUsdt, destination: data.address, destinationLabel: data.network === "btc" ? "your Bitcoin address" : "your USDT TRC20 address" });
   });
 
 async function consumeWithdrawalCode(userId: string, code: string, amountUsdt: number, phone: string) {
@@ -410,12 +470,44 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
     return { ok: true as const, id: created.id, amountUsdt, status: "pending" as const };
   });
 
+export const requestCryptoWithdrawal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => cryptoWithdrawalSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    rateLimit(context.userId, "crypto-withdrawal", 5);
+    await requireTradingActivity(context.userId);
+    const amountUsdt = Math.round(data.amountUsdt * 100) / 100;
+    if (amountUsdt < LIVE_MIN_WITHDRAWAL) throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
+    if (!validCryptoAddress(data.network, data.address)) throw new Error(data.network === "btc" ? "Enter a valid Bitcoin address." : "Enter a valid USDT TRC20 address beginning with T.");
+    const provider = await import("./crypto-payout.server");
+    if (!provider.cryptoPayoutConfigured()) throw new Error("Crypto withdrawals are temporarily unavailable.");
+    await consumeWithdrawalCode(context.userId, data.code, amountUsdt, data.address);
+    const db = await admin();
+    const asset = data.network === "btc" ? "BTC" : "USDT";
+    const { data: rows, error } = await db.rpc("hold_crypto_withdrawal", { p_user_id: context.userId, p_amount: amountUsdt, p_asset: asset, p_network: data.network, p_address: data.address });
+    const created = rows?.[0];
+    if (error || !created) {
+      const detail = error?.message ?? "";
+      if (detail.includes("Pending withdrawal")) throw new Error("You already have a withdrawal being processed. Please wait for it to finish.");
+      throw new Error(detail.includes("Insufficient") ? "That is more than your available balance." : "Could not submit the withdrawal. Please try again.");
+    }
+    try {
+      const submitted = await provider.submitCryptoPayout({ requestId: created.id, network: data.network, address: data.address, amount: amountUsdt });
+      await db.from("crypto_withdrawals").update({ provider_payout_id: submitted.providerId, updated_at: new Date().toISOString() }).eq("id", created.id);
+      return { ok: true as const, id: created.id, status: "pending" as const };
+    } catch (providerError) {
+      console.error("Crypto payout submission failed", providerError instanceof Error ? providerError.message : "unknown");
+      await db.rpc("finalize_crypto_withdrawal", { p_request_id: created.id, p_provider_id: "", p_success: false, p_tx_hash: "", p_failure_reason: "provider_unreachable" });
+      return { ok: false as const, error: "The crypto payout was not accepted, so the amount was returned to your balance." };
+    }
+  });
+
 /** The trader's own funding history for the real account. */
 export const getFundingActivity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const db = await admin();
-    const [deposits, withdrawals] = await Promise.all([
+    const [deposits, withdrawals, cryptoWithdrawals] = await Promise.all([
       db
         .from("deposit_intents")
         .select("id, amount_usdt, amount_kes, status, created_at")
@@ -428,6 +520,7 @@ export const getFundingActivity = createServerFn({ method: "GET" })
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
         .limit(20),
+      db.from("crypto_withdrawals").select("id, amount_usdt, asset, network, destination_address, status, tx_hash, failure_reason, created_at").eq("user_id", context.userId).order("created_at", { ascending: false }).limit(20),
     ]);
-    return { deposits: deposits.data ?? [], withdrawals: withdrawals.data ?? [] };
+    return { deposits: deposits.data ?? [], withdrawals: withdrawals.data ?? [], cryptoWithdrawals: cryptoWithdrawals.data ?? [] };
   });

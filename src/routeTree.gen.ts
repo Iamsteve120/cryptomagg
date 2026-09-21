@@ -23,6 +23,7 @@ import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as ApiPublicB2cResultRouteImport } from './routes/api/public/b2c-result'
 import { Route as ApiPublicB2cTimeoutRouteImport } from './routes/api/public/b2c-timeout'
+import { Route as ApiPublicCryptoPayoutCallbackRouteImport } from './routes/api/public/crypto-payout-callback'
 import { Route as ApiPublicDarajaDiagRouteImport } from './routes/api/public/daraja-diag'
 import { Route as ApiPublicMpesaCallbackRouteImport } from './routes/api/public/mpesa-callback'
 
@@ -95,6 +96,12 @@ const ApiPublicB2cTimeoutRoute = ApiPublicB2cTimeoutRouteImport.update({
   path: '/api/public/b2c-timeout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCryptoPayoutCallbackRoute =
+  ApiPublicCryptoPayoutCallbackRouteImport.update({
+    id: '/api/public/crypto-payout-callback',
+    path: '/api/public/crypto-payout-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicDarajaDiagRoute = ApiPublicDarajaDiagRouteImport.update({
   id: '/api/public/daraja-diag',
   path: '/api/public/daraja-diag',
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
   '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
+  '/api/public/crypto-payout-callback': typeof ApiPublicCryptoPayoutCallbackRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -137,6 +145,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletRoute
   '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
   '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
+  '/api/public/crypto-payout-callback': typeof ApiPublicCryptoPayoutCallbackRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -156,6 +165,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/api/public/b2c-result': typeof ApiPublicB2cResultRoute
   '/api/public/b2c-timeout': typeof ApiPublicB2cTimeoutRoute
+  '/api/public/crypto-payout-callback': typeof ApiPublicCryptoPayoutCallbackRoute
   '/api/public/daraja-diag': typeof ApiPublicDarajaDiagRoute
   '/api/public/mpesa-callback': typeof ApiPublicMpesaCallbackRoute
 }
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/public/b2c-result'
     | '/api/public/b2c-timeout'
+    | '/api/public/crypto-payout-callback'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   fileRoutesByTo: FileRoutesByTo
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/api/public/b2c-result'
     | '/api/public/b2c-timeout'
+    | '/api/public/crypto-payout-callback'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   id:
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet'
     | '/api/public/b2c-result'
     | '/api/public/b2c-timeout'
+    | '/api/public/crypto-payout-callback'
     | '/api/public/daraja-diag'
     | '/api/public/mpesa-callback'
   fileRoutesById: FileRoutesById
@@ -222,6 +235,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicB2cResultRoute: typeof ApiPublicB2cResultRoute
   ApiPublicB2cTimeoutRoute: typeof ApiPublicB2cTimeoutRoute
+  ApiPublicCryptoPayoutCallbackRoute: typeof ApiPublicCryptoPayoutCallbackRoute
   ApiPublicDarajaDiagRoute: typeof ApiPublicDarajaDiagRoute
   ApiPublicMpesaCallbackRoute: typeof ApiPublicMpesaCallbackRoute
 }
@@ -326,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicB2cTimeoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/crypto-payout-callback': {
+      id: '/api/public/crypto-payout-callback'
+      path: '/api/public/crypto-payout-callback'
+      fullPath: '/api/public/crypto-payout-callback'
+      preLoaderRoute: typeof ApiPublicCryptoPayoutCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/daraja-diag': {
       id: '/api/public/daraja-diag'
       path: '/api/public/daraja-diag'
@@ -374,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicB2cResultRoute: ApiPublicB2cResultRoute,
   ApiPublicB2cTimeoutRoute: ApiPublicB2cTimeoutRoute,
+  ApiPublicCryptoPayoutCallbackRoute: ApiPublicCryptoPayoutCallbackRoute,
   ApiPublicDarajaDiagRoute: ApiPublicDarajaDiagRoute,
   ApiPublicMpesaCallbackRoute: ApiPublicMpesaCallbackRoute,
 }
