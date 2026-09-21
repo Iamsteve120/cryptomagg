@@ -25,6 +25,25 @@ async function admin() {
   return supabaseAdmin;
 }
 
+/** Traders must place at least two real trades before any payout is allowed. */
+const MIN_TRADES_BEFORE_WITHDRAWAL = 2;
+
+async function requireTradingActivity(userId: string): Promise<void> {
+  const db = await admin();
+  const { count, error } = await db
+    .from("trades")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("account_mode", "live");
+  if (error) throw new Error("Could not check your account. Please try again.");
+  if ((count ?? 0) < MIN_TRADES_BEFORE_WITHDRAWAL) {
+    const left = MIN_TRADES_BEFORE_WITHDRAWAL - (count ?? 0);
+    throw new Error(
+      `Place ${left} more real trade${left === 1 ? "" : "s"} before you can withdraw. At least ${MIN_TRADES_BEFORE_WITHDRAWAL} trades are required.`,
+    );
+  }
+}
+
 async function usdKesRate(): Promise<number | null> {
   try {
     const response = await fetch("https://open.er-api.com/v6/latest/USD", {
