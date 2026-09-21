@@ -16,6 +16,16 @@ export const ADMIN_RANGES = {
 
 export type AdminRangeKey = keyof typeof ADMIN_RANGES;
 
+/**
+ * Fresh-start line for the operations console. Everything recorded before this
+ * moment is treated as pre launch noise and is never shown or counted, so the
+ * console starts empty and fills up again from the next sign up onwards.
+ */
+export const CONSOLE_EPOCH = "2026-09-21T22:54:00.000Z";
+
+/** Fallback shilling rate used only when no recorded deposit rate exists. */
+const FALLBACK_USD_KES = 129;
+
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
 function normaliseRange(value: unknown): AdminRangeKey {
@@ -47,17 +57,22 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     const prevIso = new Date(now - windowMs * 2).toISOString();
     const onlineIso = new Date(now - 5 * 60_000).toISOString();
 
+    const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
+
     const [profilesRes, txRes, tradesRes, loginsRes] = await Promise.all([
-      db.from("profiles").select("id, created_at, last_seen_at, live_balance, demo_balance"),
+      db
+        .from("profiles")
+        .select("id, created_at, last_seen_at, live_balance, demo_balance")
+        .gte("created_at", CONSOLE_EPOCH),
       db
         .from("transactions")
         .select("user_id, kind, amount, status, account_mode, created_at")
-        .gte("created_at", prevIso),
+        .gte("created_at", sinceIso),
       db
         .from("trades")
         .select("user_id, stake, status, pnl, account_mode, created_at")
-        .gte("created_at", prevIso),
-      db.from("login_events").select("user_id, created_at").gte("created_at", prevIso),
+        .gte("created_at", sinceIso),
+      db.from("login_events").select("user_id, created_at").gte("created_at", sinceIso),
     ]);
 
     const profiles = profilesRes.data ?? [];
@@ -126,6 +141,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       headline: [
         { label: "Total clients", value: totalClients, kind: "count" as const, deltaPct: null },
         { label: "Client balances held", value: liveFloat, kind: "money" as const, deltaPct: null },
+        { label: "Total trades", value: trades.length, kind: "count" as const, deltaPct: null },
       ],
       metrics: [
         metric("Deposited", current.deposits, previous.deposits, "money"),
@@ -148,6 +164,7 @@ export const searchClients = createServerFn({ method: "POST" })
     let builder = db
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
+      .gte("created_at", CONSOLE_EPOCH)
       .order("created_at", { ascending: false })
       .limit(40);
 
@@ -218,40 +235,54 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
 
-    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes] = await Promise.all([
+    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes, rateRes] = await Promise.all([
       db
         .from("transactions")
         .select("*")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
       db
         .from("trades")
         .select("id, symbol, direction, stake, pnl, status, account_mode, created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
       db
         .from("login_events")
         .select("created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(10),
       db
         .from("withdrawal_requests")
         .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(20),
       db
         .from("deposit_intents")
         .select(
-          "id, amount_usdt, amount_kes, phone, status, provider_receipt, failure_reason, created_at",
+          "id, amount_usdt, amount_kes, usd_kes_rate, phone, status, provider_receipt, failure_reason, created_at",
         )
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(20),
+      // Latest recorded shilling rate, used to show payouts in KES as well as USDT.
+      db
+        .from("deposit_intents")
+        .select("usd_kes_rate")
+        .order("created_at", { ascending: false })
+        .limit(1),
     ]);
+
+    const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
+    const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
 
     const transactions = txRes.data ?? [];
     const liveTx = transactions.filter((t) => t.account_mode === "live");
@@ -275,7 +306,11 @@ export const getClientDetail = createServerFn({ method: "POST" })
       },
       transactions,
       trades,
-      withdrawals: withdrawalsRes.data ?? [],
+      usdKesRate: usdKes,
+      withdrawals: (withdrawalsRes.data ?? []).map((w) => ({
+        ...w,
+        amount_kes: Number(w.amount_usdt) * usdKes,
+      })),
       mpesaDeposits: intentsRes.data ?? [],
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };

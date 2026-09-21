@@ -392,7 +392,7 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                       <span className="min-w-0">
                         <span className="block truncate">
                           {d.phone} · {d.status}
-                          {d.provider_receipt ? ` · ${d.provider_receipt}` : ""}
+                          {d.provider_receipt ? ` · M Pesa code ${d.provider_receipt}` : ""}
                         </span>
                         <span className="block truncate text-muted-foreground">
                           {new Date(d.created_at).toLocaleString()} ·{" "}
@@ -424,7 +424,9 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                           {w.provider_receipt ? ` · ${w.provider_receipt}` : ""}
                         </span>
                         <span className="block truncate text-muted-foreground">
-                          {new Date(w.created_at).toLocaleString()}
+                          {new Date(w.created_at).toLocaleString()} ·{" "}
+                          {formatMoney(Number(w.amount_kes))} KES
+                          {w.provider_receipt ? ` · M Pesa code ${w.provider_receipt}` : ""}
                           {w.failure_reason ? ` · ${w.failure_reason}` : ""}
                         </span>
                       </span>
