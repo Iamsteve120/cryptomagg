@@ -96,9 +96,6 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
-      db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
-    ]);
-
     const profiles = profilesRes.data ?? [];
     const transactions = txRes.data ?? [];
     const trades = tradesRes.data ?? [];
