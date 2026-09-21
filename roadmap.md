@@ -7,4 +7,4 @@
 - [x] Verify the console at desktop and mobile sizes.
 - [x] List every client with a completed M-Pesa deposit or withdrawal.
 - [x] Refresh completed client transactions automatically and show code, amount, time, and +254 phone.
-- [ ] Add secure cryptocurrency withdrawals with client-provided BTC and USDT-TRC20 addresses.
+- [x] Add secure cryptocurrency withdrawals with client-provided BTC and USDT-TRC20 addresses.
