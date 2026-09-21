@@ -189,7 +189,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
 
-    const [txRes, tradesRes, loginsRes, withdrawalsRes] = await Promise.all([
+    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes] = await Promise.all([
       db
         .from("transactions")
         .select("*")
@@ -210,7 +210,15 @@ export const getClientDetail = createServerFn({ method: "POST" })
         .limit(10),
       db
         .from("withdrawal_requests")
-        .select("id, amount_usdt, phone, status, created_at")
+        .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      db
+        .from("deposit_intents")
+        .select(
+          "id, amount_usdt, amount_kes, phone, status, provider_receipt, failure_reason, created_at",
+        )
         .eq("user_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20),
@@ -239,6 +247,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
       transactions,
       trades,
       withdrawals: withdrawalsRes.data ?? [],
+      mpesaDeposits: intentsRes.data ?? [],
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };
   });
