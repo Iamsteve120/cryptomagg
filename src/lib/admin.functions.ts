@@ -400,6 +400,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
         .from("trades")
         .select("id, symbol, direction, stake, pnl, status, account_mode, created_at")
         .eq("user_id", profile.id)
+        .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
