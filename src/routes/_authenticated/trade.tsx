@@ -469,7 +469,7 @@ function TradePage() {
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
             <div><p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("Bot transactions")}</p><h1 className="mt-1 text-lg font-semibold">{selectedBot?.name ?? "Trading Bot"}</h1></div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> {tr("Trade setup")}</Button><Button variant="outline" size="sm" onClick={resetBotSession}><RotateCcw className="size-4" /> {tr("Reset")}</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || (!autoEnabled && openTrades.length === 0)}><Square className="size-4" /> {stopAllMutation.isPending ? "Closing trades" : "Stop bot"}</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setShowBotTransactions(false)}><ArrowLeft className="size-4" /> {tr("Trade setup")}</Button>{autoEnabled ? (<span className="self-center text-[11px] text-muted-foreground">{tr("Running until the session ends")}</span>) : (<><Button variant="outline" size="sm" onClick={resetBotSession}><RotateCcw className="size-4" /> {tr("Reset")}</Button><Button variant="destructive" size="sm" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || openTrades.length === 0}><Square className="size-4" /> {stopAllMutation.isPending ? "Closing trades" : "Stop bot"}</Button></>)}</div>
           </div>
           <div className="grid grid-cols-3 border-b border-border bg-secondary/20 text-center">
             <div className="p-3"><p className="text-[10px] uppercase text-muted-foreground">{tr("Runs")}</p><p className="num mt-1 font-semibold">{autoPlaced} / {autoLimit}</p></div>
@@ -704,13 +704,15 @@ function TradePage() {
                   <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">{tr("Max loss")}</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className={cn("grid gap-2", autoEnabled ? "grid-cols-1" : "grid-cols-2")}>
                   <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled}>
                     <Play className="size-4" /> Start trading
                   </Button>
-                  <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || (!autoEnabled && openTrades.length === 0)}>
-                    <Square className="size-4" /> Stop trading
-                  </Button>
+                  {!autoEnabled && (
+                    <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || openTrades.length === 0}>
+                      <Square className="size-4" /> Stop trading
+                    </Button>
+                  )}
                 </div>
                 <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo outcomes target a simulated 95 percent practice win rate and still include losses."}</p>
               </div>
