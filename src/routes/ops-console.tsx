@@ -495,7 +495,10 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </section>
       ) : null}
 
+      <ActivityLog />
+
       <PayoutPanel />
+
     </div>
   );
 }
