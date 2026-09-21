@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/assets";
 import {
   ADMIN_RANGES,
+  getAdminActivityLog,
   getAdminOverview,
   getClientDetail,
   searchClients,
