@@ -59,16 +59,15 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
 
-    const [profilesRes, txRes, tradesRes, rateRes] = await Promise.all([
+    const [depositsRes, withdrawalsRes, tradesRes, rateRes] = await Promise.all([
       db
-        .from("profiles")
-        .select("id, created_at, live_balance")
+        .from("deposit_intents")
+        .select("amount_usdt, status, created_at")
         .gte("created_at", CONSOLE_EPOCH)
-        .not("id", "in", HIDDEN_LIST),
+        .not("user_id", "in", HIDDEN_LIST),
       db
-        .from("transactions")
-        .select("kind, amount, status, created_at")
-        .eq("account_mode", "live")
+        .from("withdrawal_requests")
+        .select("amount_usdt, status, created_at")
         .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST),
       db
@@ -80,7 +79,8 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
-    const transactions = txRes.data ?? [];
+    const deposits = depositsRes.data ?? [];
+    const withdrawals = withdrawalsRes.data ?? [];
     const trades = tradesRes.data ?? [];
     const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
     const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
@@ -93,32 +93,25 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     };
 
     function bucket(from: string, to?: string) {
-      const liveTx = transactions.filter((t) => inWindow(t.created_at, from, to));
-      const deposits = liveTx
-        .filter((t) => t.kind === "deposit" && t.status === "completed")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      const withdrawals = liveTx
-        .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const deposited = deposits
+        .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
+        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
+      const withdrawn = withdrawals
+        .filter(
+          (row) =>
+            inWindow(row.created_at, from, to) &&
+            (row.status === "paid" || row.status === "completed"),
+        )
+        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
       const settledTrades = trades.filter((t) => inWindow(t.created_at, from, to) && t.status !== "open");
       const marketLosses = settledTrades
         .filter((t) => Number(t.pnl) < 0)
         .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
-      return { deposits, withdrawals, marketLosses };
+      return { deposits: deposited, withdrawals: withdrawn, marketLosses };
     }
 
     const current = bucket(startIso);
     const previous = bucket(prevIso, startIso);
-
-    const allDeposits = transactions
-      .filter((t) => t.kind === "deposit" && t.status === "completed")
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-    const allWithdrawals = transactions
-      .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-    const allMarketLosses = trades
-      .filter((t) => t.status !== "open" && Number(t.pnl) < 0)
-      .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
 
     const metric = (label: string, value: number, prev: number) => ({
       label,
@@ -131,15 +124,9 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       range: data.range,
       generatedAt: new Date(now).toISOString(),
       usdKesRate: usdKes,
-      headline: [
-        { label: "Total Deposit", value: allDeposits, kind: "money" as const, deltaPct: null },
-        { label: "Total Withdrawal", value: allWithdrawals, kind: "money" as const, deltaPct: null },
-        { label: "Market Losses", value: allMarketLosses, kind: "money" as const, deltaPct: null },
-      ],
       metrics: [
-        metric("Deposited", current.deposits, previous.deposits),
-        metric("Withdrawn", current.withdrawals, previous.withdrawals),
-        metric("Market Losses", current.marketLosses, previous.marketLosses),
+        metric("Total M Pesa deposits", current.deposits, previous.deposits),
+        metric("Total M Pesa withdrawals", current.withdrawals, previous.withdrawals),
       ],
       marketLosses: {
         usd: current.marketLosses,
@@ -167,7 +154,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .limit(data.limit),
       db
         .from("withdrawal_requests")
-        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
+        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at, updated_at")
         .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
@@ -234,7 +221,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const w of withdrawalsRes.data ?? []) {
       events.push({
         id: `wd-${w.id}`,
-        at: w.created_at,
+        at: w.updated_at ?? w.created_at,
         kind: "withdrawal",
         client: who(w.user_id),
         text: `M Pesa withdrawal ${w.status}${w.phone ? ` · ${w.phone}` : ""}${

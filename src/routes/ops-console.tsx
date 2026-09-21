@@ -212,8 +212,8 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {(overview.data?.headline ?? []).map((m) => (
+      <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {(overview.data?.metrics ?? []).map((m) => (
           <div key={m.label} className="min-w-0 rounded-lg border border-border bg-card p-4">
             <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
               {m.label}
@@ -221,12 +221,12 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
             <p
               className={cn(
                 "num mt-1 truncate text-xl font-semibold",
-                m.label.toLowerCase().includes("deposit") ? "text-primary" : 
-                m.label.toLowerCase().includes("withdrawal") || m.label.toLowerCase().includes("losses") ? "text-destructive" : ""
+                 m.label.toLowerCase().includes("deposit") ? "text-success" : "text-destructive"
               )}
             >
               {formatValue(m.value, m.kind)}
             </p>
+            <Delta value={m.deltaPct} />
           </div>
         ))}
       </section>
@@ -283,9 +283,6 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                   <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
                   <span className="num block truncate text-xs text-muted-foreground">
                     {c.client_id ?? "—"} · {c.phone ?? "—"}
-                  </span>
-                  <span className="num block truncate text-[11px] text-muted-foreground">
-                    {c.mpesaCodes.length > 0 ? c.mpesaCodes.join(" · ") : "No M Pesa codes"}
                   </span>
                 </span>
                 <span className="shrink-0 text-sm text-muted-foreground">View</span>
@@ -349,18 +346,27 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                     <li key={m.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
                       <span className="min-w-0">
                         <span className="block truncate">
-                          {m.kind === 'deposit' ? 'Deposit' : 'Withdrawal'} · {m.status} · {m.provider_receipt || 'No code'}
+                          {m.kind === "deposit" ? "Deposit" : "Withdrawal"} · {m.status}
                         </span>
                         <span className="block truncate text-muted-foreground">
-                           {m.phone} · {new Date(m.created_at).toLocaleString()}
+                          M Pesa code {m.provider_receipt || "pending"} · {m.phone || "No phone"}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {new Date(m.created_at).toLocaleString()}
                         </span>
                       </span>
                       <span className={cn(
                         "num shrink-0 text-right font-semibold",
-                        m.kind === 'deposit' ? "text-primary" : "text-destructive"
+                        m.kind === "deposit" ? "text-success" : "text-destructive"
                       )}>
-                        <span className="block">{m.amount > 0 ? '+' : ''}{formatMoney(m.amount_kes)} KES</span>
-                        <span className="block text-[11px]">({formatMoney(m.amount)} USDT)</span>
+                        <span className="block">
+                          {m.kind === "deposit" ? "+" : "−"}
+                          {formatMoney(Math.abs(m.amount_kes))} KES
+                        </span>
+                        <span className="block text-[11px]">
+                          ({m.kind === "deposit" ? "+" : "−"}
+                          {formatMoney(Math.abs(m.amount))} USDT)
+                        </span>
                       </span>
                     </li>
                   ))}
