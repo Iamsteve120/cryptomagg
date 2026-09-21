@@ -169,7 +169,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .limit(data.limit),
       db
         .from("deposit_intents")
-        .select("id, user_id, amount_usdt, amount_kes, status, provider_receipt, created_at")
+        .select("id, user_id, amount_usdt, amount_kes, phone, status, provider_receipt, created_at, updated_at")
         .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
@@ -241,12 +241,12 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const d of intentsRes.data ?? []) {
       events.push({
         id: `dep-${d.id}`,
-        at: d.created_at,
+        at: d.updated_at ?? d.created_at,
         kind: "deposit",
         client: who(d.user_id),
         text: `M Pesa deposit ${d.status}${
           d.provider_receipt ? ` · Code ${d.provider_receipt}` : ""
-        } · ${Number(d.amount_kes).toFixed(0)} KES`,
+        }${d.phone ? ` · ${displayKenyanPhone(d.phone)}` : ""} · ${Number(d.amount_kes).toFixed(0)} KES`,
         amountUsd: Math.abs(Number(d.amount_usdt)),
       });
     }
