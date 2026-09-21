@@ -190,6 +190,13 @@
       "when": 1790001696816,
       "tag": "0026_pin_honest_live_settlement",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790026516768,
+      "tag": "0027_lock_down_money_tables_and_definer_functions",
+      "breakpoints": true
     }
   ]
 }
