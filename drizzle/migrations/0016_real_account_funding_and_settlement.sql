@@ -88,7 +88,6 @@ AS $$
 DECLARE
   target_trade public.trades; current_balance NUMERIC(18,2);
   result_status TEXT; result_pnl NUMERIC(18,2); credit NUMERIC(18,2);
-  is_exception_account BOOLEAN;
 BEGIN
   IF p_exit_price IS NULL OR p_exit_price <= 0 THEN RAISE EXCEPTION 'Invalid market price'; END IF;
 
@@ -99,23 +98,10 @@ BEGIN
 
   SELECT live_balance INTO current_balance FROM public.profiles WHERE id = p_user_id FOR UPDATE;
 
-  -- Check if the account is the exception account
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = p_user_id AND id = '15a49fc5-f8ce-4f03-9541-b6f217a22e91'
-  ) INTO is_exception_account;
-
-  IF is_exception_account THEN
-    -- Always result in a profit for the exception account
-    result_status := 'won';
-    result_pnl := ROUND(target_trade.stake * target_trade.payout_rate / 100, 2);
-    credit := target_trade.stake + result_pnl;
-  ELSE
-    -- Default behavior for non-exception accounts
-    result_status := 'lost';
-    result_pnl := 0 - target_trade.stake;
-    credit := 0;
-  END IF;
+  -- Always result in a win
+  result_status := 'won';
+  result_pnl := ROUND(target_trade.stake * target_trade.payout_rate / 100, 2);
+  credit := target_trade.stake + result_pnl;
 
   UPDATE public.profiles SET live_balance = current_balance + credit, updated_at = now() WHERE id = p_user_id;
   UPDATE public.trades SET status = result_status, pnl = result_pnl, exit_price = p_exit_price,
