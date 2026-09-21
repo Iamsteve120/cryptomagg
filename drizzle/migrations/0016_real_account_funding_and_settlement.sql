@@ -89,8 +89,7 @@ DECLARE
   target_trade public.trades; current_balance NUMERIC(18,2);
   result_status TEXT; result_pnl NUMERIC(18,2); credit NUMERIC(18,2);
 BEGIN
-  IF p_exit_price IS NULL OR p_exit_price <= 0 THEN RAISE EXCEPTION 'Invalid market price'; END IF;
-
+  -- No need to check p_exit_price since it's not used in the simulation
   SELECT * INTO target_trade FROM public.trades
   WHERE id = p_trade_id AND user_id = p_user_id AND account_mode = 'live' FOR UPDATE;
   IF target_trade.id IS NULL THEN RAISE EXCEPTION 'Trade unavailable'; END IF;
@@ -104,7 +103,7 @@ BEGIN
   credit := target_trade.stake + result_pnl;
 
   UPDATE public.profiles SET live_balance = current_balance + credit, updated_at = now() WHERE id = p_user_id;
-  UPDATE public.trades SET status = result_status, pnl = result_pnl, exit_price = p_exit_price,
+  UPDATE public.trades SET status = result_status, pnl = result_pnl, exit_price = NULL, -- No exit price, purely simulated
     settled_at = now(), balance_after_settlement = current_balance + credit
   WHERE id = p_trade_id RETURNING * INTO target_trade;
 
