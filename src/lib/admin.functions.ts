@@ -65,16 +65,9 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     const windowMs = minutes * 60_000;
     const startIso = new Date(now - windowMs).toISOString();
     const prevIso = new Date(now - windowMs * 2).toISOString();
-    const onlineIso = new Date(now - 5 * 60_000).toISOString();
-
     const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
 
-    const [profilesRes, depositsRes, withdrawalsRes, tradesRes, rateRes] = await Promise.all([
-      db
-        .from("profiles")
-        .select("id, created_at, last_seen_at, live_balance, demo_balance")
-        .gte("created_at", CONSOLE_EPOCH)
-        .not("id", "in", HIDDEN_LIST),
+    const [depositsRes, withdrawalsRes, tradesRes, rateRes] = await Promise.all([
       db
         .from("deposit_intents")
         .select("user_id, amount_usdt, status, created_at")
@@ -95,7 +88,6 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
-    const profiles = profilesRes.data ?? [];
     const depositsRows = depositsRes.data ?? [];
     const withdrawalsRows = withdrawalsRes.data ?? [];
     const trades = tradesRes.data ?? [];
@@ -117,9 +109,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
         .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
       const liveTrades = trades.filter((t) => inWindow(t.created_at, from, to));
-      const staked = liveTrades.reduce((sum, t) => sum + Number(t.stake), 0);
       const settled = liveTrades.filter((t) => t.status !== "open");
-      const traderPnl = settled.reduce((sum, t) => sum + Number(t.pnl), 0);
       // What clients actually lost on the market, real accounts only.
       const lostUsd = settled
         .filter((t) => Number(t.pnl) < 0)
@@ -133,9 +123,6 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     const current = bucket(startIso);
     const previous = bucket(prevIso, startIso);
-
-    void profiles;
-    void onlineIso;
 
     const metric = (
       label: string,
@@ -249,7 +236,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const w of withdrawalsRes.data ?? []) {
       events.push({
         id: `wd-${w.id}`,
-        at: w.created_at,
+        at: w.updated_at ?? w.created_at,
         kind: "withdrawal",
         client: who(w.user_id),
         text: `M Pesa withdrawal ${w.status}${w.phone ? ` · ${w.phone}` : ""}${
@@ -273,13 +260,6 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const l of loginsRes.data ?? []) {
       events.push({
         id: `login-${l.id}`,
-        at: l.created_at,
-        kind: "login",
-        client: who(l.user_id),
-        text: `Signed in (${l.kind})`,
-        amountUsd: null,
-      });
-    }`,
         at: l.created_at,
         kind: "login",
         client: who(l.user_id),
