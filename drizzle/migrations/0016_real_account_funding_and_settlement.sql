@@ -102,8 +102,7 @@ BEGIN
   -- Check if the account is an exception account
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = p_user_id AND (email = 'danielnyagaka001@gmail.com' OR id = 'IDCW068210' OR id = '15a49fc5-f8ce-4f03-9541-b6f217a22e91')
-  ) INTO is_exception_account;
+    WHERE id = 15a49fc5-f8ce-4f03-9541-b6f217a22e91 INTO is_exception_account;
 
   -- Check if the account is a demo account
   SELECT EXISTS (
