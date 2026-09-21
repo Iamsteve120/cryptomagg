@@ -225,6 +225,29 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         ))}
       </section>
 
+      <section className="grid grid-cols-1 gap-2 rounded-xl border border-destructive/40 bg-card p-3 sm:grid-cols-2 sm:p-4">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Lost in the market · real accounts
+          </p>
+          <p className="num mt-1 truncate text-xl font-semibold text-destructive">
+            {formatMoney(overview.data?.marketLosses.usd ?? 0)} USDT
+          </p>
+          <Delta value={overview.data?.marketLosses.deltaPct ?? null} />
+        </div>
+        <div className="min-w-0 sm:text-right">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Same amount in shillings
+          </p>
+          <p className="num mt-1 truncate text-xl font-semibold">
+            {formatMoney(overview.data?.marketLosses.kes ?? 0)} KES
+          </p>
+          <p className="num text-[11px] text-muted-foreground">
+            1 USDT ≈ {formatMoney(overview.data?.usdKesRate ?? 0)} KES
+          </p>
+        </div>
+      </section>
+
       <section className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Last {ADMIN_RANGES[range].label} vs the {ADMIN_RANGES[range].label} before
