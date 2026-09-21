@@ -217,6 +217,7 @@ export const requestWithdrawalCode = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => otpRequestSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "withdrawal-code", 5);
+    await requireTradingActivity(context.userId);
 
     const phone = normaliseKenyanPhone(data.phone);
     if (!phone) throw new Error("Enter a valid Safaricom number, for example 0712345678.");
