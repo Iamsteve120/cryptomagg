@@ -17,16 +17,12 @@ export const ADMIN_RANGES = {
 export type AdminRangeKey = keyof typeof ADMIN_RANGES;
 
 /**
- * Fresh-start line for the operations console. Everything recorded before this
- * moment is treated as pre launch noise and is never shown or counted, so the
- * console starts empty and fills up again from the next sign up onwards.
+ * Fresh-start line for the operations console.
  */
 export const CONSOLE_EPOCH = "2024-09-21T23:25:00.000Z";
 
 /**
- * Accounts that are kept out of the operations console entirely. Their balance
- * and their own view of the site are untouched, they simply never appear in any
- * console figure, client list, history or activity log.
+ * Accounts that are kept out of the operations console entirely.
  */
 export const HIDDEN_USER_IDS = ["15a49fc5-f8ce-4f03-9541-b6f217a22e91"] as const;
 
@@ -35,17 +31,12 @@ const HIDDEN_LIST = `(${HIDDEN_USER_IDS.join(",")})`;
 /** Fallback shilling rate used only when no recorded deposit rate exists. */
 const FALLBACK_USD_KES = 129;
 
-
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
 function normaliseRange(value: unknown): AdminRangeKey {
   return RANGE_KEYS.includes(value as AdminRangeKey) ? (value as AdminRangeKey) : "1d";
 }
 
-/**
- * Every admin read is gated on the encrypted admin portal session cookie, which
- * is only issued after the separate username and password check on the server.
- */
 async function requireAdmin() {
   const { requireAdminSession } = await import("./admin-portal.server");
   return requireAdminSession();
@@ -65,31 +56,31 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     const windowMs = minutes * 60_000;
     const startIso = new Date(now - windowMs).toISOString();
     const prevIso = new Date(now - windowMs * 2).toISOString();
+
     const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
 
-    const [depositsRes, withdrawalsRes, tradesRes, rateRes] = await Promise.all([
+    const [profilesRes, txRes, tradesRes, rateRes] = await Promise.all([
       db
-        .from("deposit_intents")
-        .select("user_id, amount_usdt, status, created_at")
-        .gte("created_at", sinceIso)
-        .not("user_id", "in", HIDDEN_LIST),
+        .from("profiles")
+        .select("id, created_at, live_balance")
+        .gte("created_at", CONSOLE_EPOCH)
+        .not("id", "in", HIDDEN_LIST),
       db
-        .from("withdrawal_requests")
-        .select("user_id, amount_usdt, status, created_at")
-        .gte("created_at", sinceIso)
+        .from("transactions")
+        .select("kind, amount, status, created_at")
+        .eq("account_mode", "live")
+        .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST),
-      // Real money activity only. Practice trades are never counted here.
       db
         .from("trades")
-        .select("user_id, stake, status, pnl, account_mode, created_at")
+        .select("stake, status, pnl, created_at")
         .eq("account_mode", "live")
-        .gte("created_at", sinceIso)
+        .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST),
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
-    const depositsRows = depositsRes.data ?? [];
-    const withdrawalsRows = withdrawalsRes.data ?? [];
+    const transactions = txRes.data ?? [];
     const trades = tradesRes.data ?? [];
     const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
     const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
@@ -102,55 +93,62 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     };
 
     function bucket(from: string, to?: string) {
-      const deposits = depositsRows
-        .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
-        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
-      const withdrawals = withdrawalsRows
-        .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
-        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
-      const liveTrades = trades.filter((t) => inWindow(t.created_at, from, to));
-      const settled = liveTrades.filter((t) => t.status !== "open");
-      // What clients actually lost on the market, real accounts only.
-      const lostUsd = settled
+      const liveTx = transactions.filter((t) => inWindow(t.created_at, from, to));
+      const deposits = liveTx
+        .filter((t) => t.kind === "deposit" && t.status === "completed")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const withdrawals = liveTx
+        .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const settledTrades = trades.filter((t) => inWindow(t.created_at, from, to) && t.status !== "open");
+      const marketLosses = settledTrades
         .filter((t) => Number(t.pnl) < 0)
         .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
-      return {
-        deposits,
-        withdrawals,
-        lostUsd,
-      };
+      return { deposits, withdrawals, marketLosses };
     }
 
     const current = bucket(startIso);
     const previous = bucket(prevIso, startIso);
 
-    const metric = (
-      label: string,
-      value: number,
-      prev: number,
-      kind: "count" | "money",
-    ) => ({ label, value, kind, deltaPct: pct(value, prev) });
+    const allDeposits = transactions
+      .filter((t) => t.kind === "deposit" && t.status === "completed")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const allWithdrawals = transactions
+      .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const allMarketLosses = trades
+      .filter((t) => t.status !== "open" && Number(t.pnl) < 0)
+      .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
+
+    const metric = (label: string, value: number, prev: number) => ({
+      label,
+      value,
+      kind: "money" as const,
+      deltaPct: pct(value, prev),
+    });
 
     return {
       range: data.range,
       generatedAt: new Date(now).toISOString(),
       usdKesRate: usdKes,
-      marketLosses: {
-        usd: current.lostUsd,
-        kes: current.lostUsd * usdKes,
-        deltaPct: pct(current.lostUsd, previous.lostUsd),
-      },
-      metrics: [
-        metric("Total M Pesa deposits", current.deposits, previous.deposits, "money"),
-        metric("Total M Pesa withdrawals", current.withdrawals, previous.withdrawals, "money"),
+      headline: [
+        { label: "Total Deposit", value: allDeposits, kind: "money" as const, deltaPct: null },
+        { label: "Total Withdrawal", value: allWithdrawals, kind: "money" as const, deltaPct: null },
+        { label: "Market Losses", value: allMarketLosses, kind: "money" as const, deltaPct: null },
       ],
+      metrics: [
+        metric("Deposited", current.deposits, previous.deposits),
+        metric("Withdrawn", current.withdrawals, previous.withdrawals),
+        metric("Market Losses", current.marketLosses, previous.marketLosses),
+      ],
+      marketLosses: {
+        usd: current.marketLosses,
+        kes: current.marketLosses * usdKes,
+        deltaPct: pct(current.marketLosses, previous.marketLosses),
+      },
     };
   });
 
-/**
- * Rolling activity log for the console. Real account activity only: trades,
- * money in, money out, payout replies and sign ins, newest first.
- */
 export const getAdminActivityLog = createServerFn({ method: "POST" })
   .inputValidator((input: { limit?: number }) => ({
     limit: Math.min(Math.max(Number(input?.limit ?? 60), 10), 150),
@@ -169,7 +167,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .limit(data.limit),
       db
         .from("withdrawal_requests")
-        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at, updated_at")
+        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
         .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
@@ -190,7 +188,6 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .limit(data.limit),
     ]);
 
-
     const userIds = new Set<string>();
     for (const row of [
       ...(tradesRes.data ?? []),
@@ -205,10 +202,11 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     if (userIds.size > 0) {
       const { data: owners } = await db
         .from("profiles")
-        .select("id, client_id, email")
+        .select("id, client_id, email, full_name, first_name, last_name")
         .in("id", Array.from(userIds));
       for (const owner of owners ?? []) {
-        labels.set(owner.id, owner.client_id ?? owner.email ?? "client");
+        const name = owner.full_name || [owner.first_name, owner.last_name].filter(Boolean).join(" ") || owner.client_id || owner.email || "client";
+        labels.set(owner.id, name);
       }
     }
 
@@ -236,7 +234,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const w of withdrawalsRes.data ?? []) {
       events.push({
         id: `wd-${w.id}`,
-        at: w.updated_at ?? w.created_at,
+        at: w.created_at,
         kind: "withdrawal",
         client: who(w.user_id),
         text: `M Pesa withdrawal ${w.status}${w.phone ? ` · ${w.phone}` : ""}${
@@ -269,7 +267,6 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     }
 
     events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-
     return { events: events.slice(0, data.limit), generatedAt: new Date().toISOString() };
   });
 
@@ -306,14 +303,10 @@ export const searchClients = createServerFn({ method: "POST" })
     const clients = rows ?? [];
     if (clients.length === 0) return { clients: [] };
 
-    // M Pesa money in per client: confirmed STK push deposits with their receipt codes.
     const { data: intents } = await db
       .from("deposit_intents")
       .select("user_id, amount_usdt, amount_kes, provider_receipt, status, created_at")
-      .in(
-        "user_id",
-        clients.map((c) => c.id),
-      )
+      .in("user_id", clients.map((c) => c.id))
       .order("created_at", { ascending: false });
 
     const summary = new Map<string, { amount: number; amountKes: number; codes: string[] }>();
@@ -329,8 +322,10 @@ export const searchClients = createServerFn({ method: "POST" })
     return {
       clients: clients.map((c) => {
         const entry = summary.get(c.id);
+        const name = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || "—";
         return {
           ...c,
+          displayName: name,
           mpesaAmount: entry?.amount ?? 0,
           mpesaAmountKes: entry?.amountKes ?? 0,
           mpesaCodes: entry?.codes.slice(0, 3) ?? [],
@@ -353,12 +348,9 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
-    // Accounts kept out of the console are not viewable here either.
-    if ((HIDDEN_USER_IDS as readonly string[]).includes(profile.id)) {
-      throw new Error("Client not found.");
-    }
+    if ((HIDDEN_USER_IDS as readonly string[]).includes(profile.id)) throw new Error("Client not found.");
 
-    const [withdrawalsRes, intentsRes, rateRes] = await Promise.all([
+    const [withdrawalsRes, intentsRes, tradesRes, rateRes] = await Promise.all([
       db
         .from("withdrawal_requests")
         .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
@@ -368,40 +360,52 @@ export const getClientDetail = createServerFn({ method: "POST" })
         .limit(20),
       db
         .from("deposit_intents")
-        .select(
-          "id, amount_usdt, amount_kes, usd_kes_rate, phone, status, provider_receipt, failure_reason, created_at",
-        )
+        .select("id, amount_usdt, amount_kes, phone, status, provider_receipt, created_at")
         .eq("user_id", profile.id)
         .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(20),
-      // Latest recorded shilling rate, used to show payouts in KES as well as USDT.
       db
-        .from("deposit_intents")
-        .select("usd_kes_rate")
+        .from("trades")
+        .select("id, symbol, direction, stake, pnl, status, account_mode, created_at")
+        .eq("user_id", profile.id)
+        .eq("account_mode", "live")
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
-        .limit(1),
+        .limit(20),
+      db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
-    const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
-    const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
+    const usdKes = Number(rateRes.data?.[0]?.usd_kes_rate) || FALLBACK_USD_KES;
 
-    const depositIntents = intentsRes.data ?? [];
-    const withdrawalRows = withdrawalsRes.data ?? [];
+    const deposits = (intentsRes.data ?? []).map(d => ({
+      ...d,
+      kind: 'deposit' as const,
+      amount: Number(d.amount_usdt),
+      amount_kes: Number(d.amount_kes),
+    }));
+
+    const withdrawals = (withdrawalsRes.data ?? []).map(w => ({
+      ...w,
+      kind: 'withdrawal' as const,
+      amount: -Math.abs(Number(w.amount_usdt)),
+      amount_kes: -Math.abs(Number(w.amount_usdt) * usdKes),
+    }));
+
+    const unifiedMoney = [...deposits, ...withdrawals].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
     return {
       profile,
-      totals: {
-        deposited: depositIntents.filter((d) => d.status === "completed").reduce((sum, d) => sum + Number(d.amount_usdt), 0),
-        withdrawn: withdrawalRows.filter((w) => w.status === "completed").reduce((sum, w) => sum + Number(w.amount_usdt), 0),
-      },
       usdKesRate: usdKes,
-      withdrawals: withdrawalRows.map((w) => ({
-        ...w,
-        amount_kes: Number(w.amount_usdt) * usdKes,
-      })),
-
-      mpesaDeposits: depositIntents,
+      moneyActivity: unifiedMoney,
+      trades: tradesRes.data ?? [],
+      totals: {
+        deposited: deposits.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount, 0),
+        withdrawn: withdrawals.filter(w => w.status === 'completed').reduce((s, w) => s + Math.abs(w.amount), 0),
+        marketLosses: (tradesRes.data ?? []).filter(t => t.status !== 'open' && Number(t.pnl) < 0).reduce((s, t) => s + Math.abs(Number(t.pnl)), 0),
+      }
     };
   });
 
@@ -417,9 +421,7 @@ export const getClientKycLinks = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
-    const paths = [profile.kyc_doc_front_path, profile.kyc_doc_back_path].filter(
-      (path): path is string => Boolean(path),
-    );
+    const paths = [profile.kyc_doc_front_path, profile.kyc_doc_back_path].filter(Boolean) as string[];
     if (paths.length === 0) return { documents: [] };
     const { data: signed, error } = await db.storage.from("kyc-documents").createSignedUrls(paths, 120);
     if (error) throw new Error("Documents could not be opened.");

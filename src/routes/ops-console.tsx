@@ -278,7 +278,7 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">
-                    {c.full_name ?? [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unnamed client"}
+                    {c.full_name ?? ([c.first_name, c.last_name].filter(Boolean).join(" ") || "Unnamed client")}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
                   <span className="num block truncate text-xs text-muted-foreground">
@@ -440,10 +440,17 @@ function ActivityLog() {
               <span
                 className={cn(
                   "num shrink-0 font-semibold",
-                  e.amountUsd >= 0 ? "text-primary" : "text-destructive",
+                  e.kind === "deposit"
+                    ? "text-primary"
+                    : e.kind === "withdrawal"
+                      ? "text-destructive"
+                      : e.amountUsd >= 0
+                        ? "text-foreground"
+                        : "text-destructive",
                 )}
               >
-                {formatMoney(e.amountUsd)} USDT
+                {e.kind === "deposit" ? "+ " : e.kind === "withdrawal" ? "− " : ""}
+                {formatMoney(Math.abs(e.amountUsd))} USDT
               </span>
             )}
           </li>
