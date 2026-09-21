@@ -392,7 +392,7 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                       <span className="min-w-0">
                         <span className="block truncate">
                           {d.phone} · {d.status}
-                          {d.provider_receipt ? ` · ${d.provider_receipt}` : ""}
+                          {d.provider_receipt ? ` · M Pesa code ${d.provider_receipt}` : ""}
                         </span>
                         <span className="block truncate text-muted-foreground">
                           {new Date(d.created_at).toLocaleString()} ·{" "}
