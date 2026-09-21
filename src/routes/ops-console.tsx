@@ -392,13 +392,20 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                 <ul className="mt-1 divide-y divide-border/60 text-xs">
                   {detail.data.transactions.slice(0, 10).map((t) => (
                     <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
-                      <span className="min-w-0 truncate">
-                        {t.kind} · {t.method} · {t.status}
+                      <span className="min-w-0">
+                        <span className="block truncate">
+                          {t.kind} · {t.method} · {t.status}
+                        </span>
+                        <span className="num block truncate text-[11px] text-muted-foreground">
+                          M Pesa code {t.mpesaCode ?? "pending"} ·{" "}
+                          {formatMoney(Number(t.amount_kes))} KES
+                        </span>
                       </span>
                       <span className="num shrink-0 font-semibold">
                         {formatMoney(Number(t.amount))}
                       </span>
                     </li>
+
                   ))}
                   {detail.data.transactions.length === 0 ? (
                     <li className="py-2 text-muted-foreground">No funding activity.</li>
