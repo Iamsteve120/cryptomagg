@@ -61,6 +61,15 @@ export async function submitCryptoPayout(input: {
   amount: number;
 }): Promise<{ providerId: string }> {
   const current = config();
+  let payoutAmount = input.amount;
+  if (input.network === "btc") {
+    const estimate = await providerFetch(`/estimate?amount=${encodeURIComponent(String(input.amount))}&currency_from=usdttrc20&currency_to=btc`, { method: "GET" }, current.apiKey);
+    if (!estimate.ok) throw new Error("crypto_provider_rejected");
+    const estimateBody = (await estimate.json()) as { estimated_amount?: number };
+    const estimated = Number(estimateBody.estimated_amount);
+    if (!Number.isFinite(estimated) || estimated <= 0) throw new Error("crypto_provider_rejected");
+    payoutAmount = estimated;
+  }
   const auth = await providerFetch("/auth", {
     method: "POST",
     body: JSON.stringify({ email: current.email, password: current.password }),
@@ -77,7 +86,7 @@ export async function submitCryptoPayout(input: {
       withdrawals: [{
         address: input.address,
         currency: input.network,
-        amount: input.amount,
+        amount: payoutAmount,
         ipn_callback_url: callbackUrl,
         unique_external_id: input.requestId,
       }],
