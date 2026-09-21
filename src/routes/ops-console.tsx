@@ -288,11 +288,6 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                     {c.mpesaCodes.length > 0 ? c.mpesaCodes.join(" · ") : "No M Pesa codes"}
                   </span>
                 </span>
-                  <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
-                  <span className="num block truncate text-xs text-muted-foreground">
-                    {c.client_id ?? "No client ID"} · {c.phone ?? "No phone"}
-                  </span>
-                </span>
                 <span className="shrink-0 text-sm text-muted-foreground">View</span>
               </button>
             </li>
@@ -422,13 +417,9 @@ function ActivityLog() {
               <span
                 className={cn(
                   "num shrink-0 font-semibold",
-                  e.kind === "deposit"
-                    ? "text-primary"
-                    : e.kind === "withdrawal"
-                      ? "text-destructive"
-                      : e.amountUsd >= 0
-                        ? "text-foreground"
-                        : "text-destructive",
+                  e.kind === "deposit" ? "text-primary" : 
+                  e.kind === "withdrawal" ? "text-destructive" : 
+                  (e.amountUsd !== null && e.amountUsd >= 0) ? "text-primary" : "text-destructive"
                 )}
               >
                 {e.kind === "deposit" ? "+ " : e.kind === "withdrawal" ? "− " : ""}
