@@ -306,7 +306,11 @@ export const getClientDetail = createServerFn({ method: "POST" })
       },
       transactions,
       trades,
-      withdrawals: withdrawalsRes.data ?? [],
+      usdKesRate: usdKes,
+      withdrawals: (withdrawalsRes.data ?? []).map((w) => ({
+        ...w,
+        amount_kes: Number(w.amount_usdt) * usdKes,
+      })),
       mpesaDeposits: intentsRes.data ?? [],
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };
