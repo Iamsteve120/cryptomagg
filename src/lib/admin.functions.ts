@@ -109,9 +109,8 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     const previous = bucket(prevIso, startIso);
 
     const totalClients = profiles.length;
-    const onlineNow = new Set(
-      profiles.filter((p) => inWindow(p.last_seen_at, onlineIso)).map((p) => p.id),
-    ).size;
+    void onlineIso;
+
     const liveFloat = profiles.reduce((sum, p) => sum + Number(p.live_balance), 0);
 
     const metric = (
