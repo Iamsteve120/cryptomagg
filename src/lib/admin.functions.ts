@@ -167,7 +167,40 @@ export const searchClients = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await builder;
     if (error) throw new Error("Could not load clients.");
-    return { clients: rows ?? [] };
+    const clients = rows ?? [];
+    if (clients.length === 0) return { clients: [] };
+
+    // M Pesa money in per client: confirmed STK push deposits with their receipt codes.
+    const { data: intents } = await db
+      .from("deposit_intents")
+      .select("user_id, amount_usdt, amount_kes, provider_receipt, status, created_at")
+      .in(
+        "user_id",
+        clients.map((c) => c.id),
+      )
+      .order("created_at", { ascending: false });
+
+    const summary = new Map<string, { amount: number; amountKes: number; codes: string[] }>();
+    for (const intent of intents ?? []) {
+      if (intent.status !== "completed") continue;
+      const entry = summary.get(intent.user_id) ?? { amount: 0, amountKes: 0, codes: [] };
+      entry.amount += Number(intent.amount_usdt);
+      entry.amountKes += Number(intent.amount_kes);
+      if (intent.provider_receipt) entry.codes.push(intent.provider_receipt);
+      summary.set(intent.user_id, entry);
+    }
+
+    return {
+      clients: clients.map((c) => {
+        const entry = summary.get(c.id);
+        return {
+          ...c,
+          mpesaAmount: entry?.amount ?? 0,
+          mpesaAmountKes: entry?.amountKes ?? 0,
+          mpesaCodes: entry?.codes.slice(0, 3) ?? [],
+        };
+      }),
+    };
   });
 
 export const getClientDetail = createServerFn({ method: "POST" })
