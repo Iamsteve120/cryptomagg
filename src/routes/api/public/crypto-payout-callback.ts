@@ -33,17 +33,18 @@ export const Route = createFileRoute("/api/public/crypto-payout-callback")({
 
         const value = parsed.data;
         const providerId = String(value.payout_id ?? value.id ?? value.batch_id ?? "");
+        if (!value.unique_external_id && !providerId) return new Response("Invalid", { status: 400 });
         const successful = ["finished", "completed", "success"].includes(value.status.toLowerCase());
         const failed = ["failed", "rejected", "expired"].includes(value.status.toLowerCase());
         if (!successful && !failed) return Response.json({ ok: true });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { error } = await supabaseAdmin.rpc("finalize_crypto_withdrawal", {
-          p_request_id: value.unique_external_id ?? null,
-          p_provider_id: providerId || null,
+          p_request_id: value.unique_external_id ?? "00000000-0000-0000-0000-000000000000",
+          p_provider_id: providerId,
           p_success: successful,
-          p_tx_hash: value.payout_hash ?? value.hash ?? null,
-          p_failure_reason: failed ? "provider_rejected" : null,
+          p_tx_hash: value.payout_hash ?? value.hash ?? "",
+          p_failure_reason: failed ? "provider_rejected" : "",
         });
         if (error) console.error("Crypto withdrawal finalization failed", error.message);
         return Response.json({ ok: true });

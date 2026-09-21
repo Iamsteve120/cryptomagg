@@ -71,6 +71,7 @@ export const getLiveAccountStatus = createServerFn({ method: "GET" })
     return {
       enabled: realMoneyEnabled(),
       providerConfigured: readDarajaConfig() !== null,
+      cryptoPayoutConfigured: (await import("./crypto-payout.server")).cryptoPayoutConfigured(),
       sandbox: sandboxMode(),
     };
   });
@@ -496,7 +497,7 @@ export const requestCryptoWithdrawal = createServerFn({ method: "POST" })
       return { ok: true as const, id: created.id, status: "pending" as const };
     } catch (providerError) {
       console.error("Crypto payout submission failed", providerError instanceof Error ? providerError.message : "unknown");
-      await db.rpc("finalize_crypto_withdrawal", { p_request_id: created.id, p_provider_id: null, p_success: false, p_tx_hash: null, p_failure_reason: "provider_unreachable" });
+      await db.rpc("finalize_crypto_withdrawal", { p_request_id: created.id, p_provider_id: "", p_success: false, p_tx_hash: "", p_failure_reason: "provider_unreachable" });
       return { ok: false as const, error: "The crypto payout was not accepted, so the amount was returned to your balance." };
     }
   });
