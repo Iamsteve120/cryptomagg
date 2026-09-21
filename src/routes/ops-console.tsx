@@ -503,6 +503,56 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
   );
 }
 
+/** Live running log of real account activity across the site. */
+function ActivityLog() {
+  const logFn = useServerFn(getAdminActivityLog);
+  const log = useQuery({
+    queryKey: ["admin-activity-log"],
+    queryFn: () => logFn({ data: { limit: 80 } }),
+    refetchInterval: 10_000,
+  });
+
+  return (
+    <section className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">Live activity log</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Real account trades, money in, money out and sign ins.
+          </p>
+        </div>
+        <span className="shrink-0 text-[11px] text-muted-foreground">Updates every 10s</span>
+      </div>
+      <ul className="divide-y divide-border/60 text-xs">
+        {(log.data?.events ?? []).map((e) => (
+          <li key={e.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
+            <span className="min-w-0">
+              <span className="num block truncate font-semibold">{e.client}</span>
+              <span className="block truncate text-muted-foreground">{e.text}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {new Date(e.at).toLocaleString()}
+              </span>
+            </span>
+            {e.amountUsd === null ? null : (
+              <span
+                className={cn(
+                  "num shrink-0 font-semibold",
+                  e.amountUsd >= 0 ? "text-primary" : "text-destructive",
+                )}
+              >
+                {formatMoney(e.amountUsd)} USDT
+              </span>
+            )}
+          </li>
+        ))}
+        {log.data && log.data.events.length === 0 ? (
+          <li className="py-2 text-muted-foreground">No activity recorded yet.</li>
+        ) : null}
+      </ul>
+    </section>
+  );
+}
+
 function PayoutPanel() {
   const diagnosticsFn = useServerFn(getB2cDiagnostics);
   const checkFn = useServerFn(checkB2cCredential);
