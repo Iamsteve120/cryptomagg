@@ -212,8 +212,8 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {(overview.data?.metrics ?? []).map((m) => (
+      <section className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {(overview.data?.headline ?? []).map((m) => (
           <div key={m.label} className="min-w-0 rounded-lg border border-border bg-card p-4">
             <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
               {m.label}
@@ -221,12 +221,12 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
             <p
               className={cn(
                 "num mt-1 truncate text-xl font-semibold",
-                m.label.includes("deposits") ? "text-primary" : "text-destructive",
+                m.label.toLowerCase().includes("deposit") ? "text-primary" : 
+                m.label.toLowerCase().includes("withdrawal") || m.label.toLowerCase().includes("losses") ? "text-destructive" : ""
               )}
             >
               {formatValue(m.value, m.kind)}
             </p>
-            <Delta value={m.deltaPct} />
           </div>
         ))}
       </section>
@@ -278,8 +278,16 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">
-                    {c.full_name ?? ([c.first_name, c.last_name].filter(Boolean).join(" ") || "Unnamed client")}
+                    {c.displayName}
                   </span>
+                  <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                  <span className="num block truncate text-xs text-muted-foreground">
+                    {c.client_id ?? "—"} · {c.phone ?? "—"}
+                  </span>
+                  <span className="num block truncate text-[11px] text-muted-foreground">
+                    {c.mpesaCodes.length > 0 ? c.mpesaCodes.join(" · ") : "No M Pesa codes"}
+                  </span>
+                </span>
                   <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
                   <span className="num block truncate text-xs text-muted-foreground">
                     {c.client_id ?? "No client ID"} · {c.phone ?? "No phone"}
@@ -339,56 +347,30 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  M Pesa deposits
+                  Money Movement (M Pesa)
                 </p>
                 <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.mpesaDeposits.map((d) => (
-                    <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
+                  {detail.data.moneyActivity.map((m) => (
+                    <li key={m.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
                       <span className="min-w-0">
                         <span className="block truncate">
-                          M Pesa code {d.provider_receipt ?? "pending"} · {d.status}
+                          {m.kind === 'deposit' ? 'Deposit' : 'Withdrawal'} · {m.status} · {m.provider_receipt || 'No code'}
                         </span>
                         <span className="block truncate text-muted-foreground">
-                           {d.phone} · {new Date(d.created_at).toLocaleString()}
-                          {d.failure_reason ? ` · ${d.failure_reason}` : ""}
+                           {m.phone} · {new Date(m.created_at).toLocaleString()}
                         </span>
                       </span>
-                      <span className="num shrink-0 text-right font-semibold text-primary">
-                        <span className="block">+ {formatMoney(Number(d.amount_kes))} KES</span>
-                        <span className="block text-[11px]">({formatMoney(Number(d.amount_usdt))} USDT)</span>
+                      <span className={cn(
+                        "num shrink-0 text-right font-semibold",
+                        m.kind === 'deposit' ? "text-primary" : "text-destructive"
+                      )}>
+                        <span className="block">{m.amount > 0 ? '+' : ''}{formatMoney(m.amount_kes)} KES</span>
+                        <span className="block text-[11px]">({formatMoney(m.amount)} USDT)</span>
                       </span>
                     </li>
                   ))}
-                  {detail.data.mpesaDeposits.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No M Pesa deposits.</li>
-                  ) : null}
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  M Pesa withdrawals
-                </p>
-                <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.withdrawals.map((w) => (
-                    <li key={w.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
-                      <span className="min-w-0">
-                        <span className="block truncate">
-                          M Pesa code {w.provider_receipt ?? "pending"} · {w.status}
-                        </span>
-                        <span className="block truncate text-muted-foreground">
-                           {w.phone} · {new Date(w.created_at).toLocaleString()}
-                          {w.failure_reason ? ` · ${w.failure_reason}` : ""}
-                        </span>
-                      </span>
-                      <span className="num shrink-0 text-right font-semibold text-destructive">
-                        <span className="block">− {formatMoney(Number(w.amount_kes))} KES</span>
-                        <span className="block text-[11px]">({formatMoney(Number(w.amount_usdt))} USDT)</span>
-                      </span>
-                    </li>
-                  ))}
-                  {detail.data.withdrawals.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No withdrawals.</li>
+                  {detail.data.moneyActivity.length === 0 ? (
+                    <li className="py-2 text-muted-foreground">No money movement yet.</li>
                   ) : null}
                 </ul>
               </div>
