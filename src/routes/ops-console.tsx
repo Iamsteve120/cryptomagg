@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/assets";
 import {
   ADMIN_RANGES,
+  getAdminActivityLog,
   getAdminOverview,
   getClientDetail,
   searchClients,
@@ -222,6 +223,29 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
             </p>
           </div>
         ))}
+      </section>
+
+      <section className="grid grid-cols-1 gap-2 rounded-xl border border-destructive/40 bg-card p-3 sm:grid-cols-2 sm:p-4">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Lost in the market · real accounts
+          </p>
+          <p className="num mt-1 truncate text-xl font-semibold text-destructive">
+            {formatMoney(overview.data?.marketLosses.usd ?? 0)} USDT
+          </p>
+          <Delta value={overview.data?.marketLosses.deltaPct ?? null} />
+        </div>
+        <div className="min-w-0 sm:text-right">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Same amount in shillings
+          </p>
+          <p className="num mt-1 truncate text-xl font-semibold">
+            {formatMoney(overview.data?.marketLosses.kes ?? 0)} KES
+          </p>
+          <p className="num text-[11px] text-muted-foreground">
+            1 USDT ≈ {formatMoney(overview.data?.usdKesRate ?? 0)} KES
+          </p>
+        </div>
       </section>
 
       <section className="space-y-2">
@@ -471,8 +495,61 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </section>
       ) : null}
 
+      <ActivityLog />
+
       <PayoutPanel />
+
     </div>
+  );
+}
+
+/** Live running log of real account activity across the site. */
+function ActivityLog() {
+  const logFn = useServerFn(getAdminActivityLog);
+  const log = useQuery({
+    queryKey: ["admin-activity-log"],
+    queryFn: () => logFn({ data: { limit: 80 } }),
+    refetchInterval: 10_000,
+  });
+
+  return (
+    <section className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">Live activity log</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Real account trades, money in, money out and sign ins.
+          </p>
+        </div>
+        <span className="shrink-0 text-[11px] text-muted-foreground">Updates every 10s</span>
+      </div>
+      <ul className="divide-y divide-border/60 text-xs">
+        {(log.data?.events ?? []).map((e) => (
+          <li key={e.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
+            <span className="min-w-0">
+              <span className="num block truncate font-semibold">{e.client}</span>
+              <span className="block truncate text-muted-foreground">{e.text}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {new Date(e.at).toLocaleString()}
+              </span>
+            </span>
+            {e.amountUsd === null ? null : (
+              <span
+                className={cn(
+                  "num shrink-0 font-semibold",
+                  e.amountUsd >= 0 ? "text-primary" : "text-destructive",
+                )}
+              >
+                {formatMoney(e.amountUsd)} USDT
+              </span>
+            )}
+          </li>
+        ))}
+        {log.data && log.data.events.length === 0 ? (
+          <li className="py-2 text-muted-foreground">No activity recorded yet.</li>
+        ) : null}
+      </ul>
+    </section>
   );
 }
 
