@@ -275,9 +275,23 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                     {c.client_id ?? "—"}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
+                  <span className="num block truncate text-xs text-muted-foreground">
+                    {c.phone ?? "No phone"}
+                  </span>
+                  <span className="num block truncate text-[11px] text-muted-foreground">
+                    {c.mpesaCodes.length > 0 ? c.mpesaCodes.join(" · ") : "No M Pesa code"}
+                  </span>
                 </span>
-                <span className="num shrink-0 text-xs font-semibold text-primary">
-                  {formatMoney(Number(c.live_balance))} USDT
+                <span className="shrink-0 text-right">
+                  <span className="num block text-xs font-semibold text-primary">
+                    {formatMoney(c.mpesaAmount)} USDT
+                  </span>
+                  <span className="num block text-[11px] text-muted-foreground">
+                    M Pesa in · {formatMoney(c.mpesaAmountKes)} KES
+                  </span>
+                  <span className="num block text-[11px] text-muted-foreground">
+                    Balance {formatMoney(Number(c.live_balance))} USDT
+                  </span>
                 </span>
               </button>
             </li>
