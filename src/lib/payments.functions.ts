@@ -320,6 +320,7 @@ export const requestMpesaWithdrawal = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => withdrawalSchema.parse(data))
   .handler(async ({ data, context }) => {
     rateLimit(context.userId, "withdrawal", 5);
+    await requireTradingActivity(context.userId);
 
     const { realMoneyEnabled } = await import("./mpesa.server");
     if (!realMoneyEnabled()) throw new Error("Withdrawals are not switched on yet.");
