@@ -183,6 +183,13 @@
       "when": 1789838066658,
       "tag": "0025_b2c_payout_tracking_and_block_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790001696816,
+      "tag": "0026_pin_honest_live_settlement",
+      "breakpoints": true
     }
   ]
 }
