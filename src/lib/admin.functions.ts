@@ -411,6 +411,10 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .eq("client_id", data.clientId)
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
+    // Accounts kept out of the console are not viewable here either.
+    if ((HIDDEN_USER_IDS as readonly string[]).includes(profile.id)) {
+      throw new Error("Client not found.");
+    }
 
     const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes, rateRes] = await Promise.all([
       db
