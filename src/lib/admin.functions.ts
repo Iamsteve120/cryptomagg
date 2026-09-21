@@ -126,12 +126,9 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       generatedAt: new Date(now).toISOString(),
       headline: [
         { label: "Total clients", value: totalClients, kind: "count" as const, deltaPct: null },
-        { label: "Active online now", value: onlineNow, kind: "count" as const, deltaPct: null },
         { label: "Client balances held", value: liveFloat, kind: "money" as const, deltaPct: null },
       ],
       metrics: [
-        metric("New sign ups", current.signups, previous.signups, "count"),
-        metric("Active clients", current.active, previous.active, "count"),
         metric("Deposited", current.deposits, previous.deposits, "money"),
         metric("Withdrawn", current.withdrawals, previous.withdrawals, "money"),
         metric("Trades placed", current.trades, previous.trades, "count"),
