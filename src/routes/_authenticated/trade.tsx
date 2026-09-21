@@ -704,13 +704,15 @@ function TradePage() {
                   <div><Label htmlFor="lossLimit" className="text-[10px] text-muted-foreground">{tr("Max loss")}</Label><Input id="lossLimit" className="num mt-1 h-8 px-2 text-xs" type="number" min="0" max="500" inputMode="decimal" value={lossLimit} onChange={(event) => setLossLimit(event.target.value)} /></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className={cn("grid gap-2", autoEnabled ? "grid-cols-1" : "grid-cols-2")}>
                   <Button className="h-10" onClick={() => openBotSetup()} disabled={locked || autoEnabled}>
                     <Play className="size-4" /> Start trading
                   </Button>
-                  <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || (!autoEnabled && openTrades.length === 0)}>
-                    <Square className="size-4" /> Stop trading
-                  </Button>
+                  {!autoEnabled && (
+                    <Button variant="destructive" className="h-10" onClick={stopAutoTrading} disabled={stopAllMutation.isPending || openTrades.length === 0}>
+                      <Square className="size-4" /> Stop trading
+                    </Button>
+                  )}
                 </div>
                 <p className="text-[11px] text-muted-foreground">{autoEnabled ? `${selectedBot?.name ?? "Bot"} running. ${autoPlaced} of ${Number(autoLimit) || 0} trades placed across different markets. Session loss ${formatMoney(sessionLoss)} USD.` : "Tap a bot to start its trade sequence. Demo outcomes target a simulated 95 percent practice win rate and still include losses."}</p>
               </div>
