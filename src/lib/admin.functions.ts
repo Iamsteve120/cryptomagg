@@ -21,7 +21,7 @@ export type AdminRangeKey = keyof typeof ADMIN_RANGES;
  * moment is treated as pre launch noise and is never shown or counted, so the
  * console starts empty and fills up again from the next sign up onwards.
  */
-export const CONSOLE_EPOCH = "2026-09-21T23:25:00.000Z";
+export const CONSOLE_EPOCH = "2024-09-21T23:25:00.000Z";
 
 /**
  * Accounts that are kept out of the operations console entirely. Their balance
@@ -69,16 +69,20 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
 
-    const [profilesRes, txRes, tradesRes, loginsRes, rateRes] = await Promise.all([
+    const [profilesRes, depositsRes, withdrawalsRes, tradesRes, rateRes] = await Promise.all([
       db
         .from("profiles")
         .select("id, created_at, last_seen_at, live_balance, demo_balance")
         .gte("created_at", CONSOLE_EPOCH)
         .not("id", "in", HIDDEN_LIST),
       db
-        .from("transactions")
-        .select("user_id, kind, amount, status, account_mode, created_at")
-        .eq("account_mode", "live")
+        .from("deposit_intents")
+        .select("user_id, amount_usdt, status, created_at")
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
+      db
+        .from("withdrawal_requests")
+        .select("user_id, amount_usdt, status, created_at")
         .gte("created_at", sinceIso)
         .not("user_id", "in", HIDDEN_LIST),
       // Real money activity only. Practice trades are never counted here.
@@ -88,18 +92,13 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         .eq("account_mode", "live")
         .gte("created_at", sinceIso)
         .not("user_id", "in", HIDDEN_LIST),
-      db
-        .from("login_events")
-        .select("user_id, created_at")
-        .gte("created_at", sinceIso)
-        .not("user_id", "in", HIDDEN_LIST),
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
     const profiles = profilesRes.data ?? [];
-    const transactions = txRes.data ?? [];
+    const depositsRows = depositsRes.data ?? [];
+    const withdrawalsRows = withdrawalsRes.data ?? [];
     const trades = tradesRes.data ?? [];
-    const logins = loginsRes.data ?? [];
     const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
     const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
 
@@ -111,17 +110,12 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     };
 
     function bucket(from: string, to?: string) {
-      const signups = profiles.filter((p) => inWindow(p.created_at, from, to)).length;
-      const activeIds = new Set<string>();
-      logins.filter((l) => inWindow(l.created_at, from, to)).forEach((l) => activeIds.add(l.user_id));
-      trades.filter((t) => inWindow(t.created_at, from, to)).forEach((t) => activeIds.add(t.user_id));
-      const liveTx = transactions.filter((t) => inWindow(t.created_at, from, to));
-      const deposits = liveTx
-        .filter((t) => t.kind === "deposit" && t.status === "completed")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      const withdrawals = liveTx
-        .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const deposits = depositsRows
+        .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
+        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
+      const withdrawals = withdrawalsRows
+        .filter((row) => inWindow(row.created_at, from, to) && row.status === "completed")
+        .reduce((sum, row) => sum + Number(row.amount_usdt), 0);
       const liveTrades = trades.filter((t) => inWindow(t.created_at, from, to));
       const staked = liveTrades.reduce((sum, t) => sum + Number(t.stake), 0);
       const settled = liveTrades.filter((t) => t.status !== "open");
@@ -131,27 +125,17 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         .filter((t) => Number(t.pnl) < 0)
         .reduce((sum, t) => sum + Math.abs(Number(t.pnl)), 0);
       return {
-        signups,
-        active: activeIds.size,
         deposits,
         withdrawals,
-        trades: liveTrades.length,
-        liveTrades: liveTrades.length,
-        staked,
         lostUsd,
-        wins: liveTrades.filter((t) => t.status === "won").length,
-        losses: liveTrades.filter((t) => t.status === "lost").length,
-        housePnl: -traderPnl,
       };
     }
 
     const current = bucket(startIso);
     const previous = bucket(prevIso, startIso);
 
-    const totalClients = profiles.length;
+    void profiles;
     void onlineIso;
-
-    const liveFloat = profiles.reduce((sum, p) => sum + Number(p.live_balance), 0);
 
     const metric = (
       label: string,
@@ -169,19 +153,9 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         kes: current.lostUsd * usdKes,
         deltaPct: pct(current.lostUsd, previous.lostUsd),
       },
-      headline: [
-        { label: "Total clients", value: totalClients, kind: "count" as const, deltaPct: null },
-        { label: "Client balances held", value: liveFloat, kind: "money" as const, deltaPct: null },
-        { label: "Real trades", value: trades.length, kind: "count" as const, deltaPct: null },
-      ],
       metrics: [
-        metric("Deposited", current.deposits, previous.deposits, "money"),
-        metric("Withdrawn", current.withdrawals, previous.withdrawals, "money"),
-        metric("Real trades placed", current.trades, previous.trades, "count"),
-        metric("Real trades staked", current.staked, previous.staked, "money"),
-        metric("House result", current.housePnl, previous.housePnl, "money"),
-        metric("Real wins", current.wins, previous.wins, "count"),
-        metric("Real losses", current.losses, previous.losses, "count"),
+        metric("Total M Pesa deposits", current.deposits, previous.deposits, "money"),
+        metric("Total M Pesa withdrawals", current.withdrawals, previous.withdrawals, "money"),
       ],
     };
   });
@@ -197,7 +171,7 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await requireAdmin();
 
-    const [tradesRes, txRes, withdrawalsRes, intentsRes, loginsRes] = await Promise.all([
+    const [tradesRes, withdrawalsRes, intentsRes, loginsRes] = await Promise.all([
       db
         .from("trades")
         .select("id, user_id, symbol, direction, stake, pnl, status, created_at")
@@ -207,16 +181,8 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(data.limit),
       db
-        .from("transactions")
-        .select("id, user_id, kind, method, amount, status, created_at")
-        .eq("account_mode", "live")
-        .gte("created_at", CONSOLE_EPOCH)
-        .not("user_id", "in", HIDDEN_LIST)
-        .order("created_at", { ascending: false })
-        .limit(data.limit),
-      db
         .from("withdrawal_requests")
-        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
+        .select("id, user_id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at, updated_at")
         .gte("created_at", CONSOLE_EPOCH)
         .not("user_id", "in", HIDDEN_LIST)
         .order("created_at", { ascending: false })
@@ -241,7 +207,6 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     const userIds = new Set<string>();
     for (const row of [
       ...(tradesRes.data ?? []),
-      ...(txRes.data ?? []),
       ...(withdrawalsRes.data ?? []),
       ...(intentsRes.data ?? []),
       ...(loginsRes.data ?? []),
@@ -281,26 +246,16 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         amountUsd: t.status === "open" ? Number(t.stake) : Number(t.pnl),
       });
     }
-    for (const t of txRes.data ?? []) {
-      events.push({
-        id: `tx-${t.id}`,
-        at: t.created_at,
-        kind: "money",
-        client: who(t.user_id),
-        text: `${t.kind} · ${t.method} · ${t.status}`,
-        amountUsd: Number(t.amount),
-      });
-    }
     for (const w of withdrawalsRes.data ?? []) {
       events.push({
         id: `wd-${w.id}`,
-        at: w.created_at,
+        at: w.updated_at ?? w.created_at,
         kind: "withdrawal",
         client: who(w.user_id),
         text: `Withdrawal ${w.status} · ${w.phone}${
           w.provider_receipt ? ` · M Pesa code ${w.provider_receipt}` : ""
         }${w.failure_reason ? ` · ${w.failure_reason}` : ""}`,
-        amountUsd: Number(w.amount_usdt),
+        amountUsd: -Math.abs(Number(w.amount_usdt)),
       });
     }
     for (const d of intentsRes.data ?? []) {
@@ -416,30 +371,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
       throw new Error("Client not found.");
     }
 
-    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes, rateRes] = await Promise.all([
-      db
-        .from("transactions")
-        .select("*")
-        .eq("user_id", profile.id)
-        .eq("account_mode", "live")
-        .gte("created_at", CONSOLE_EPOCH)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      db
-        .from("trades")
-        .select("id, symbol, direction, stake, pnl, status, account_mode, created_at")
-        .eq("user_id", profile.id)
-        .eq("account_mode", "live")
-        .gte("created_at", CONSOLE_EPOCH)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      db
-        .from("login_events")
-        .select("created_at")
-        .eq("user_id", profile.id)
-        .gte("created_at", CONSOLE_EPOCH)
-        .order("created_at", { ascending: false })
-        .limit(10),
+    const [withdrawalsRes, intentsRes, rateRes] = await Promise.all([
       db
         .from("withdrawal_requests")
         .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
@@ -467,66 +399,22 @@ export const getClientDetail = createServerFn({ method: "POST" })
     const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
     const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
 
-    const transactions = txRes.data ?? [];
-    const liveTx = transactions.filter((t) => t.account_mode === "live");
-    const trades = tradesRes.data ?? [];
-    const liveTrades = trades.filter((t) => t.account_mode === "live");
-
     const depositIntents = intentsRes.data ?? [];
     const withdrawalRows = withdrawalsRes.data ?? [];
-
-    /**
-     * Each money movement is shown with the official M Pesa transaction code.
-     * Deposits carry the STK push receipt, payouts carry the B2C receipt; they
-     * are matched on the same amount closest in time to the movement.
-     */
-    function mpesaCodeFor(kind: string, amount: number, at: string): string | null {
-      const pool =
-        kind === "deposit"
-          ? depositIntents
-              .filter((d) => d.provider_receipt && Math.abs(Number(d.amount_usdt) - amount) < 0.01)
-              .map((d) => ({ code: d.provider_receipt as string, at: d.created_at }))
-          : withdrawalRows
-              .filter((w) => w.provider_receipt && Math.abs(Number(w.amount_usdt) - amount) < 0.01)
-              .map((w) => ({ code: w.provider_receipt as string, at: w.created_at }));
-      if (pool.length === 0) return null;
-      const target = new Date(at).getTime();
-      pool.sort(
-        (a, b) =>
-          Math.abs(new Date(a.at).getTime() - target) - Math.abs(new Date(b.at).getTime() - target),
-      );
-      return pool[0]?.code ?? null;
-    }
 
     return {
       profile,
       totals: {
-        deposited: liveTx
-          .filter((t) => t.kind === "deposit" && t.status === "completed")
-          .reduce((sum, t) => sum + Number(t.amount), 0),
-        withdrawn: liveTx
-          .filter((t) => t.kind === "withdrawal" && t.status !== "failed")
-          .reduce((sum, t) => sum + Number(t.amount), 0),
-        trades: liveTrades.length,
-        staked: liveTrades.reduce((sum, t) => sum + Number(t.stake), 0),
-        traderPnl: liveTrades
-          .filter((t) => t.status !== "open")
-          .reduce((sum, t) => sum + Number(t.pnl), 0),
+        deposited: depositIntents.filter((d) => d.status === "completed").reduce((sum, d) => sum + Number(d.amount_usdt), 0),
+        withdrawn: withdrawalRows.filter((w) => w.status === "completed").reduce((sum, w) => sum + Number(w.amount_usdt), 0),
       },
-      transactions: transactions.map((t) => ({
-        ...t,
-        amount_kes: Number(t.amount) * usdKes,
-        mpesaCode: mpesaCodeFor(t.kind, Number(t.amount), t.created_at),
-      })),
-      trades,
       usdKesRate: usdKes,
       withdrawals: withdrawalRows.map((w) => ({
         ...w,
         amount_kes: Number(w.amount_usdt) * usdKes,
       })),
 
-      mpesaDeposits: intentsRes.data ?? [],
-      lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
+      mpesaDeposits: depositIntents,
     };
   });
 
