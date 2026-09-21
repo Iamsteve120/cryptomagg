@@ -16,6 +16,16 @@ export const ADMIN_RANGES = {
 
 export type AdminRangeKey = keyof typeof ADMIN_RANGES;
 
+/**
+ * Fresh-start line for the operations console. Everything recorded before this
+ * moment is treated as pre launch noise and is never shown or counted, so the
+ * console starts empty and fills up again from the next sign up onwards.
+ */
+export const CONSOLE_EPOCH = "2026-09-21T22:54:00.000Z";
+
+/** Fallback shilling rate used only when no recorded deposit rate exists. */
+const FALLBACK_USD_KES = 129;
+
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
 function normaliseRange(value: unknown): AdminRangeKey {
@@ -47,17 +57,22 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     const prevIso = new Date(now - windowMs * 2).toISOString();
     const onlineIso = new Date(now - 5 * 60_000).toISOString();
 
+    const sinceIso = prevIso > CONSOLE_EPOCH ? prevIso : CONSOLE_EPOCH;
+
     const [profilesRes, txRes, tradesRes, loginsRes] = await Promise.all([
-      db.from("profiles").select("id, created_at, last_seen_at, live_balance, demo_balance"),
+      db
+        .from("profiles")
+        .select("id, created_at, last_seen_at, live_balance, demo_balance")
+        .gte("created_at", CONSOLE_EPOCH),
       db
         .from("transactions")
         .select("user_id, kind, amount, status, account_mode, created_at")
-        .gte("created_at", prevIso),
+        .gte("created_at", sinceIso),
       db
         .from("trades")
         .select("user_id, stake, status, pnl, account_mode, created_at")
-        .gte("created_at", prevIso),
-      db.from("login_events").select("user_id, created_at").gte("created_at", prevIso),
+        .gte("created_at", sinceIso),
+      db.from("login_events").select("user_id, created_at").gte("created_at", sinceIso),
     ]);
 
     const profiles = profilesRes.data ?? [];
