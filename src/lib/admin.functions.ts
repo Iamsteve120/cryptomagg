@@ -235,40 +235,54 @@ export const getClientDetail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!profile) throw new Error("Client not found.");
 
-    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes] = await Promise.all([
+    const [txRes, tradesRes, loginsRes, withdrawalsRes, intentsRes, rateRes] = await Promise.all([
       db
         .from("transactions")
         .select("*")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
       db
         .from("trades")
         .select("id, symbol, direction, stake, pnl, status, account_mode, created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
       db
         .from("login_events")
         .select("created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(10),
       db
         .from("withdrawal_requests")
         .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(20),
       db
         .from("deposit_intents")
         .select(
-          "id, amount_usdt, amount_kes, phone, status, provider_receipt, failure_reason, created_at",
+          "id, amount_usdt, amount_kes, usd_kes_rate, phone, status, provider_receipt, failure_reason, created_at",
         )
         .eq("user_id", profile.id)
+        .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(20),
+      // Latest recorded shilling rate, used to show payouts in KES as well as USDT.
+      db
+        .from("deposit_intents")
+        .select("usd_kes_rate")
+        .order("created_at", { ascending: false })
+        .limit(1),
     ]);
+
+    const recordedRate = Number(rateRes.data?.[0]?.usd_kes_rate);
+    const usdKes = Number.isFinite(recordedRate) && recordedRate > 0 ? recordedRate : FALLBACK_USD_KES;
 
     const transactions = txRes.data ?? [];
     const liveTx = transactions.filter((t) => t.account_mode === "live");
