@@ -472,6 +472,32 @@ export const getClientDetail = createServerFn({ method: "POST" })
     const trades = tradesRes.data ?? [];
     const liveTrades = trades.filter((t) => t.account_mode === "live");
 
+    const depositIntents = intentsRes.data ?? [];
+    const withdrawalRows = withdrawalsRes.data ?? [];
+
+    /**
+     * Each money movement is shown with the official M Pesa transaction code.
+     * Deposits carry the STK push receipt, payouts carry the B2C receipt; they
+     * are matched on the same amount closest in time to the movement.
+     */
+    function mpesaCodeFor(kind: string, amount: number, at: string): string | null {
+      const pool =
+        kind === "deposit"
+          ? depositIntents
+              .filter((d) => d.provider_receipt && Math.abs(Number(d.amount_usdt) - amount) < 0.01)
+              .map((d) => ({ code: d.provider_receipt as string, at: d.created_at }))
+          : withdrawalRows
+              .filter((w) => w.provider_receipt && Math.abs(Number(w.amount_usdt) - amount) < 0.01)
+              .map((w) => ({ code: w.provider_receipt as string, at: w.created_at }));
+      if (pool.length === 0) return null;
+      const target = new Date(at).getTime();
+      pool.sort(
+        (a, b) =>
+          Math.abs(new Date(a.at).getTime() - target) - Math.abs(new Date(b.at).getTime() - target),
+      );
+      return pool[0]?.code ?? null;
+    }
+
     return {
       profile,
       totals: {
@@ -487,13 +513,18 @@ export const getClientDetail = createServerFn({ method: "POST" })
           .filter((t) => t.status !== "open")
           .reduce((sum, t) => sum + Number(t.pnl), 0),
       },
-      transactions,
+      transactions: transactions.map((t) => ({
+        ...t,
+        amount_kes: Number(t.amount) * usdKes,
+        mpesaCode: mpesaCodeFor(t.kind, Number(t.amount), t.created_at),
+      })),
       trades,
       usdKesRate: usdKes,
-      withdrawals: (withdrawalsRes.data ?? []).map((w) => ({
+      withdrawals: withdrawalRows.map((w) => ({
         ...w,
         amount_kes: Number(w.amount_usdt) * usdKes,
       })),
+
       mpesaDeposits: intentsRes.data ?? [],
       lastLogins: (loginsRes.data ?? []).map((l) => l.created_at),
     };
