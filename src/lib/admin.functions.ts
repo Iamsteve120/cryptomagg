@@ -393,6 +393,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
         .from("transactions")
         .select("*")
         .eq("user_id", profile.id)
+        .eq("account_mode", "live")
         .gte("created_at", CONSOLE_EPOCH)
         .order("created_at", { ascending: false })
         .limit(50),
