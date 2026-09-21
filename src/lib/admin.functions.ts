@@ -249,12 +249,12 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
     for (const w of withdrawalsRes.data ?? []) {
       events.push({
         id: `wd-${w.id}`,
-        at: w.updated_at ?? w.created_at,
+        at: w.created_at,
         kind: "withdrawal",
         client: who(w.user_id),
-        text: `Withdrawal ${w.status} · ${w.phone}${
-          w.provider_receipt ? ` · M Pesa code ${w.provider_receipt}` : ""
-        }${w.failure_reason ? ` · ${w.failure_reason}` : ""}`,
+        text: `M Pesa withdrawal ${w.status}${w.phone ? ` · ${w.phone}` : ""}${
+          w.provider_receipt ? ` · Code ${w.provider_receipt}` : ""
+        }`,
         amountUsd: -Math.abs(Number(w.amount_usdt)),
       });
     }
@@ -265,14 +265,21 @@ export const getAdminActivityLog = createServerFn({ method: "POST" })
         kind: "deposit",
         client: who(d.user_id),
         text: `M Pesa deposit ${d.status}${
-          d.provider_receipt ? ` · M Pesa code ${d.provider_receipt}` : ""
+          d.provider_receipt ? ` · Code ${d.provider_receipt}` : ""
         } · ${Number(d.amount_kes).toFixed(0)} KES`,
-        amountUsd: Number(d.amount_usdt),
+        amountUsd: Math.abs(Number(d.amount_usdt)),
       });
     }
     for (const l of loginsRes.data ?? []) {
       events.push({
         id: `login-${l.id}`,
+        at: l.created_at,
+        kind: "login",
+        client: who(l.user_id),
+        text: `Signed in (${l.kind})`,
+        amountUsd: null,
+      });
+    }`,
         at: l.created_at,
         kind: "login",
         client: who(l.user_id),
