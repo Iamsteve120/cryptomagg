@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Bot, ChartNoAxesCombined, Play, RotateCcw, ShieldCheck, Square, Target, Volume2 } from "lucide-react";
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Bot, ChartNoAxesCombined, Play, RotateCcw, Square, Target, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,6 @@ import { CandlestickChart } from "@/components/candlestick-chart";
 import { useAccount, useMarkets, useRapidMarketClock } from "@/hooks/use-trading";
 import { placeTrade, stopAllDemoTrades, stopDemoTrade } from "@/lib/trading.functions";
 import { getLiveAccountStatus } from "@/lib/payments.functions";
-import { LIVE_PAYOUT_RATE } from "@/lib/live-trading";
 import { TRADABLE_ASSETS, DURATIONS, MULTIPLIERS, TRADING_BOTS, formatMoney, formatPrice } from "@/lib/assets";
 import { calculateRapidLiveState } from "@/lib/trade-pnl";
 import { cn } from "@/lib/utils";
@@ -717,7 +716,6 @@ function TradePage() {
               </div>
             )}
 
-            <p className="flex items-start gap-2 text-[11px] text-muted-foreground"><ShieldCheck className="mt-0.5 size-3.5 shrink-0" />{mode === "demo" ? "Every trade uses simulated money and appears in History with its balance result." : `Real trades settle on the live crypto market price at expiry. A win pays ${LIVE_PAYOUT_RATE} percent of your amount, a loss costs the full amount.`}</p>
           </div>
         </aside>
       </div>}
