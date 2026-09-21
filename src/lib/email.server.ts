@@ -214,6 +214,35 @@ export async function sendWelcomeEmail(input: {
 }
 
 
+/** Warm one time welcome sent the moment a new account is created. */
+export async function sendSignupWelcomeEmail(input: {
+  to: string;
+  name?: string | null;
+}): Promise<void> {
+  const first = input.name?.trim().split(" ")[0];
+  await sendEmail({
+    to: input.to,
+    subject: "Welcome to CryptoMagg",
+    text: [
+      `Hello ${first && first.length > 1 ? first : "there"},`,
+      "",
+      "Welcome to CryptoMagg, and thank you for joining us. Your account is created and ready.",
+      "",
+      "Here is a good way to start:",
+      "1. Practise on your demo account, which is already funded with 10,000 USDT of simulated money.",
+      "2. Explore the live crypto markets, charts and rankings.",
+      "3. When you are ready, verify your identity and fund your real account by M Pesa or crypto.",
+      "",
+      "You can withdraw to M Pesa at any time, and our team is here if you need a hand.",
+      "",
+      "A friendly reminder: crypto trading carries a high level of risk. Only trade money you can afford to lose.",
+      "",
+      "Welcome aboard,",
+      "The CryptoMagg team",
+    ].join("\n"),
+  });
+}
+
 export async function sendDepositReceipt(input: {
   to: string;
   name?: string | null;
