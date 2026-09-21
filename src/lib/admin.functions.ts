@@ -141,6 +141,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       headline: [
         { label: "Total clients", value: totalClients, kind: "count" as const, deltaPct: null },
         { label: "Client balances held", value: liveFloat, kind: "money" as const, deltaPct: null },
+        { label: "Total trades", value: trades.length, kind: "count" as const, deltaPct: null },
       ],
       metrics: [
         metric("Deposited", current.deposits, previous.deposits, "money"),
@@ -163,6 +164,7 @@ export const searchClients = createServerFn({ method: "POST" })
     let builder = db
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
+      .gte("created_at", CONSOLE_EPOCH)
       .order("created_at", { ascending: false })
       .limit(40);
 
