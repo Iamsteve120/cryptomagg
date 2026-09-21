@@ -212,15 +212,21 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {(overview.data?.headline ?? []).map((m) => (
-          <div key={m.label} className="min-w-0 rounded-lg border border-border bg-card p-3">
+      <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {(overview.data?.metrics ?? []).map((m) => (
+          <div key={m.label} className="min-w-0 rounded-lg border border-border bg-card p-4">
             <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
               {m.label}
             </p>
-            <p className="num mt-1 truncate text-base font-semibold sm:text-lg">
+            <p
+              className={cn(
+                "num mt-1 truncate text-xl font-semibold",
+                 m.label.toLowerCase().includes("deposit") ? "text-success" : "text-destructive"
+              )}
+            >
               {formatValue(m.value, m.kind)}
             </p>
+            <Delta value={m.deltaPct} />
           </div>
         ))}
       </section>
@@ -248,30 +254,6 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
         </div>
       </section>
 
-      <section className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Last {ADMIN_RANGES[range].label} vs the {ADMIN_RANGES[range].label} before
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {(overview.data?.metrics ?? []).map((m) => (
-            <div key={m.label} className="min-w-0 rounded-lg border border-border bg-card p-3">
-              <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
-                {m.label}
-              </p>
-              <p className="num mt-1 truncate text-base font-semibold sm:text-lg">
-                {formatValue(m.value, m.kind)}
-              </p>
-              <Delta value={m.deltaPct} />
-            </div>
-          ))}
-          {overview.isLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-[76px] animate-pulse rounded-lg bg-muted/50" />
-              ))
-            : null}
-        </div>
-      </section>
-
       <section className="space-y-3 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
         <div className="min-w-0">
           <p className="font-semibold">Clients</p>
@@ -295,28 +277,15 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                 className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 text-left"
               >
                 <span className="min-w-0">
-                  <span className="num block truncate text-sm font-semibold">
-                    {c.client_id ?? "—"}
+                  <span className="block truncate text-sm font-semibold">
+                    {c.displayName}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
                   <span className="num block truncate text-xs text-muted-foreground">
-                    {c.phone ?? "No phone"}
-                  </span>
-                  <span className="num block truncate text-[11px] text-muted-foreground">
-                    {c.mpesaCodes.length > 0 ? c.mpesaCodes.join(" · ") : "No M Pesa code"}
+                    {c.client_id ?? "—"} · {c.phone ?? "—"}
                   </span>
                 </span>
-                <span className="shrink-0 text-right">
-                  <span className="num block text-xs font-semibold text-primary">
-                    {formatMoney(c.mpesaAmount)} USDT
-                  </span>
-                  <span className="num block text-[11px] text-muted-foreground">
-                    M Pesa in · {formatMoney(c.mpesaAmountKes)} KES
-                  </span>
-                  <span className="num block text-[11px] text-muted-foreground">
-                    Balance {formatMoney(Number(c.live_balance))} USDT
-                  </span>
-                </span>
+                <span className="shrink-0 text-sm text-muted-foreground">View</span>
               </button>
             </li>
           ))}
@@ -346,7 +315,7 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
 
           {detail.data ? (
             <>
-              <dl className="grid grid-cols-2 gap-2 text-xs">
+              <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                 {[
                   [
                     "Full name",
@@ -355,26 +324,9 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                         .filter(Boolean)
                         .join(" ") || "—"),
                   ],
-                  ["Country", detail.data.profile.country ?? "—"],
+                  ["Email", detail.data.profile.email ?? "—"],
+                  ["Client ID", detail.data.profile.client_id ?? "—"],
                   ["Phone", detail.data.profile.phone ?? "—"],
-                  ["Verification", detail.data.profile.kyc_status],
-                  ["Document", detail.data.profile.kyc_doc_type ?? "—"],
-                  ["Over 18 confirmed", detail.data.profile.age_confirmed ? "Yes" : "No"],
-                  ["Terms accepted", detail.data.profile.terms_accepted_at ? "Yes" : "No"],
-                  ["Signed up", new Date(detail.data.profile.created_at).toLocaleString()],
-                  [
-                    "Last seen",
-                    detail.data.profile.last_seen_at
-                      ? new Date(detail.data.profile.last_seen_at).toLocaleString()
-                      : "—",
-                  ],
-                  ["Real balance", formatMoney(Number(detail.data.profile.live_balance)) + " USDT"],
-                  ["Demo balance", "$" + formatMoney(Number(detail.data.profile.demo_balance))],
-                  ["Total deposited", formatMoney(detail.data.totals.deposited) + " USDT"],
-                  ["Total withdrawn", formatMoney(detail.data.totals.withdrawn) + " USDT"],
-                  ["Real trades", String(detail.data.totals.trades)],
-                  ["Total staked", formatMoney(detail.data.totals.staked) + " USDT"],
-                  ["Client result", formatMoney(detail.data.totals.traderPnl) + " USDT"],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0 rounded-md border border-border/60 p-2">
                     <dt className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -387,116 +339,43 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Recent funding
+                  Money Movement (M Pesa)
                 </p>
                 <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.transactions.slice(0, 10).map((t) => (
-                    <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
+                  {detail.data.moneyActivity.map((m) => (
+                    <li key={m.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
                       <span className="min-w-0">
                         <span className="block truncate">
-                          {t.kind} · {t.method} · {t.status}
-                        </span>
-                        <span className="num block truncate text-[11px] text-muted-foreground">
-                          M Pesa code {t.mpesaCode ?? "pending"} ·{" "}
-                          {formatMoney(Number(t.amount_kes))} KES
-                        </span>
-                      </span>
-                      <span className="num shrink-0 font-semibold">
-                        {formatMoney(Number(t.amount))}
-                      </span>
-                    </li>
-
-                  ))}
-                  {detail.data.transactions.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No funding activity.</li>
-                  ) : null}
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  M Pesa deposits
-                </p>
-                <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.mpesaDeposits.map((d) => (
-                    <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
-                      <span className="min-w-0">
-                        <span className="block truncate">
-                          {d.phone} · {d.status}
-                          {d.provider_receipt ? ` · M Pesa code ${d.provider_receipt}` : ""}
+                          {m.kind === "deposit" ? "Deposit" : "Withdrawal"} · {m.status}
                         </span>
                         <span className="block truncate text-muted-foreground">
-                          {new Date(d.created_at).toLocaleString()} ·{" "}
-                          {formatMoney(Number(d.amount_kes))} KES
-                          {d.failure_reason ? ` · ${d.failure_reason}` : ""}
+                          M Pesa code {m.provider_receipt || "pending"} · {m.phone || "No phone"}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {new Date(m.created_at).toLocaleString()}
                         </span>
                       </span>
-                      <span className="num shrink-0 font-semibold text-primary">
-                        {formatMoney(Number(d.amount_usdt))} USDT
+                      <span className={cn(
+                        "num shrink-0 text-right font-semibold",
+                        m.kind === "deposit" ? "text-success" : "text-destructive"
+                      )}>
+                        <span className="block">
+                          {m.kind === "deposit" ? "+" : "−"}
+                          {formatMoney(Math.abs(m.amount_kes))} KES
+                        </span>
+                        <span className="block text-[11px]">
+                          ({m.kind === "deposit" ? "+" : "−"}
+                          {formatMoney(Math.abs(m.amount))} USDT)
+                        </span>
                       </span>
                     </li>
                   ))}
-                  {detail.data.mpesaDeposits.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No M Pesa deposits.</li>
+                  {detail.data.moneyActivity.length === 0 ? (
+                    <li className="py-2 text-muted-foreground">No money movement yet.</li>
                   ) : null}
                 </ul>
               </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  M Pesa withdrawals
-                </p>
-                <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.withdrawals.map((w) => (
-                    <li key={w.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
-                      <span className="min-w-0">
-                        <span className="block truncate">
-                          {w.phone} · {w.status}
-                          {w.provider_receipt ? ` · ${w.provider_receipt}` : ""}
-                        </span>
-                        <span className="block truncate text-muted-foreground">
-                          {new Date(w.created_at).toLocaleString()} ·{" "}
-                          {formatMoney(Number(w.amount_kes))} KES
-                          {w.provider_receipt ? ` · M Pesa code ${w.provider_receipt}` : ""}
-                          {w.failure_reason ? ` · ${w.failure_reason}` : ""}
-                        </span>
-                      </span>
-                      <span className="num shrink-0 font-semibold">
-                        {formatMoney(Number(w.amount_usdt))} USDT
-                      </span>
-                    </li>
-                  ))}
-                  {detail.data.withdrawals.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No withdrawals.</li>
-                  ) : null}
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Recent trades
-                </p>
-                <ul className="mt-1 divide-y divide-border/60 text-xs">
-                  {detail.data.trades.slice(0, 10).map((t) => (
-                    <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 py-2">
-                      <span className="min-w-0 truncate">
-                        {t.symbol} · {t.direction} · {t.account_mode} · {t.status}
-                      </span>
-                      <span
-                        className={cn(
-                          "num shrink-0 font-semibold",
-                          Number(t.pnl) >= 0 ? "text-primary" : "text-destructive",
-                        )}
-                      >
-                        {formatMoney(Number(t.pnl))}
-                      </span>
-                    </li>
-                  ))}
-                  {detail.data.trades.length === 0 ? (
-                    <li className="py-2 text-muted-foreground">No trades yet.</li>
-                  ) : null}
-                </ul>
-              </div>
             </>
           ) : null}
         </section>
@@ -544,10 +423,13 @@ function ActivityLog() {
               <span
                 className={cn(
                   "num shrink-0 font-semibold",
-                  e.amountUsd >= 0 ? "text-primary" : "text-destructive",
+                  e.kind === "deposit" ? "text-primary" : 
+                  e.kind === "withdrawal" ? "text-destructive" : 
+                  (e.amountUsd !== null && e.amountUsd >= 0) ? "text-primary" : "text-destructive"
                 )}
               >
-                {formatMoney(e.amountUsd)} USDT
+                {e.kind === "deposit" ? "+ " : e.kind === "withdrawal" ? "− " : ""}
+                {formatMoney(Math.abs(e.amountUsd))} USDT
               </span>
             )}
           </li>
