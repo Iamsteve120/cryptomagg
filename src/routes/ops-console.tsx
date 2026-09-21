@@ -162,13 +162,14 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
   const clients = useQuery({
     queryKey: ["admin-clients", query],
     queryFn: () => searchFn({ data: { query } }),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
 
   const detail = useQuery({
     queryKey: ["admin-client", selected],
     queryFn: () => detailFn({ data: { clientId: selected ?? "" } }),
     enabled: selected !== null,
+    refetchInterval: selected !== null ? 10_000 : false,
   });
 
   return (
@@ -352,7 +353,7 @@ function Console({ onSignedOut }: { onSignedOut: () => void }) {
                           M Pesa code {m.provider_receipt || "pending"} · {m.phone || "No phone"}
                         </span>
                         <span className="block truncate text-[11px] text-muted-foreground">
-                          {new Date(m.created_at).toLocaleString()}
+                           Completed {new Date(m.completed_at).toLocaleString()}
                         </span>
                       </span>
                       <span className={cn(

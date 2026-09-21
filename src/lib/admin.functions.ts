@@ -33,6 +33,14 @@ const FALLBACK_USD_KES = 129;
 
 const RANGE_KEYS = Object.keys(ADMIN_RANGES) as AdminRangeKey[];
 
+function displayKenyanPhone(value: string | null | undefined): string {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (/^254(7|1)\d{8}$/.test(digits)) return `+${digits}`;
+  if (/^0(7|1)\d{8}$/.test(digits)) return `+254${digits.slice(1)}`;
+  if (/^(7|1)\d{8}$/.test(digits)) return `+254${digits}`;
+  return value?.trim() || "";
+}
+
 function normaliseRange(value: unknown): AdminRangeKey {
   return RANGE_KEYS.includes(value as AdminRangeKey) ? (value as AdminRangeKey) : "1d";
 }
@@ -263,13 +271,50 @@ export const searchClients = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     const db = await requireAdmin();
+
+    const [intentsRes, withdrawalsRes] = await Promise.all([
+      db
+        .from("deposit_intents")
+        .select("user_id, amount_usdt, amount_kes, phone, provider_receipt, status, created_at, updated_at")
+        .eq("status", "completed")
+        .not("user_id", "in", HIDDEN_LIST)
+        .order("updated_at", { ascending: false })
+        .limit(1000),
+      db
+        .from("withdrawal_requests")
+        .select("user_id, amount_usdt, phone, provider_receipt, status, created_at, updated_at")
+        .in("status", ["paid", "completed"])
+        .not("user_id", "in", HIDDEN_LIST)
+        .order("updated_at", { ascending: false })
+        .limit(1000),
+    ]);
+
+    if (intentsRes.error || withdrawalsRes.error) throw new Error("Could not load clients.");
+
+    const paymentRows = [
+      ...(intentsRes.data ?? []).map((row) => ({
+        ...row,
+        kind: "deposit" as const,
+        amountKes: Number(row.amount_kes),
+        completedAt: row.updated_at ?? row.created_at,
+      })),
+      ...(withdrawalsRes.data ?? []).map((row) => ({
+        ...row,
+        kind: "withdrawal" as const,
+        amountKes: null,
+        completedAt: row.updated_at ?? row.created_at,
+      })),
+    ].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+
+    const activeUserIds = Array.from(new Set(paymentRows.map((row) => row.user_id)));
+    if (activeUserIds.length === 0) return { clients: [] };
+
     let builder = db
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
-      .gte("created_at", CONSOLE_EPOCH)
+      .in("id", activeUserIds)
       .not("id", "in", HIDDEN_LIST)
-      .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(1000);
 
     if (data.query.length > 0) {
       const safe = data.query.replace(/[%,()]/g, "");
@@ -290,20 +335,31 @@ export const searchClients = createServerFn({ method: "POST" })
     const clients = rows ?? [];
     if (clients.length === 0) return { clients: [] };
 
-    const { data: intents } = await db
-      .from("deposit_intents")
-      .select("user_id, amount_usdt, amount_kes, provider_receipt, status, created_at")
-      .in("user_id", clients.map((c) => c.id))
-      .order("created_at", { ascending: false });
-
-    const summary = new Map<string, { amount: number; amountKes: number; codes: string[] }>();
-    for (const intent of intents ?? []) {
-      if (intent.status !== "completed") continue;
-      const entry = summary.get(intent.user_id) ?? { amount: 0, amountKes: 0, codes: [] };
-      entry.amount += Number(intent.amount_usdt);
-      entry.amountKes += Number(intent.amount_kes);
-      if (intent.provider_receipt) entry.codes.push(intent.provider_receipt);
-      summary.set(intent.user_id, entry);
+    const summary = new Map<string, {
+      deposited: number;
+      depositedKes: number;
+      withdrawn: number;
+      codes: string[];
+      latestAt: string;
+      latestPhone: string;
+    }>();
+    for (const payment of paymentRows) {
+      const entry = summary.get(payment.user_id) ?? {
+        deposited: 0,
+        depositedKes: 0,
+        withdrawn: 0,
+        codes: [],
+        latestAt: payment.completedAt,
+        latestPhone: displayKenyanPhone(payment.phone),
+      };
+      if (payment.kind === "deposit") {
+        entry.deposited += Number(payment.amount_usdt);
+        entry.depositedKes += Number(payment.amountKes);
+      } else {
+        entry.withdrawn += Number(payment.amount_usdt);
+      }
+      if (payment.provider_receipt) entry.codes.push(payment.provider_receipt);
+      summary.set(payment.user_id, entry);
     }
 
     return {
@@ -312,12 +368,17 @@ export const searchClients = createServerFn({ method: "POST" })
         const name = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || "—";
         return {
           ...c,
+          phone: displayKenyanPhone(entry?.latestPhone || c.phone),
           displayName: name,
-          mpesaAmount: entry?.amount ?? 0,
-          mpesaAmountKes: entry?.amountKes ?? 0,
+          mpesaAmount: entry?.deposited ?? 0,
+          mpesaAmountKes: entry?.depositedKes ?? 0,
+          withdrawnAmount: entry?.withdrawn ?? 0,
           mpesaCodes: entry?.codes.slice(0, 3) ?? [],
+          latestPaymentAt: entry?.latestAt ?? c.created_at,
         };
-      }),
+      }).sort(
+        (a, b) => new Date(b.latestPaymentAt).getTime() - new Date(a.latestPaymentAt).getTime(),
+      ).slice(0, 40),
     };
   });
 
@@ -340,16 +401,16 @@ export const getClientDetail = createServerFn({ method: "POST" })
     const [withdrawalsRes, intentsRes, tradesRes, rateRes] = await Promise.all([
       db
         .from("withdrawal_requests")
-        .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at")
+        .select("id, amount_usdt, phone, status, provider_receipt, failure_reason, created_at, updated_at")
         .eq("user_id", profile.id)
-        .gte("created_at", CONSOLE_EPOCH)
+        .in("status", ["paid", "completed"])
         .order("created_at", { ascending: false })
         .limit(20),
       db
         .from("deposit_intents")
-        .select("id, amount_usdt, amount_kes, phone, status, provider_receipt, created_at")
+        .select("id, amount_usdt, amount_kes, phone, status, provider_receipt, created_at, updated_at")
         .eq("user_id", profile.id)
-        .gte("created_at", CONSOLE_EPOCH)
+        .eq("status", "completed")
         .order("created_at", { ascending: false })
         .limit(20),
       db
@@ -367,6 +428,8 @@ export const getClientDetail = createServerFn({ method: "POST" })
 
     const deposits = (intentsRes.data ?? []).map(d => ({
       ...d,
+      phone: displayKenyanPhone(d.phone),
+      completed_at: d.updated_at ?? d.created_at,
       kind: 'deposit' as const,
       amount: Number(d.amount_usdt),
       amount_kes: Number(d.amount_kes),
@@ -374,13 +437,15 @@ export const getClientDetail = createServerFn({ method: "POST" })
 
     const withdrawals = (withdrawalsRes.data ?? []).map(w => ({
       ...w,
+      phone: displayKenyanPhone(w.phone),
+      completed_at: w.updated_at ?? w.created_at,
       kind: 'withdrawal' as const,
       amount: -Math.abs(Number(w.amount_usdt)),
       amount_kes: -Math.abs(Number(w.amount_usdt) * usdKes),
     }));
 
     const unifiedMoney = [...deposits, ...withdrawals].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
     );
 
     return {
@@ -390,7 +455,7 @@ export const getClientDetail = createServerFn({ method: "POST" })
       trades: tradesRes.data ?? [],
       totals: {
         deposited: deposits.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount, 0),
-        withdrawn: withdrawals.filter(w => w.status === 'completed').reduce((s, w) => s + Math.abs(w.amount), 0),
+        withdrawn: withdrawals.reduce((s, w) => s + Math.abs(w.amount), 0),
         marketLosses: (tradesRes.data ?? []).filter(t => t.status !== 'open' && Number(t.pnl) < 0).reduce((s, t) => s + Math.abs(Number(t.pnl)), 0),
       }
     };
