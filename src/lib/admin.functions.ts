@@ -73,19 +73,29 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       db
         .from("profiles")
         .select("id, created_at, last_seen_at, live_balance, demo_balance")
-        .gte("created_at", CONSOLE_EPOCH),
+        .gte("created_at", CONSOLE_EPOCH)
+        .not("id", "in", HIDDEN_LIST),
       db
         .from("transactions")
         .select("user_id, kind, amount, status, account_mode, created_at")
         .eq("account_mode", "live")
-        .gte("created_at", sinceIso),
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
       // Real money activity only. Practice trades are never counted here.
       db
         .from("trades")
         .select("user_id, stake, status, pnl, account_mode, created_at")
         .eq("account_mode", "live")
-        .gte("created_at", sinceIso),
-      db.from("login_events").select("user_id, created_at").gte("created_at", sinceIso),
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
+      db
+        .from("login_events")
+        .select("user_id, created_at")
+        .gte("created_at", sinceIso)
+        .not("user_id", "in", HIDDEN_LIST),
+      db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
+    ]);
+
       db.from("deposit_intents").select("usd_kes_rate").order("created_at", { ascending: false }).limit(1),
     ]);
 
