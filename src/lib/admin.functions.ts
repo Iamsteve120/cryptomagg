@@ -341,6 +341,7 @@ export const searchClients = createServerFn({ method: "POST" })
       .from("profiles")
       .select("id, client_id, email, full_name, first_name, last_name, country, phone, kyc_status, live_balance, created_at, last_seen_at")
       .gte("created_at", CONSOLE_EPOCH)
+      .not("id", "in", HIDDEN_LIST)
       .order("created_at", { ascending: false })
       .limit(40);
 
