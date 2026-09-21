@@ -33,6 +33,25 @@ async function ensureProfile(userId: string, email: string | null) {
       .single();
     if (error) throw new Error("Could not prepare your demo account.");
     profile = created;
+
+    // Brand new account: send the one time warm welcome. Best effort only, so a
+    // mail problem never blocks someone from using their account.
+    if (email) {
+      try {
+        const { data: userRecord } = await db.auth.admin.getUserById(userId);
+        const meta = (userRecord?.user?.user_metadata ?? {}) as Record<string, unknown>;
+        const name =
+          typeof meta["first_name"] === "string"
+            ? (meta["first_name"] as string)
+            : typeof meta["full_name"] === "string"
+              ? (meta["full_name"] as string)
+              : null;
+        const { sendSignupWelcomeEmail } = await import("./email.server");
+        await sendSignupWelcomeEmail({ to: email, name });
+      } catch {
+        /* welcome email is not critical */
+      }
+    }
   }
 
   // Every account carries a permanent client ID, and the details captured at
