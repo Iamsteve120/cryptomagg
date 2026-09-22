@@ -364,12 +364,21 @@ function TradePage() {
   useEffect(() => {
     if (!autoEnabled || !autoCandidate || mutation.isPending || locked) return;
 
-    if (Date.now() - dataUpdatedAt > 60_000) return;
-    const botStake = botStakeRef.current;
-    if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
+    if (Date.now() - dataUpdatedAt > 120_000) return;
+    if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0)) {
       setAutoEnabled(false);
       return;
     }
+    // Keep running whatever the settings: fit the amount to what is available
+    // instead of switching the session off.
+    const maxBotStake = mode === "demo" ? 2000 : 200;
+    const botStake = Math.round(Math.max(0.5, Math.min(botStakeRef.current, maxBotStake, balance)) * 100) / 100;
+    if (balance < 0.5) {
+      setAutoEnabled(false);
+      return;
+    }
+    botStakeRef.current = botStake;
+    botStopLossRef.current = Math.max(0.1, Math.min(botStopLossRef.current, botStake));
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
     const autoDirection: Direction = autoCandidate.signal.direction === "down" ? "down" : "up";
