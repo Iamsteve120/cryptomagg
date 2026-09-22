@@ -234,6 +234,7 @@ function TradePage() {
   const [showBotTransactions, setShowBotTransactions] = useState(false);
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
+  const autoFailures = useRef(0);
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
@@ -308,11 +309,32 @@ function TradePage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["account"] });
-      if (variables.source === "auto") setAutoPlaced((value) => value + 1);
+      if (variables.source === "auto") {
+        autoFailures.current = 0;
+        setAutoPlaced((value) => value + 1);
+      }
     },
-    onError: (error) => {
-      setAutoEnabled(false);
-      toast.error(error instanceof Error ? error.message : "Could not open the trade.");
+    onError: (error, variables) => {
+      const message = error instanceof Error ? error.message : "Could not open the trade.";
+      if (variables?.source === "auto") {
+        // A single refused entry must never end the session: retry on the next
+        // quote, shrinking the amount when the refusal is about size or funds.
+        autoFailures.current += 1;
+        if (/balance|amount|stake|exposure|minimum|maximum|limit/i.test(message)) {
+          const reduced = Math.max(0.5, Math.round(Math.min(botStakeRef.current * 0.5, Math.max(0.5, balance)) * 100) / 100);
+          botStakeRef.current = reduced;
+          baseBotStakeRef.current = Math.min(baseBotStakeRef.current, reduced);
+          botStopLossRef.current = Math.min(botStopLossRef.current, reduced);
+        }
+        lastAutoQuote.current = null;
+        if (autoFailures.current >= 6) {
+          autoFailures.current = 0;
+          setAutoEnabled(false);
+          toast.error(message);
+        }
+        return;
+      }
+      toast.error(message);
     },
   });
 
@@ -342,18 +364,27 @@ function TradePage() {
   useEffect(() => {
     if (!autoEnabled || !autoCandidate || mutation.isPending || locked) return;
 
-    if (Date.now() - dataUpdatedAt > 60_000) return;
-    const botStake = botStakeRef.current;
-    if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0) || botStake > balance) {
+    if (Date.now() - dataUpdatedAt > 120_000) return;
+    if (autoPlaced >= Math.min(20, Math.max(5, Number(autoLimit) || 5)) || sessionLoss >= Math.max(1, Number(lossLimit) || 0)) {
       setAutoEnabled(false);
       return;
     }
+    // Keep running whatever the settings: fit the amount to what is available
+    // instead of switching the session off.
+    const maxBotStake = mode === "demo" ? 2000 : 200;
+    const botStake = Math.round(Math.max(0.5, Math.min(botStakeRef.current, maxBotStake, balance)) * 100) / 100;
+    if (balance < 0.5) {
+      setAutoEnabled(false);
+      return;
+    }
+    botStakeRef.current = botStake;
+    botStopLossRef.current = Math.max(0.1, Math.min(botStopLossRef.current, botStake));
     if (lastAutoQuote.current === dataUpdatedAt) return;
     lastAutoQuote.current = dataUpdatedAt;
     const autoDirection: Direction = autoCandidate.signal.direction === "down" ? "down" : "up";
     setSymbol(autoCandidate.quote.symbol);
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStake, selectedDuration: botDurationRef.current });
-  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, sessionLoss]);
+  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, locked, lossLimit, mode, mutation, sessionLoss]);
 
 
   useEffect(() => {
