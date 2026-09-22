@@ -308,11 +308,32 @@ function TradePage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["account"] });
-      if (variables.source === "auto") setAutoPlaced((value) => value + 1);
+      if (variables.source === "auto") {
+        autoFailures.current = 0;
+        setAutoPlaced((value) => value + 1);
+      }
     },
-    onError: (error) => {
-      setAutoEnabled(false);
-      toast.error(error instanceof Error ? error.message : "Could not open the trade.");
+    onError: (error, variables) => {
+      const message = error instanceof Error ? error.message : "Could not open the trade.";
+      if (variables?.source === "auto") {
+        // A single refused entry must never end the session: retry on the next
+        // quote, shrinking the amount when the refusal is about size or funds.
+        autoFailures.current += 1;
+        if (/balance|amount|stake|exposure|minimum|maximum|limit/i.test(message)) {
+          const reduced = Math.max(0.5, Math.round(Math.min(botStakeRef.current * 0.5, Math.max(0.5, balance)) * 100) / 100);
+          botStakeRef.current = reduced;
+          baseBotStakeRef.current = Math.min(baseBotStakeRef.current, reduced);
+          botStopLossRef.current = Math.min(botStopLossRef.current, reduced);
+        }
+        lastAutoQuote.current = null;
+        if (autoFailures.current >= 6) {
+          autoFailures.current = 0;
+          setAutoEnabled(false);
+          toast.error(message);
+        }
+        return;
+      }
+      toast.error(message);
     },
   });
 
