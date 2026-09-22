@@ -390,7 +390,8 @@ function TradePage() {
     const requestedStake = Math.min(maxBotStake, Math.max(0.5, Number(botStake) || 0.5));
     const configuredStake = Math.min(requestedStake, Math.max(0.5, balance));
     const configuredTakeProfit = Math.min(2000, Math.max(0.1, Number(botTakeProfit) || 0.1));
-    const configuredStopLoss = Math.max(0.1, Number(botStopLoss) || 0.1);
+    // The server rejects a Stop Loss above the trade amount, so keep it inside the amount.
+    const configuredStopLoss = Math.min(configuredStake, Math.max(0.1, Number(botStopLoss) || 0.1));
     const configuredMartingale = Math.min(5.5, Math.max(1.25, Number(martingaleLevel) || 1.25));
     if (configuredStake > balance) {
       toast.error(mode === "demo" ? "Bot amount is higher than your Demo balance." : "Bot amount is higher than your available balance.");
@@ -403,6 +404,7 @@ function TradePage() {
       setBotId(bot.id);
       setDuration(configuredDuration);
       setAutoLimit(String(configuredTradeCount));
+      setMultiplier(bot.multiplier);
     }
     sessionStartedAt.current = Date.now();
     botTakeProfitRef.current = configuredTakeProfit;
