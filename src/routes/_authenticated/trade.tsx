@@ -384,7 +384,7 @@ function TradePage() {
     const autoDirection: Direction = autoCandidate.signal.direction === "down" ? "down" : "up";
     setSymbol(autoCandidate.quote.symbol);
     mutation.mutate({ direction: autoDirection, source: "auto", selectedSymbol: autoCandidate.quote.symbol, selectedStake: botStake, selectedDuration: botDurationRef.current });
-  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, lossLimit, mutation, sessionLoss]);
+  }, [autoCandidate, autoEnabled, autoLimit, autoPlaced, balance, dataUpdatedAt, locked, lossLimit, mode, mutation, sessionLoss]);
 
 
   useEffect(() => {
