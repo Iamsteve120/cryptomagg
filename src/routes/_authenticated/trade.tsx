@@ -234,6 +234,7 @@ function TradePage() {
   const [showBotTransactions, setShowBotTransactions] = useState(false);
   const sessionStartedAt = useRef<number | null>(null);
   const lastAutoQuote = useRef<number | null>(null);
+  const autoFailures = useRef(0);
 
   const quotes = markets?.quotes ?? [];
   const quote = quotes.find((item) => item.symbol === symbol);
