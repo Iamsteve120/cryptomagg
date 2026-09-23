@@ -24,6 +24,7 @@ import {
   startMpesaDeposit,
 } from "@/lib/payments.functions";
 import {
+  CRYPTO_MIN_WITHDRAWAL,
   LIVE_MIN_DEPOSIT,
   LIVE_MIN_WITHDRAWAL,
   USDT_DEPOSIT_ADDRESSES, BTC_DEPOSIT_ADDRESSES, BTC_MIN_DEPOSIT_USD,
@@ -130,6 +131,10 @@ function UsdtDepositPanel() {
           <h2 className="font-display text-lg font-semibold">Deposit USDT</h2>
           <p className="text-sm text-muted-foreground">
             Send USDT on the Tron network only. Smallest deposit is {USDT_MIN_DEPOSIT} USDT.
+          </p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
+            NB: Cryptocurrency takes time to reflect on your trading account. Network confirmations
+            can take a few minutes to a few hours before the balance appears.
           </p>
         </div>
       </div>
@@ -453,7 +458,8 @@ function WalletPage() {
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><ArrowUpFromLine className="size-5" /></div>
               <div>
                 <h2 className="font-display text-lg font-semibold">Withdraw cryptocurrency</h2>
-                <p className="text-sm text-muted-foreground">Paste your own wallet address. The address and network cannot be changed after submission.</p>
+                <p className="text-sm text-muted-foreground">Paste your own wallet address. The address and network cannot be changed after submission. Smallest crypto withdrawal is {CRYPTO_MIN_WITHDRAWAL} USDT on Bitcoin and USDT.</p>
+                <p className="mt-1 text-xs font-semibold text-foreground">NB: Cryptocurrency takes time to reflect. Network confirmations can take a few minutes to a few hours after we send the payout.</p>
               </div>
             </div>
             {!liveStatus?.cryptoPayoutConfigured ? <p className="rounded-md border border-border bg-background px-4 py-3 text-sm text-muted-foreground">Automatic crypto payouts are temporarily unavailable.</p> : null}
@@ -464,8 +470,8 @@ function WalletPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cryptoAmount">Amount in USDT</Label>
-                <Input id="cryptoAmount" inputMode="decimal" placeholder={String(LIVE_MIN_WITHDRAWAL)} value={cryptoAmount} onChange={(event) => { setCryptoAmount(event.target.value); setCryptoCodeSent(false); }} />
-                <p className="text-xs text-muted-foreground">Bitcoin payouts are converted from this USDT amount at the provider's current rate.</p>
+                <Input id="cryptoAmount" inputMode="decimal" placeholder={String(CRYPTO_MIN_WITHDRAWAL)} value={cryptoAmount} onChange={(event) => { setCryptoAmount(event.target.value); setCryptoCodeSent(false); }} />
+                <p className="text-xs text-muted-foreground">Smallest crypto withdrawal is {CRYPTO_MIN_WITHDRAWAL} USDT. Bitcoin payouts are converted from this USDT amount at the provider's current rate.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cryptoAddress">{cryptoNetwork === "btc" ? "Bitcoin address" : "USDT TRC20 address"}</Label>
@@ -475,7 +481,7 @@ function WalletPage() {
             </div>
             {cryptoCodeSent ? <div className="space-y-2"><Label htmlFor="cryptoCode">Email confirmation code</Label><Input id="cryptoCode" autoComplete="one-time-code" placeholder="Enter the 6 character code" value={cryptoCode} onChange={(event) => setCryptoCode(event.target.value.toUpperCase())} /></div> : null}
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button type="button" variant="outline" disabled={!liveStatus?.cryptoPayoutConfigured || cryptoCodeMutation.isPending || (Number(cryptoAmount) || 0) < LIVE_MIN_WITHDRAWAL || (Number(cryptoAmount) || 0) > balance + 0.001 || cryptoAddress.length < 25} onClick={() => cryptoCodeMutation.mutate()}>{cryptoCodeMutation.isPending ? "Sending code" : cryptoCodeSent ? "Send a new code" : "Email me a code"}</Button>
+              <Button type="button" variant="outline" disabled={!liveStatus?.cryptoPayoutConfigured || cryptoCodeMutation.isPending || (Number(cryptoAmount) || 0) < CRYPTO_MIN_WITHDRAWAL || (Number(cryptoAmount) || 0) > balance + 0.001 || cryptoAddress.length < 25} onClick={() => cryptoCodeMutation.mutate()}>{cryptoCodeMutation.isPending ? "Sending code" : cryptoCodeSent ? "Send a new code" : "Email me a code"}</Button>
               <Button type="button" disabled={!liveStatus?.cryptoPayoutConfigured || !cryptoCodeSent || codeSecondsLeft <= 0 || cryptoWithdrawalMutation.isPending || cryptoCode.trim().length < 4} onClick={() => cryptoWithdrawalMutation.mutate()}>{cryptoWithdrawalMutation.isPending ? "Submitting" : "Confirm crypto withdrawal"}</Button>
             </div>
           </section>
@@ -705,6 +711,10 @@ function BtcDepositPanel() {
           <h2 className="font-display text-lg font-semibold">{tr("Deposit Bitcoin")}</h2>
           <p className="text-sm text-muted-foreground">
             Send BTC to the address below. Smallest deposit is ${BTC_MIN_DEPOSIT_USD} USD equivalent.
+          </p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
+            NB: Cryptocurrency takes time to reflect on your trading account. Bitcoin confirmations
+            can take a few minutes to a few hours before the balance appears.
           </p>
         </div>
       </div>

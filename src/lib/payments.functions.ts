@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+  CRYPTO_MIN_WITHDRAWAL,
   LIVE_MAX_DEPOSIT,
   LIVE_MIN_DEPOSIT,
   LIVE_MIN_WITHDRAWAL,
@@ -316,7 +317,7 @@ export const requestCryptoWithdrawalCode = createServerFn({ method: "POST" })
     rateLimit(context.userId, "crypto-withdrawal-code", 5);
     await requireTradingActivity(context.userId);
     const amountUsdt = Math.round(data.amountUsdt * 100) / 100;
-    if (amountUsdt < LIVE_MIN_WITHDRAWAL) throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
+    if (amountUsdt < CRYPTO_MIN_WITHDRAWAL) throw new Error(`The smallest crypto withdrawal is ${CRYPTO_MIN_WITHDRAWAL} USDT.`);
     if (!validCryptoAddress(data.network, data.address)) throw new Error(data.network === "btc" ? "Enter a valid Bitcoin address." : "Enter a valid USDT TRC20 address beginning with T.");
     return sendWithdrawalCode({ userId: context.userId, claims: context.claims, amountUsdt, destination: data.address, destinationLabel: data.network === "btc" ? "your Bitcoin address" : "your USDT TRC20 address" });
   });
@@ -477,7 +478,7 @@ export const requestCryptoWithdrawal = createServerFn({ method: "POST" })
     rateLimit(context.userId, "crypto-withdrawal", 5);
     await requireTradingActivity(context.userId);
     const amountUsdt = Math.round(data.amountUsdt * 100) / 100;
-    if (amountUsdt < LIVE_MIN_WITHDRAWAL) throw new Error(`The smallest withdrawal is ${LIVE_MIN_WITHDRAWAL} USDT.`);
+    if (amountUsdt < CRYPTO_MIN_WITHDRAWAL) throw new Error(`The smallest crypto withdrawal is ${CRYPTO_MIN_WITHDRAWAL} USDT.`);
     if (!validCryptoAddress(data.network, data.address)) throw new Error(data.network === "btc" ? "Enter a valid Bitcoin address." : "Enter a valid USDT TRC20 address beginning with T.");
     const provider = await import("./crypto-payout.server");
     if (!provider.cryptoPayoutConfigured()) throw new Error("Crypto withdrawals are temporarily unavailable.");
