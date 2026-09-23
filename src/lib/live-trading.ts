@@ -13,18 +13,20 @@ export const LIVE_MIN_STAKE = 0.5;
 export const LIVE_MAX_STAKE = 200;
 
 /** Minimum and maximum M Pesa deposit, in USDT. */
-// Testing minimums: about 50 KES at current rates. Raise back to 5 before opening to the public.
-export const LIVE_MIN_DEPOSIT = 0.39;
+export const LIVE_MIN_DEPOSIT = 5;
 export const LIVE_MAX_DEPOSIT = 500;
 
-/** Minimum withdrawal, in USDT. */
-export const LIVE_MIN_WITHDRAWAL = 0.39;
+/** Minimum M Pesa withdrawal, in USDT. */
+export const LIVE_MIN_WITHDRAWAL = 5;
 
 /** Smallest USDT crypto transfer we credit. */
-export const USDT_MIN_DEPOSIT = 10;
+export const USDT_MIN_DEPOSIT = 50;
 
 /** Smallest BTC crypto transfer we credit, in USD equivalent. */
-export const BTC_MIN_DEPOSIT_USD = 10;
+export const BTC_MIN_DEPOSIT_USD = 50;
+
+/** Smallest crypto withdrawal, in USDT equivalent, on every network. */
+export const CRYPTO_MIN_WITHDRAWAL = 50;
 
 /** Receiving addresses for USDT crypto deposits. */
 export const USDT_DEPOSIT_ADDRESSES: readonly { label: string; network: string; address: string }[] = [

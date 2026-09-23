@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+  CRYPTO_MIN_WITHDRAWAL,
   LIVE_MAX_DEPOSIT,
   LIVE_MIN_DEPOSIT,
   LIVE_MIN_WITHDRAWAL,
