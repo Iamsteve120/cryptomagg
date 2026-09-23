@@ -24,6 +24,7 @@ import {
   startMpesaDeposit,
 } from "@/lib/payments.functions";
 import {
+  CRYPTO_MIN_WITHDRAWAL,
   LIVE_MIN_DEPOSIT,
   LIVE_MIN_WITHDRAWAL,
   USDT_DEPOSIT_ADDRESSES, BTC_DEPOSIT_ADDRESSES, BTC_MIN_DEPOSIT_USD,
