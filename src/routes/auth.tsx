@@ -93,7 +93,7 @@ function AuthPage() {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: window.location.origin + "/verify",
+            emailRedirectTo: window.location.origin + "/dashboard",
             data: {
               first_name: firstName.trim(),
               last_name: lastName.trim(),
@@ -107,10 +107,10 @@ function AuthPage() {
         });
         if (error) throw error;
         if (!data.session) {
-          toast.success("Check your email to confirm your address, then sign in to upload your ID.");
+          toast.success("Check your email to confirm your address, then sign in.");
           setMode("signin");
         } else {
-          router.navigate({ to: "/verify" });
+          router.navigate({ to: "/dashboard" });
         }
         return;
       }
@@ -142,12 +142,7 @@ function AuthPage() {
       toast.error("That sign in did not finish. Please try again.");
       return;
     }
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("kyc_status")
-      .eq("id", current.user.id)
-      .maybeSingle();
-    router.navigate({ to: profile?.kyc_status === "approved" ? "/dashboard" : "/verify" });
+    router.navigate({ to: "/dashboard" });
   }
 
   return (
